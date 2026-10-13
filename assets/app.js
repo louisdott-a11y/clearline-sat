@@ -590,11 +590,11 @@
       const arrow = () => el("span", { class: "go-chip", "aria-hidden": "true" }, svg("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" }, svg("path", { d: "M3 8h9M8.5 4.5 12 8l-3.5 3.5" })));
       const nss = { "vector-effect": "non-scaling-stroke" };
       const lobe = svg("svg", { class: "lobe", viewBox: "0 0 1000 600", preserveAspectRatio: "none", "aria-hidden": "true" },
-        svg("path", { class: "landmass wide", ...nss, d: "M50 570 C10 440 20 260 60 160 C100 70 200 36 360 40 C520 44 660 18 800 22 C900 24 970 50 985 130 C1000 270 985 420 975 520 C962 585 900 590 780 588 L220 590 C130 592 80 596 50 570 Z" }),
-        svg("path", { class: "landmass tall", ...nss, d: "M30 40 C200 10 400 30 600 15 C800 0 950 20 975 60 C995 250 960 400 985 560 C900 595 600 580 400 592 C200 600 60 590 25 560 C5 400 40 250 15 120 C10 70 15 50 30 40 Z" }));
+        svg("path", { class: "landmass wide", ...nss, d: "M70 590 C20 520 10 400 40 300 C70 200 60 130 130 80 C210 25 300 60 380 50 C470 38 520 0 620 20 C720 40 760 90 840 70 C930 48 990 110 980 200 C972 270 900 290 905 340 C910 390 990 400 990 470 C990 560 920 600 820 592 C700 584 640 560 560 580 C460 605 360 570 260 590 C180 606 110 615 70 590 Z" }),
+        svg("path", { class: "landmass tall", ...nss, d: "M60 40 C250 0 420 50 560 20 C720 -10 900 10 960 70 C1000 140 930 200 960 290 C990 380 1000 470 960 540 C900 600 760 570 620 590 C440 612 300 570 160 592 C70 605 20 560 30 480 C40 400 0 330 20 240 C35 160 -10 80 60 40 Z" }));
       const trail = (cls, d) => [svg("path", { class: "edge " + cls, ...nss, d }), svg("path", { class: "dash " + cls, ...nss, d })];
       const route = el("div", { class: "route", "aria-hidden": "true" },
-        el("span", { class: "here" }, svg("svg", { width: "26", height: "32", viewBox: "0 0 26 32" }, svg("path", { d: "M13 30C6 21 2 16 2 11a11 11 0 0 1 22 0c0 5-4 10-11 19z" }), svg("circle", { cx: "13", cy: "11", r: "4" })), el("span", { text: "You are here" })),
+        el("span", { class: "here" }, svg("svg", { width: "26", height: "32", viewBox: "0 0 26 32" }, svg("path", { d: "M13 30C6 21 2 16 2 11a11 11 0 0 1 22 0c0 5-4 10-11 19z" }), svg("circle", { cx: "13", cy: "11", r: "4" })), el("span", { text: "You are here: the start" })),
         svg("svg", { class: "trail", viewBox: "0 0 100 100", preserveAspectRatio: "none" }, trail("wide", "M50 0C28 22 72 42 46 62C32 74 36 88 100 88"), trail("tall", "M50 0C28 30 72 55 46 78C38 88 46 95 50 100")));
       const first = el("div", { class: "first" }, lobe, route,
         el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl", text: "score" }), "."),
