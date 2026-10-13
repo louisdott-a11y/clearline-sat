@@ -587,19 +587,25 @@
 
     if (!plan) {
       const practiceOne = () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); };
-      const first = el("div", { class: "first" },
-        el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl hl-green", text: "score" }), "."),
+      const arrow = () => el("span", { class: "go-chip", "aria-hidden": "true" }, svg("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" }, svg("path", { d: "M3 8h9M8.5 4.5 12 8l-3.5 3.5" })));
+      const lobe = svg("svg", { class: "lobe", viewBox: "0 0 1000 600", preserveAspectRatio: "none", "aria-hidden": "true" },
+        svg("path", { class: "landmass", "vector-effect": "non-scaling-stroke", d: "M60 560 C20 470 40 330 120 240 C200 150 300 130 400 80 C520 20 660 60 780 36 C880 16 970 40 985 120 C1000 260 990 420 975 520 C960 585 900 592 780 590 L200 592 C120 594 80 590 60 560 Z" }),
+        svg("path", { class: "trail", "vector-effect": "non-scaling-stroke", d: "M20 598 C60 560 130 540 110 480 C92 425 140 400 118 352" }),
+        svg("path", { class: "pin", "vector-effect": "non-scaling-stroke", d: "M118 344 c-9 -12 -14 -20 -14 -27 a14 14 0 0 1 28 0 c0 7 -5 15 -14 27 z" }));
+      const first = el("div", { class: "first" }, lobe,
+        el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl", text: "score" }), "."),
         el("p", { class: "sub", text: "One adaptive practice test, Reading and Writing plus Math, shows where you stand and builds your daily plan. The timer pauses whenever you leave." }),
-        el("div", { class: "row" },
-          el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : "68 min" })),
-          el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question →")),
-        el("p", { class: "tiny" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."));
-      const quick = el("section", { class: "jump" }, el("h2", { class: "title sm", text: "Or jump straight in" }),
-        el("div", { class: "tour" },
-          [["Reading and Writing", "Mixed skills, hand-checked questions", () => { ui.pr.source = "rw"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
-            ["Math", "Unlimited generated problems", () => { ui.pr.source = "math"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
-            ["Question bank", "Filter by skill and difficulty, build drills", () => go("bank")],
-            ["Flashcards", "Vocabulary for Words in Context", () => go("vocab")]].map(([a, b, f], i) => el("div", {}, el("span", { class: "k", text: i + 1 }), el("span", {}, el("b", { text: a }), el("br"), el("small", { text: b })), el("button", { type: "button", onclick: f }, "Open")))));
+        el("div", { class: "row go" },
+          el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : "68 min" }), arrow()),
+          el("span", { class: "row", style: "gap:14px" }, el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question"), el("span", { class: "note", "aria-hidden": "true", text: "← not ready? start small" }))),
+        el("p", { class: "tiny", style: "color:inherit" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."),
+        el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
+      const quick = el("section", { class: "jump" }, el("h2", { class: "title", text: "Or wander off the path" }),
+        el("div", { class: "coast" },
+          [["rw", "Reading and Writing", () => { ui.pr.source = "rw"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
+            ["math", "Math", () => { ui.pr.source = "math"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
+            ["tool", "Question bank", () => go("bank")],
+            ["rw", "Flashcards", () => go("vocab")]].map(([c, a, f]) => el("button", { class: "cap " + c, type: "button", onclick: f }, a, arrow()))));
       return el("div", { class: "stack" }, first, prac.length || imp ? stats : null, quick);
     }
 
