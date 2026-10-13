@@ -527,7 +527,7 @@
     renderTools();
     const banner = document.getElementById("banner");
     banner.replaceChildren(am && ui.view !== "mock"
-      ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "resume test"))
+      ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "Resume test"))
       : "");
     document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
     document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
@@ -753,7 +753,7 @@
         const right = set.results.filter((r) => r).length;
         parts.push(sheet("", title("set complete"), el("p", { style: "font-weight:900;font-size:56px;margin:0", text: `${right}/${set.ids.length}` }),
           el("p", { class: "sub", text: right / set.ids.length >= 0.8 ? "Strong set. Your plan will lean harder next time." : "Misses are saved in review. Retry them tomorrow while the explanations are fresh." }),
-          el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: () => go("home") }, "back home"), el("button", { class: "btn ghost", type: "button", onclick: () => { progress.set = null; pr.source = "mixed"; save(); loadPracticeQuestion(); render(); } }, "free practice"))));
+          el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: () => go("home") }, "Back home"), el("button", { class: "btn ghost", type: "button", onclick: () => { progress.set = null; pr.source = "mixed"; save(); loadPracticeQuestion(); render(); } }, "Free practice"))));
         return el("div", {}, parts);
       }
     }
@@ -826,9 +826,9 @@
       answerArea,
       el("div", { class: "actions" },
         twin ? el("button", { class: "btn sun", id: "twin-btn", type: "button", title: "A new question on the same skill", onclick: () => { const r = remixOf(q); if (!r) { toast("No twin left for this skill. Try the next question."); return; } ui.qCount++; loadPracticeQuestion(r); render(); } }, "Try a twin") : null,
-        pr.checked ? el("button", { class: twin ? "btn ghost" : "btn", id: "next-btn", type: "button", onclick: nextPractice }, "next")
-          : el("button", { class: "btn", id: "check-btn", type: "button", disabled: !canCheck, onclick: checkPractice }, "check answer"),
-        !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "skip") : null,
+        pr.checked ? el("button", { class: twin ? "btn ghost" : "btn", id: "next-btn", type: "button", onclick: nextPractice }, "Next")
+          : el("button", { class: "btn", id: "check-btn", type: "button", disabled: !canCheck, onclick: checkPractice }, "Check answer"),
+        !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "Skip") : null,
         !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
         q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check") : null),
       pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", q.steps[0]), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
@@ -872,7 +872,7 @@
     return el("div", { class: "walk" },
       el("div", { class: "row between" }, el("h4", { text: "Walkthrough" }), plainToggle()),
       el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", { text: t }))),
-        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, ans, penMark("under")), "."))));
+        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, ans, penMark("under"))))));
   }
   const MISS = [["misread", "Misread the question"], ["concept", "Didn't know the rule"], ["trap", "Fell for a trap answer"], ["time", "Rushed or ran out of time"], ["slip", "Careless slip"]];
   const MISS_TIP = {
@@ -933,8 +933,8 @@
     if (!sample) { wrap.append(el("span", { class: "tiny", text: "Still stuck? Gem, the coach, answers follow-up questions when this page is opened in Claude." })); return wrap; }
     const out = el("div", { class: "answer-text" });
     const input = el("textarea", { class: "input", id: "tutor-input", rows: "1", placeholder: "Ask Gem about this question, like “Why isn't B right?”", "aria-label": "Question for Gem" });
-    const stop = el("button", { class: "btn small ghost", type: "button", hidden: true, onclick: () => tutorCtl?.abort() }, "stop");
-    const send = el("button", { class: "btn small", type: "submit" }, "ask gem");
+    const stop = el("button", { class: "btn small ghost", type: "button", hidden: true, onclick: () => tutorCtl?.abort() }, "Stop");
+    const send = el("button", { class: "btn small", type: "submit" }, "Ask gem");
     wrap.append(el("div", { class: "row between" }, el("b", { style: "display:inline-flex;gap:6px;align-items:center" }, gem("g"), "ask gem"), el("span", { class: "tiny", text: "Uses your Claude account. Answers are AI-generated." })),
       el("form", { class: "row", style: "margin-top:8px", onsubmit: async (e) => {
         e.preventDefault();
@@ -1036,7 +1036,7 @@
         el("div", { class: "row" },
           r.misses.length ? el("button", { class: "btn sun", type: "button", onclick: () => { ui.rush = null; beginSet({ kind: "rush", label: "Rush misses", ids: r.misses.slice() }); } }, `Go over my ${r.misses.length} miss${r.misses.length === 1 ? "" : "es"}`) : null,
           el("button", { class: r.misses.length ? "btn ghost" : "btn sun", type: "button", onclick: startRush }, "Go again"),
-          el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.rush = null; render(); } }, "change skill"))));
+          el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.rush = null; render(); } }, "Change skill"))));
     }
     const q = r.q;
     const hasStim = (q.passage && q.passage.length) || q.table || q.list;
@@ -1052,8 +1052,8 @@
       el("div", { class: "rushbar" },
         el("span", { class: "rush-clock", id: "rush-clock", "aria-label": "Time left", text: clock(r.left) }),
         el("span", {}, el("b", { text: r.score }), " right"),
-        el("span", { class: "pen combo", "aria-live": "polite", text: r.combo >= 2 ? `×${r.combo} combo!` : r.flash && !r.flash.ok ? "shake it off" : "" }),
-        el("button", { class: "btn small ghost", type: "button", onclick: endRush }, "end round")),
+        el("span", { class: "pen combo", "aria-live": "polite", text: r.flash ? (r.flash.ok ? (r.combo >= 2 ? `Right! ×${r.combo} combo!` : "Right!") : `Not quite, it was ${LETTERS[q.answer]}.`) : r.combo >= 2 ? `×${r.combo} combo` : "" }),
+        el("button", { class: "btn small ghost", type: "button", onclick: endRush }, "End round")),
       el("div", { class: "qgrid" + (two ? "" : " single") }, two ? el("section", { "aria-label": "Passage" }, stimulus(q)) : null, ask));
   }
 
@@ -1092,12 +1092,12 @@
     const list = el("div", { class: "tour" }, rows.slice(0, f.limit).map(({ q, gen }, i) => {
       if (gen) return el("div", {}, el("span", { class: "k", text: "∞" }),
         el("span", {}, el("span", { style: "display:inline-flex;gap:6px;align-items:center" }, gem(levelOf(skillStats(GEN_SKILL[gen.id]).total >= 3 ? skillStats(GEN_SKILL[gen.id]).rate : null)), el("b", { text: GEN_SKILL[gen.id] })), el("br"), el("small", { text: `unlimited variations · ${DIFF[gen.diff]} · new numbers every time` })),
-        el("button", { type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(MATH.make(gen.id, Math.floor(Math.random() * 1e9))); go("practice"); } }, "do one"));
+        el("button", { type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(MATH.make(gen.id, Math.floor(Math.random() * 1e9))); go("practice"); } }, "Do one"));
       const l = latest(q.id);
       const status = progress.saved[q.id] ? "★ saved" : !l ? "not tried" : l.c ? "✓ right" : "✗ missed";
       return el("div", {}, el("span", { class: "k", text: i + 1 }),
         el("span", {}, el("b", { text: `${skillOf(q)} · ${DIFF[q.diff]}` }), el("span", { text: "  " + status }), el("br"), el("small", { class: "snip", style: "display:block;color:inherit;opacity:.8", text: plain(q.passage?.[0] || q.prompt) })),
-        el("button", { type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(q); go("practice"); } }, "do it"));
+        el("button", { type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(q); go("practice"); } }, "Do it"));
     }));
     const d = ui.drill;
     const skillPicker = el("div", { class: "stack", style: "gap:10px" }, DOM_KEYS.map((dom) => el("div", {},
@@ -1113,7 +1113,7 @@
         el("label", { class: "check" }, el("input", { type: "checkbox", id: "dr-timed", checked: d.timed, onchange: (e) => { d.timed = e.target.checked; } }), "timed at SAT pace"),
         el("label", { class: "field" }, "Name (to save)", el("input", { class: "input", id: "dr-name", value: d.name, placeholder: "e.g. comma rules", oninput: (e) => { d.name = e.target.value; } }))),
       el("div", { class: "row", style: "margin-top:12px" },
-        el("button", { class: "btn", type: "button", onclick: () => runDrill({ ...d }) }, "start drill"),
+        el("button", { class: "btn", type: "button", onclick: () => runDrill({ ...d }) }, "Start drill"),
         el("button", { class: "btn ghost", type: "button", onclick: () => {
           const name = d.name.trim() || (d.skills.length ? d.skills.slice(0, 2).join(" + ") : "weakest skills");
           progress.drills.push({ id: "d" + Date.now(), name, skills: d.skills.slice(), diff: d.diff, count: d.count, timed: d.timed });
@@ -1122,12 +1122,12 @@
       progress.drills.length ? el("div", { style: "margin-top:16px" }, el("p", { class: "label", text: "Saved drills" }), el("div", { class: "tour" }, progress.drills.map((x, i) => el("div", {},
         el("span", { class: "k", text: "abcdefghijklmnopqrstuvwxyz"[i % 26] }),
         el("span", {}, el("b", { text: x.name }), el("br"), el("small", { text: `${x.count} q · ${x.diff === "any" ? "any difficulty" : DIFF[x.diff]}${x.timed ? " · timed" : ""} · ${x.skills.length ? x.skills.join(", ") : "weakest skills"}` })),
-        el("span", { class: "row", style: "gap:6px" }, el("button", { type: "button", onclick: () => runDrill(x) }, "run"), el("button", { type: "button", onclick: () => { progress.drills = progress.drills.filter((y) => y.id !== x.id); save(); render(); } }, "delete")))))) : null);
+        el("span", { class: "row", style: "gap:6px" }, el("button", { type: "button", onclick: () => runDrill(x) }, "Run"), el("button", { type: "button", onclick: () => { progress.drills = progress.drills.filter((y) => y.id !== x.id); save(); render(); } }, "Delete")))))) : null);
     return el("div", { class: "cols", style: "align-items:start" },
       sheet("", title("question bank"),
         el("p", { class: "sub", text: `${BANK.length} hand-written questions plus ${MATH.GENS.length} math templates that make unlimited new problems. Showing ${Math.min(f.limit, rows.length)} of ${rows.length}${gensCount ? ` (${gensCount} unlimited)` : ""}.` }),
         filters, rows.length ? list : el("div", { class: "empty", text: "Nothing matches these filters." }),
-        rows.length > f.limit ? el("div", { class: "row", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: () => { f.limit += 40; render(); } }, "show more")) : null),
+        rows.length > f.limit ? el("div", { class: "row", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: () => { f.limit += 40; render(); } }, "Show more")) : null),
       builder);
   }
 
@@ -1171,7 +1171,7 @@
       sheet("", title("Past practice tests", true), past.length ? el("div", { class: "tour wide" }, past.map((m, i) => el("div", {},
         el("span", { class: "k", text: "abcdefghijklmnopqrst"[i] }), el("span", { text: `${MOCK_SPEC[m.kind].label.toLowerCase()} · ${niceDate(m.at)}${timeLabel(m.mult)}` }),
         el("span", { class: "r", text: m.rw }), el("span", { class: "r", text: m.math }), el("span", { class: "r", style: "font-weight:900", text: m.total }),
-        el("button", { type: "button", onclick: () => { ui.mockResult = m.id; render(); } }, "results")))) : el("div", { class: "empty", text: "No practice tests yet. Results and a question-by-question review will show up here." })));
+        el("button", { type: "button", onclick: () => { ui.mockResult = m.id; render(); } }, "Results")))) : el("div", { class: "empty", text: "No practice tests yet. Results and a question-by-question review will show up here." })));
   }
   function renderBreak(am) {
     return sheet("", el("div", { class: "stack", style: "justify-items:center;text-align:center" },
@@ -1188,9 +1188,9 @@
       el("span", { class: "ttl", text: `Section ${m.section === "rw" ? 1 : 2}, Module ${m.n}: ${SECTION[m.section]}` }),
       el("span", { class: "clock" + (m.timeLeft != null && m.timeLeft <= 300 ? " warn" : ""), id: "test-clock", "aria-label": "Time left", text: m.timeLeft == null ? "untimed" : ui.hideTimer ? "--:--" : clock(m.timeLeft) }),
       el("div", { class: "right" },
-        m.timeLeft != null ? el("button", { class: "btn small", type: "button", onclick: () => { ui.hideTimer = !ui.hideTimer; render(); } }, ui.hideTimer ? "show timer" : "hide timer") : null,
-        m.section === "math" ? [el("button", { class: "btn small", type: "button", onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, "calculator"), el("button", { class: "btn small", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "reference")] : null,
-        el("button", { class: "btn small", type: "button", onclick: () => { save(true); go("home"); } }, "pause & exit")));
+        m.timeLeft != null ? el("button", { class: "btn small", type: "button", onclick: () => { ui.hideTimer = !ui.hideTimer; render(); } }, ui.hideTimer ? "Show timer" : "Hide timer") : null,
+        m.section === "math" ? [el("button", { class: "btn small", type: "button", onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, "Calculator"), el("button", { class: "btn small", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "Reference")] : null,
+        el("button", { class: "btn small", type: "button", onclick: () => { save(true); go("home"); } }, "Pause & exit")));
     const sec = "sheet qsheet sec-" + m.section;
     if (m.reviewing) return el("section", { class: sec, "aria-label": "Module review" }, head, trailbar(am), renderModuleReview(m));
     const id = m.ids[m.cur], q = getQ(id), resp = m.ans[id];
@@ -1219,8 +1219,8 @@
     const foot = el("div", { class: "test-foot" },
       el("button", { class: "btn small ghost", type: "button", "aria-expanded": String(ui.navOpen), onclick: () => { ui.navOpen = !ui.navOpen; render(); } }, `question ${m.cur + 1} of ${m.ids.length} ${ui.navOpen ? "▾" : "▴"}`),
       el("div", { class: "row" },
-        el("button", { class: "btn ghost", type: "button", disabled: m.cur === 0, onclick: () => { m.cur--; render(); } }, "back"),
-        el("button", { class: "btn", type: "button", onclick: () => { if (m.cur < m.ids.length - 1) m.cur++; else m.reviewing = true; ui.navOpen = false; save(); render(); } }, m.cur < m.ids.length - 1 ? "next" : "review module")));
+        el("button", { class: "btn ghost", type: "button", disabled: m.cur === 0, onclick: () => { m.cur--; render(); } }, "Back"),
+        el("button", { class: "btn", type: "button", onclick: () => { if (m.cur < m.ids.length - 1) m.cur++; else m.reviewing = true; ui.navOpen = false; save(); render(); } }, m.cur < m.ids.length - 1 ? "Next" : "Review module")));
     return el("section", { class: sec, "aria-label": "Mock test" }, head, trailbar(am), qbar, body, ui.navOpen ? el("div", { style: "padding:16px 18px;border-top:2px dashed var(--line-strong)" }, navGrid(m)) : null, foot);
   }
   function navGrid(m) {
@@ -1241,17 +1241,17 @@
       el("p", { class: "sub", text: `${unanswered ? unanswered + " unanswered" : "Every question answered"}${marked ? ` · ${marked} marked for review` : ""}. There's no penalty for guessing, so answer everything. Once you submit, you can't come back to this module.` }),
       navGrid(m),
       el("div", { class: "row" },
-        el("button", { class: "btn ghost", type: "button", onclick: () => { m.reviewing = false; m.cur = m.ids.length - 1; render(); } }, "back to questions"),
+        el("button", { class: "btn ghost", type: "button", onclick: () => { m.reviewing = false; m.cur = m.ids.length - 1; render(); } }, "Back to questions"),
         ui.pendingSubmit
-          ? [el("b", { text: "submit this module?" }), el("button", { class: "btn", type: "button", onclick: submitModule }, last ? "yes, finish the test" : "yes, submit"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pendingSubmit = false; render(); } }, "cancel")]
-          : el("button", { class: "btn", type: "button", onclick: () => { ui.pendingSubmit = true; render(); } }, last ? "submit & see score" : "submit module")));
+          ? [el("b", { text: "Submit this module?" }), el("button", { class: "btn", type: "button", onclick: submitModule }, last ? "Yes, finish the test" : "Yes, submit"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pendingSubmit = false; render(); } }, "Cancel")]
+          : el("button", { class: "btn", type: "button", onclick: () => { ui.pendingSubmit = true; render(); } }, last ? "Submit & see score" : "Submit module")));
   }
   function renderReference() {
     const f = [["Circle", "A = πr²,  C = 2πr"], ["Rectangle", "A = ℓw"], ["Triangle", "A = ½bh"], ["Pythagorean theorem", "c² = a² + b²"], ["Special right triangles", "30-60-90: x, x√3, 2x · 45-45-90: s, s, s√2"],
       ["Rectangular prism", "V = ℓwh"], ["Cylinder", "V = πr²h"], ["Sphere", "V = (4/3)πr³"], ["Cone", "V = (1/3)πr²h"], ["Pyramid", "V = (1/3)ℓwh"], ["Circle facts", "360° = 2π radians"], ["Triangle facts", "Angles add to 180°"]];
     return el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": "Reference sheet", onclick: (e) => { if (e.target.classList.contains("modal")) { ui.refOpen = false; render(); } } },
       sheet("", title("reference sheet", true), el("div", { class: "ref-grid" }, f.map(([a, b]) => el("div", {}, el("b", { text: a }), b))),
-        el("div", { class: "row", style: "margin-top:14px" }, el("button", { class: "btn", type: "button", id: "ref-close", onclick: () => { ui.refOpen = false; render(); } }, "close"))));
+        el("div", { class: "row", style: "margin-top:14px" }, el("button", { class: "btn", type: "button", id: "ref-close", onclick: () => { ui.refOpen = false; render(); } }, "Close"))));
   }
   function renderMockResult(rec) {
     const imp = latestImport();
@@ -1268,9 +1268,9 @@
         rec.modules ? el("div", { class: "tour", style: "margin-top:14px" }, rec.modules.map((m, i) => el("div", {}, el("span", { class: "k", text: "abcd"[i] }), el("span", { text: `${SECTION[m.s]} · module ${m.n}${m.route ? ` (${m.route})` : ""}` }), el("span", { class: "r", text: `${m.right}/${m.total}` })))) : null,
         el("p", { class: "sub", style: "margin-top:12px", text: `You were routed to the ${routeText(rec.route.rw)} in Reading and Writing and the ${routeText(rec.route.math)} in Math. ${imp ? `Your latest imported score is ${imp.rw + imp.math}.` : "Import a real score to compare it."} This is an estimate, not an official score.` }),
         el("div", { class: "row" },
-          misses ? el("button", { class: "btn big", type: "button", onclick: () => beginSet({ kind: "mock-miss", label: "Practice test review", ids: mockMissSet(rec) }) }, `practice what I missed (${misses})`) : null,
-          el("button", { class: "btn ghost", type: "button", onclick: () => go("home") }, "see my plan"),
-          el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.mockResult = null; render(); } }, "all mocks"))),
+          misses ? el("button", { class: "btn big", type: "button", onclick: () => beginSet({ kind: "mock-miss", label: "Practice test review", ids: mockMissSet(rec) }) }, `Practice what I missed (${misses})`) : null,
+          el("button", { class: "btn ghost", type: "button", onclick: () => go("home") }, "See my plan"),
+          el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.mockResult = null; render(); } }, "All mocks"))),
       el("div", { class: "cols" },
         sheet("", title("by skill", true), el("div", { class: "tour" }, skills.map((s, i) => el("div", {}, el("span", { class: "k" }, gem(levelOf(s.right / s.total))), el("span", { text: s.k }), el("span", { class: "r", text: `${s.right}/${s.total}` }))))),
         sheet("", title("every question", true), el("div", { class: "qreview" }, rec.items.map((it) => {
@@ -1308,7 +1308,7 @@
       el("label", { class: "field" }, "Date taken", el("input", { class: "input", type: "date", id: "imp-date", max: today, value: today })),
       el("label", { class: "field" }, "Reading & writing", el("input", { class: "input", type: "number", id: "imp-rw", inputmode: "numeric", step: "10", placeholder: "620" })),
       el("label", { class: "field" }, "Math", el("input", { class: "input", type: "number", id: "imp-math", inputmode: "numeric", step: "10", placeholder: "580" })),
-      el("button", { class: "btn", type: "submit" }, "save score"));
+      el("button", { class: "btn", type: "submit" }, "Save score"));
     const tErr = el("p", { class: "err", role: "alert" });
     const targetForm = el("form", { class: "grid-form", novalidate: true, onsubmit: (e) => {
       e.preventDefault();
@@ -1318,7 +1318,7 @@
     } },
       el("label", { class: "field" }, "Target total", el("input", { class: "input", type: "number", id: "tgt-total", step: "10", value: progress.target.total ?? "", placeholder: "1400" })),
       el("label", { class: "field" }, "Test date (optional)", el("input", { class: "input", type: "date", id: "tgt-date", min: today, value: progress.target.date || "" })),
-      el("button", { class: "btn", type: "submit" }, "save target"));
+      el("button", { class: "btn", type: "submit" }, "Save target"));
     const entries = [
       ...progress.scores.map((s) => ({ type: "imp", t: Date.parse(s.date + "T12:00:00"), label: `${SCORE_KINDS[s.kind]?.label || "score"} · ${niceDate(s.date)}`, rw: s.rw, math: s.math, id: s.id })),
       ...progress.mocks.map((m) => ({ type: "mock", t: m.at, label: `clearline ${MOCK_SPEC[m.kind].label.toLowerCase()} · ${niceDate(m.at)}`, rw: m.rw, math: m.math, id: m.id }))
@@ -1329,8 +1329,8 @@
       el("div", { class: "tour wide" }, entries.slice().reverse().map((e) => el("div", {},
         el("span", { class: "k", text: e.type === "imp" ? "◆" : "●" }), el("span", { text: e.label }),
         el("span", { class: "r", text: e.rw }), el("span", { class: "r", text: e.math }), el("span", { class: "r", style: "font-weight:900", text: e.rw + e.math }),
-        e.type === "imp" ? el("button", { type: "button", onclick: () => { if (ui.armed["del" + e.id]) { progress.scores = progress.scores.filter((s) => s.id !== e.id); ui.armed = {}; save(); render(); } else { ui.armed = { ["del" + e.id]: true }; render(); } } }, ui.armed["del" + e.id] ? "confirm" : "remove")
-          : el("button", { type: "button", onclick: () => { ui.mockResult = e.id; go("mock"); } }, "results"))))
+        e.type === "imp" ? el("button", { type: "button", onclick: () => { if (ui.armed["del" + e.id]) { progress.scores = progress.scores.filter((s) => s.id !== e.id); ui.armed = {}; save(); render(); } else { ui.armed = { ["del" + e.id]: true }; render(); } } }, ui.armed["del" + e.id] ? "Confirm" : "Remove")
+          : el("button", { type: "button", onclick: () => { ui.mockResult = e.id; go("mock"); } }, "Results"))))
     ] : el("div", { class: "empty", text: "Imported scores (◆) and Clearline mocks (●) are charted here." }));
 
     const skillRows = ALL_SKILLS.map((s) => ({ ...s, st: skillStats(s.skill) }));
@@ -1339,7 +1339,7 @@
       el("div", { class: "tour" }, skillRows.map((r) => el("div", {},
         el("span", { class: "k" }, gem(levelOf(r.st.total >= 3 ? r.st.rate : null))),
         el("span", {}, el("b", { text: r.skill }), el("br"), el("small", { text: r.st.total ? `${Math.round(r.st.rate * 100)}% of ${r.st.total}${r.st.avgT ? ` · ${Math.round(r.st.avgT)}s avg` : ""}` : `${DOMAINS[r.domain].name} · not tried yet` })),
-        el("button", { type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = r.skill; loadPracticeQuestion(); go("practice"); } }, "drill")))));
+        el("button", { type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = r.skill; loadPracticeQuestion(); go("practice"); } }, "Drill")))));
     const pace = (sec) => { const st = statsWhere((a) => DOMAINS[a.d]?.section === sec && a.t); return el("div", { class: "box" }, el("p", { class: "label", text: SECTION[sec] }),
       el("div", { class: "numgrid", style: "grid-template-columns:repeat(2,minmax(0,1fr))" }, el("div", { class: "numbox" }, el("small", { text: "your avg" }), el("b", { text: st.avgT ? Math.round(st.avgT) + "s" : "—" })), el("div", { class: "numbox" }, el("small", { text: "SAT pace" }), el("b", { text: PACE[sec] + "s" }))),
       el("p", { class: "tiny", style: "margin:6px 0 0", text: !st.avgT ? "Answer a few questions to see your pace." : st.avgT > PACE[sec] * 1.15 ? "Slower than test pace. Try timed drills." : st.avgT < PACE[sec] * 0.6 ? "Very fast. Make sure you're reading every choice." : "Right around test pace." })); };
@@ -1442,12 +1442,12 @@
     if (!ids.length) return el("div", { class: "stack" }, tabs, patterns, sheet("", el("div", { class: "empty", text: tab === "missed" ? "No missed questions right now. Anything you miss lands here until you get it right." : "Nothing saved yet. Tap “save” on any question to keep it here." })));
     return el("div", { class: "stack" }, tabs, patterns, sheet("",
       el("div", { class: "row between", style: "margin-bottom:12px" }, title(tab === "missed" ? "retry your misses" : "saved questions", true),
-        el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: tab, label: tab === "missed" ? "Missed questions" : "Marked for review", ids: ids.slice(0, 30) }) }, `retry ${Math.min(30, ids.length)} now`)),
+        el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: tab, label: tab === "missed" ? "Missed questions" : "Marked for review", ids: ids.slice(0, 30) }) }, `Retry ${Math.min(30, ids.length)} now`)),
       el("div", { class: "tour" }, ids.map((id, i) => {
         const q = getQ(id);
         return el("div", {}, el("span", { class: "k", text: i + 1 }),
           el("span", {}, el("b", { text: `${skillOf(q)} · ${DIFF[q.diff]}` }), el("br"), el("small", { class: "snip", style: "display:block;color:inherit;opacity:.8", text: plain(q.passage?.[0] || q.prompt) })),
-          el("button", { type: "button", onclick: () => { ui.pr.source = tab; loadPracticeQuestion(q); go("practice"); } }, "retry"));
+          el("button", { type: "button", onclick: () => { ui.pr.source = tab; loadPracticeQuestion(q); go("practice"); } }, "Retry"));
       }))));
   }
 
@@ -1480,12 +1480,12 @@
           el("button", { class: "card", type: "button", "aria-label": vs.flipped ? "Hide the definition" : "Show the definition", onclick: () => { vs.flipped = !vs.flipped; render(); } },
             el("div", {}, el("div", { class: "word", text: v.w }), el("div", { class: "tiny", text: v.pos }),
               vs.flipped ? [el("p", { class: "def", text: v.def }), el("p", { class: "ex", text: v.ex })] : el("p", { class: "tiny", style: "margin-top:16px", text: "tap to flip" }))),
-          el("div", { class: "row", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: () => grade(false) }, "again"), el("button", { class: "btn", type: "button", onclick: () => grade(true) }, "got it"))
+          el("div", { class: "row", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: () => grade(false) }, "Again"), el("button", { class: "btn", type: "button", onclick: () => grade(true) }, "Got it"))
         ] : el("div", { class: "empty", text: "No cards due. Come back tomorrow, or switch to all cards." })),
       sheet("", title("progress", true), el("div", { class: "numgrid", style: "grid-template-columns:repeat(3,minmax(0,1fr))" },
         el("div", { class: "numbox" }, el("small", { text: "learned" }), el("b", { text: learned })), el("div", { class: "numbox" }, el("small", { text: "due" }), el("b", { text: due.length })), el("div", { class: "numbox" }, el("small", { text: "total" }), el("b", { text: VOCAB.length }))),
         el("p", { class: "tiny", style: "margin:10px 0 0", text: "A word counts as learned after you get it right four times in a row, spaced out over days." }),
-        el("button", { class: "btn small ghost", style: "margin-top:12px", type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = "Words in Context"; loadPracticeQuestion(); go("practice"); } }, "practice words in context")));
+        el("button", { class: "btn small ghost", style: "margin-top:12px", type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = "Words in Context"; loadPracticeQuestion(); go("practice"); } }, "Practice words in context")));
   }
 
   // ------------------------------------------------------------------ dock: calculator + gem
@@ -1543,7 +1543,7 @@
         c.fns.map((fx, i) => el("label", { class: "fn-row" }, el("i", { style: `background:${colors[i]}` }), el("input", { class: "input", id: "fn-" + i, value: fx, placeholder: "y = …", "aria-label": `Function ${i + 1}`, oninput: (e) => { c.fns[i] = e.target.value; drawGraph(); } }))),
         el("canvas", { id: "graph", width: "720", height: "480", role: "img", "aria-label": "Graph of the functions" }),
         el("div", { class: "row between" }, el("span", { class: "tiny", id: "graph-note", text: `window: −${c.range} to ${c.range}` }),
-          el("span", { class: "row", style: "gap:6px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { c.range = Math.max(1, c.range / 2); renderDock(); } }, "zoom in"), el("button", { class: "btn small ghost", type: "button", onclick: () => { c.range = Math.min(1000, c.range * 2); renderDock(); } }, "zoom out"))));
+          el("span", { class: "row", style: "gap:6px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { c.range = Math.max(1, c.range / 2); renderDock(); } }, "Zoom in"), el("button", { class: "btn small ghost", type: "button", onclick: () => { c.range = Math.min(1000, c.range * 2); renderDock(); } }, "Zoom out"))));
     }
     const ins = (t) => () => { c.expr += t; renderDock(); document.getElementById("calc-in")?.focus(); };
     const keys = ["7", "8", "9", "/", "(", ")", "4", "5", "6", "*", "^", "√(", "1", "2", "3", "-", "π", "sin(", "0", ".", "=", "+", "cos(", "tan("];
@@ -1555,7 +1555,7 @@
       c.err ? el("p", { class: "err", style: "margin:0", text: c.err }) : null,
       el("div", { class: "keys" }, keys.map((k) => el("button", { type: "button", onclick: k === "=" ? runCalc : ins(k) }, k === "√(" ? "√" : k.replace("(", ""))),
         el("button", { type: "button", style: "grid-column:span 3", onclick: () => { c.expr = c.expr.slice(0, -1); renderDock(); } }, "⌫ back"),
-        el("button", { type: "button", style: "grid-column:span 3", onclick: () => { c.expr = ""; c.out = ""; c.err = ""; renderDock(); } }, "clear")),
+        el("button", { type: "button", style: "grid-column:span 3", onclick: () => { c.expr = ""; c.out = ""; c.err = ""; renderDock(); } }, "Clear")),
       c.hist.length ? el("div", { class: "calc-hist" }, c.hist.map((h) => el("button", { type: "button", onclick: () => { c.expr = h.e; renderDock(); } }, `${h.e} = ${h.r}`))) : null);
   }
   function drawGraph() {
@@ -1599,8 +1599,8 @@
     const chat = el("div", { class: "chat", id: "gem-chat" }, ui.gemTurns.length ? ui.gemTurns.map((t) => el("div", { class: "msg " + (t.role === "user" ? "me" : "gem"), text: t.content }))
       : el("div", { class: "msg gem", text: "Hi, I'm Gem. Ask me about any SAT skill, a strategy, or what to study next. I can see your skill accuracy and scores." }));
     const input = el("textarea", { class: "input", id: "gem-input", rows: "2", placeholder: "how do I stop missing comma questions?", "aria-label": "Message Gem" });
-    const send = el("button", { class: "btn small", type: "submit" }, "send");
-    const stop = el("button", { class: "btn small ghost", type: "button", hidden: true, onclick: () => gemCtl?.abort() }, "stop");
+    const send = el("button", { class: "btn small", type: "submit" }, "Send");
+    const stop = el("button", { class: "btn small ghost", type: "button", hidden: true, onclick: () => gemCtl?.abort() }, "Stop");
     const form = el("form", { class: "row", onsubmit: async (e) => {
       e.preventDefault();
       const text = input.value.trim();
