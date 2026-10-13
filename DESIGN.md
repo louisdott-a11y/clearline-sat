@@ -427,6 +427,7 @@ Region-colored capsules (coral, sky, lilac) with 20px left padding, 16px semibol
 - **Lists and tasks:** a 16px ink-edged container with 1px hairline row dividers and hover fill.
 - **Inset box / step:** 1px hairline, 12px radius, Shaded Paper or Paper.
 - **Countdown (Home, with a plan):** a Paper box beside the greeting, 2px ink edge, Soft Lift, 10px 16px padding, max 300px. A 40px 800 tabular day count ("Today" on test day) next to a small line with the date and target. With no date, or a date already passed, it becomes a dashed, unlifted button ("?" or "✓") that opens the test-date field. The Trail Yellow "Start today's session" button leads the hero row and turns into "Continue today's session (n/total)" once a set is open.
+- **Catch-up row (Today's plan):** a dashed box (1.5px dashed Strong Hairline, 12px radius, 10px 14px) under the plan tasks when recent plan days fell short. One no-guilt line naming the days, a small ink "Catch up (n)" button (at most 15) and a "Skip, start fresh" link. While the set is open it reads "Continue catch-up (i/n)".
 
 ### Inputs / Fields
 - **Style:** Paper, 1px Strong Hairline, 10px radius (12px and 22px bold for answer entry).

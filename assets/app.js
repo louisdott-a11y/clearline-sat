@@ -300,7 +300,7 @@
   const skillStats = (skill, recent = 0) => statsWhere((a) => a.s === skill, recent);
   const missedIds = () => Object.keys(progress.attempts).filter((id) => { const l = latest(id); return l && !l.c && getQ(id); }).sort((a, b) => lastAt(b) - lastAt(a));
   const savedIds = () => Object.keys(progress.saved).filter((id) => getQ(id)).sort((a, b) => progress.saved[b] - progress.saved[a]);
-  const attemptsOn = (key) => flatAttempts().filter((a) => dayKey(new Date(a.at)) === key && a.src !== "mock").length;
+  const attemptsOn = (key) => flatAttempts().filter((a) => dayKey(new Date(a.at)) === key && a.src !== "mock" && a.src !== "catchup").length;
   function streak() {
     const active = new Set(flatAttempts().map((a) => dayKey(new Date(a.at))));
     for (const [k, v] of Object.entries(progress.study)) if (v >= 120) active.add(k);
@@ -429,14 +429,50 @@
     }
     return { imp, mk, sec, prios, goal, counts, days, week, tgt };
   }
-  function startTodaySet(plan) {
+  // Plan days before today that fell short of the goal: at most a week back, after the first practice test and the last catch-up.
+  function missedDays(plan) {
+    const first = dayKey(new Date(Math.min(...progress.mocks.map((m) => m.at))));
+    const out = [];
+    for (let i = 7; i >= 1; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = dayKey(d);
+      if (k <= first || (progress.catchupThrough && k <= progress.catchupThrough) || k === progress.target.date) continue;
+      const short = plan.goal - attemptsOn(k);
+      if (short > 0) out.push({ k, d, short });
+    }
+    return out;
+  }
+  // Scale the plan's per-domain counts down to n questions, keeping every domain at least 1 where it fits.
+  function scaleCounts(counts, n) {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const out = {};
+    for (const [k, c] of Object.entries(counts)) out[k] = Math.max(1, Math.round((c * n) / total));
+    const keys = Object.keys(out);
+    for (let diff = n - Object.values(out).reduce((a, b) => a + b, 0), i = 0; diff !== 0 && i < 100; i++) {
+      const k = diff > 0 ? keys[i % keys.length] : keys.filter((x) => out[x] > 1).sort((a, b) => out[b] - out[a])[0] || keys[0];
+      out[k] += diff > 0 ? 1 : -1; diff += diff > 0 ? -1 : 1;
+      if (!out[k]) delete out[k];
+    }
+    return out;
+  }
+  function startCatchUp(plan, n) {
+    beginSet({ kind: "catchup", label: "Catch-up set", ids: pickPlanIds(plan, scaleCounts(plan.counts, n)) });
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    progress.set.through = dayKey(y);
+    save();
+  }
+  function skipCatchUp() { const y = new Date(); y.setDate(y.getDate() - 1); progress.catchupThrough = dayKey(y); save(); render(); }
+  function pickPlanIds(plan, counts) {
     const ids = [], ex = new Set();
-    for (const [dom, n] of Object.entries(plan.counts)) {
+    for (const [dom, n] of Object.entries(counts)) {
       const b = plan.sec[DOMAINS[dom].section].band;
       for (let i = 0; i < n; i++) { const q = pickQuestion({ domain: dom, diff: sampleDiff(b), exclude: ex }); ids.push(q.id); ex.add(q.id); }
     }
     ids.sort((a, b) => (getQ(a).section === "rw" ? 0 : 1) - (getQ(b).section === "rw" ? 0 : 1));
-    beginSet({ kind: "plan", label: "Today's set", ids });
+    return ids;
+  }
+  function startTodaySet(plan) {
+    beginSet({ kind: "plan", label: "Today's set", ids: pickPlanIds(plan, plan.counts) });
   }
   function beginSet({ kind, label, ids, timed }) {
     progress.set = { kind, label, date: dayKey(), ids, i: 0, results: [], timeLeft: timed && progress.timeMult ? Math.round(timed * progress.timeMult) : null };
@@ -691,6 +727,15 @@
     }
 
     const mins = (k, n) => Math.round((n * PACE[DOMAINS[k].section]) / 60);
+    const missed = missedDays(plan), owed = missed.reduce((s, m) => s + m.short, 0), catchN = Math.min(15, owed);
+    const inCatchUp = set && set.kind === "catchup" && set.i < set.ids.length;
+    const dayNames = missed.map((m) => m.d.toLocaleDateString(undefined, { weekday: "long" }));
+    const catchUp = inCatchUp ? el("div", { class: "catchup" }, el("p", { class: "tiny", text: "Catch-up set in progress." }),
+        el("button", { class: "btn small", type: "button", onclick: () => { ui.pr.source = "set"; loadPracticeQuestion(); go("practice"); } }, `Continue catch-up (${set.i}/${set.ids.length})`))
+      : missed.length ? el("div", { class: "catchup" },
+        el("p", { class: "tiny", text: `${missed.length === 1 ? dayNames[0] + " fell" : dayNames.slice(0, -1).join(", ") + " and " + dayNames[dayNames.length - 1] + " fell"} short. No problem: ${catchN === owed ? "a" : "one"} ${catchN}-question set covers ${catchN === owed ? "it" : "the main gaps"}.` }),
+        el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: () => startCatchUp(plan, catchN) }, `Catch up (${catchN})`),
+          el("button", { class: "link", type: "button", onclick: skipCatchUp }, "Skip, start fresh"))) : null;
     const todayCard = sheet("",
       el("div", { class: "row between", style: "margin-bottom:12px" },
         el("div", {}, el("h2", { class: "title", text: "Today's plan" }), el("span", { class: "tiny", text: `${plan.goal} questions · about ${Object.entries(plan.counts).reduce((s, [k, n]) => s + mins(k, n), 0)} min` })),
@@ -700,6 +745,7 @@
         el("div", {}, el("b", { text: DOMAINS[k].name }), el("span", { class: "tiny", text: `${DOMAINS[k].section === "rw" ? "R&W" : "Math"} · ${n} questions · ${plan.sec[DOMAINS[k].section].band.label}` })),
         el("span", { class: "tiny", text: `${mins(k, n)}m` }),
         el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = "dom:" + k; loadPracticeQuestion(); go("practice"); } }, "Practice")))),
+      catchUp,
       today && !setActive ? el("p", { class: "tiny", style: "margin:10px 0 0", text: `Done today: ${set.results.filter((r) => r).length}/${set.ids.length} correct.` }) : null);
     const level = (s) => { const x = plan.sec[s]; return el("div", { class: "box" }, el("p", { class: "label", text: SECTION[s] }),
       el("div", { class: "numgrid" }, [["Imported", x.imported], ["Practice test", x.mock], ["Working level", x.level], ["Target", x.target ?? "—"]].map(([k, v]) => el("div", { class: "numbox" }, el("small", { text: k }), el("b", { text: v })))),
@@ -779,7 +825,7 @@
     if (q.type === "spr" && !parseNum(resp)) { toast("Enter a number, a fraction like 3/4, or a decimal."); return; }
     pr.checked = true;
     const ok = isCorrect(q, resp);
-    record(q, ok, resp, "practice", (Date.now() - pr.shownAt) / 1000);
+    record(q, ok, resp, pr.source === "set" && progress.set?.kind === "catchup" ? "catchup" : "practice", (Date.now() - pr.shownAt) / 1000);
     if (pr.source === "set" && progress.set) progress.set.results[progress.set.i] = ok ? 1 : 0;
     save();
     render();
@@ -787,7 +833,12 @@
     (document.getElementById("twin-btn") || document.getElementById("next-btn"))?.focus();
   }
   function nextPractice() {
-    if (ui.pr.source === "set" && progress.set) { progress.set.i++; save(); }
+    if (ui.pr.source === "set" && progress.set) {
+      const set = progress.set;
+      set.i++;
+      if (set.kind === "catchup" && set.i >= set.ids.length) progress.catchupThrough = set.through;
+      save();
+    }
     if (ui.pr.source === "desmos") { const qs = lessonQs(ui.desmos.lesson), at = qs.findIndex((x) => x.id === ui.pr.q?.id); ui.desmos.qi = (at < 0 ? ui.desmos.qi : at) + 1; }
     ui.qCount++;
     loadPracticeQuestion();
@@ -821,7 +872,7 @@
       if (set.i >= set.ids.length) {
         const right = set.results.filter((r) => r).length;
         parts.push(sheet("", title("set complete"), el("p", { style: "font-weight:900;font-size:56px;margin:0", text: `${right}/${set.ids.length}` }),
-          el("p", { class: "sub", text: right / set.ids.length >= 0.8 ? "Strong set. Your plan will lean harder next time." : "Misses are saved in review. Retry them tomorrow while the explanations are fresh." }),
+          el("p", { class: "sub", text: set.kind === "catchup" ? "You're caught up. Today's plan is next." : right / set.ids.length >= 0.8 ? "Strong set. Your plan will lean harder next time." : "Misses are saved in review. Retry them tomorrow while the explanations are fresh." }),
           el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: () => go("home") }, "Back home"), el("button", { class: "btn ghost", type: "button", onclick: () => { progress.set = null; pr.source = "mixed"; save(); loadPracticeQuestion(); render(); } }, "Free practice"))));
         return el("div", {}, parts);
       }
