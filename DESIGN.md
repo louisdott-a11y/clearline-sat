@@ -106,12 +106,23 @@ typography:
     fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
     fontSize: "26px"
     fontWeight: 800
+  small:
+    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontSize: "12.5px"
+    fontWeight: 400
+    lineHeight: 1.5
+  keys:
+    fontFamily: "ui-monospace, SF Mono, Menlo, Consolas, monospace"
+    fontSize: "13.5px"
+    fontWeight: 500
+    lineHeight: 1.65
 rounded:
   pill: "999px"
   sheet: "18px"
   list: "16px"
   walk: "14px"
   field: "12px"
+  inset: "10px"
   small: "8px"
 spacing:
   xs: "6px"
@@ -184,7 +195,7 @@ components:
   input:
     backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
-    rounded: "10px"
+    rounded: "{rounded.inset}"
     padding: "8px 11px"
   walkthrough:
     backgroundColor: "{colors.card}"
@@ -226,6 +237,54 @@ components:
     backgroundColor: "{colors.card}"
     rounded: "{rounded.pill}"
     size: "16px"
+  skill-row:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.walk}"
+    padding: "10px 12px"
+  skill-stop-new:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    size: "32px"
+  skill-stop-practicing:
+    backgroundColor: "{colors.lilac}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    size: "32px"
+  skill-stop-mastered:
+    backgroundColor: "{colors.sun}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    size: "32px"
+  skill-button:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "4px 12px"
+    typography: "{typography.small}"
+  skill-button-hover:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.water}"
+  best-badge:
+    backgroundColor: "{colors.lilac}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "1px 9px"
+  keybox:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.walk}"
+    padding: "14px 16px"
+    typography: "{typography.keys}"
+  desmos-way:
+    textColor: "{colors.ink}"
+    rounded: "{rounded.walk}"
+    padding: "14px 18px"
+  lesson-calc:
+    backgroundColor: "{colors.card}"
+    rounded: "{rounded.sheet}"
+    padding: "10px"
 ---
 
 # Design System: Clearline
@@ -253,14 +312,14 @@ Density is relaxed on the shell (generous gutters, one big heading, one action) 
 A flat, saturated map palette on warm cream paper, with ink lines doing the structural work.
 
 ### Primary
-- **Trail Yellow** (sun): the next step and only the next step. It fills the primary call to action (the diagnostic capsule, "Start" on today's plan), the dotted trail, the progress meter fill, the map-key "Next step" swatch and text selection. On the test trail it fills the stops already passed, and on a Question Rush round it fills the clock, the only yellow on that view.
+- **Trail Yellow** (sun): the next step and only the next step. It fills the primary call to action (the diagnostic capsule, "Start" on today's plan), the dotted trail, the progress meter fill, the map-key "Next step" swatch and text selection. On the test trail it fills the stops already passed, and on a Question Rush round it fills the clock, the only yellow on that view. On the Desmos skills checklist it fills mastered skill stops, the same "passed" meaning as the trail.
 
 ### Secondary
 - **Coral Region** (coral): Reading and Writing. Also fills the "you are here" pin, the Flashcards capsule (vocabulary sits with R&W), the nav count badge, the Reading and Writing section stripe, the current stop on the test trail, a pressed miss-reason tag and the miss-pattern bars on Review.
 - **Lake Blue** (sky): Math, including the Math section stripe under the test header. In the build the same blue is also `--accent`, which drives answer selection, answered-question cells, the activity heatmap and chart lines on every screen (see Do's and Don'ts).
 
 ### Tertiary
-- **Lilac Kiosk** (lilac): tools and side paths (Question bank capsule, Ask Gem tag, the map-key "Tools" swatch).
+- **Lilac Kiosk** (lilac): tools and side paths (Question bank capsule, Ask Gem tag, the map-key "Tools" swatch). Desmos is a tool, so its subject takes lilac: the "Best trick" badge, the practicing skill stop and "The Desmos way" panel, which uses a 1.5px lilac border over a lilac tint (`color-mix(in srgb, lilac 18%, card)`).
 - **Land Green** (land): the landmass lobe behind first-run Home and the brand mark disc. Never a button fill.
 - **Marker Green** (swipe): the highlighter swipe behind one word per region ("score").
 - **Pen Blue** (pen): the tutor's pen and nothing else: Caveat notes, walkthrough steps, hand-drawn rings, scratches and underlines, the wavy clue underline and pen hint links.
@@ -278,7 +337,7 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 - **Right** (green-fill / green / green-wash), **Wrong** (red-fill / red / red-wash), **Flagged** (amber-fill / amber): only for answer verdicts, the timer warning, flags and the review list. **Selection Blue** (accent-soft / accent-text) tints selected choices and checked filters.
 
 ### Dark Mode
-The same roles re-tinted for night (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`): a near-black green ground (dark-water) with stepped dark papers (dark-card, dark-card-2, dark-hover), Water Cream as ink, a muted Soft Ink (dark-ink-soft), dark hairlines (dark-line, dark-line-strong), a darker land and swipe, a light Pen Blue (dark-pen), dark washes with lighter verdict text, and a yellow focus ring. Region fills (sun, coral, sky, lilac) and the fill shades of the verdict colors do not change, and text on them stays dark ink. Verified on the walkthrough screen: pen notes, rings, scratches and the clue underline stay legible.
+The same roles re-tinted for night (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`): a near-black green ground (dark-water) with stepped dark papers (dark-card, dark-card-2, dark-hover), Water Cream as ink, a muted Soft Ink (dark-ink-soft), dark hairlines (dark-line, dark-line-strong), a darker land and swipe, a light Pen Blue (dark-pen), dark washes with lighter verdict text, and a yellow focus ring. Region fills (sun, coral, sky, lilac) and the fill shades of the verdict colors do not change, and text on them stays dark ink. Verified on the walkthrough screen: pen notes, rings, scratches and the clue underline stay legible. The embedded Desmos calculator switches to its own `invertedColors` setting in dark mode, so the graph never sits as a white slab on the night map.
 
 ### Named Rules
 **The One Yellow Rule.** Yellow means "the next step". One yellow action per view; never use it for decoration, status or a second option.
@@ -305,12 +364,17 @@ The same roles re-tinted for night (`prefers-color-scheme: dark` unless `data-th
 - **Pen** (600, 22px, 1.2, Pen Blue, upright): tutor notes, walkthrough steps, Rush feedback, the miss-reason question. Smaller pen sizes: 20px for the note under a wrong pick and for pen hint links, 16px for the raised "clue" note. With typed text switched on, pen text becomes Archivo 500 at 15px, 1.5 (pen links 13px) and keeps Pen Blue.
 - **Trail label** (600, 12px, Soft Ink; 10.5px under 900px): the four stop names on the test trail. The current stop goes to 800 and ink.
 - **Clock** (800, 26px, tabular): the Question Rush countdown; the running score beside it is 22px.
+- **Small** (400, 12.5px, Soft Ink): captions, legends, notices, skill-row status lines and small pill buttons.
+- **Keys** (500, 13.5px, 1.65, system monospace): literal keystrokes in the copyable keystroke box. Inline `code` spans in "The Desmos way" steps use the same stack at 0.92em on Shaded Paper with a 1px hairline and 6px radius.
+- **Subject headings:** the Desmos subject header runs Display at clamp(38px, 4.6vw, 60px), max 14ch, with a 17px lede; a lesson title runs clamp(32px, 3.6vw, 46px) with 16px, 1.6 body paragraphs. The "Watch out" pen note is 21px (15px typed).
 - Numbers (stats, timer, scores) use tabular figures at 800.
 
 ### Named Rules
 **The Two Registers Rule.** Archivo runs the shell and all chrome. Source Serif 4 is only for what a student reads to answer a question. Don't mix them inside one block.
 
 **The One Note Rule.** On the shell, one decorative Caveat note and one marker swipe per region. More than one turns the map into a scrapbook. The tutor's pen on practice, review and between-module screens is not decoration and is not counted, but it only explains, encourages or marks a student's work.
+
+**The Literal Keys Rule.** Monospace appears only for text a student types verbatim into Desmos. It never wraps (the box scrolls sideways instead), and it never sets headings, numbers or chrome.
 
 **The Typed Text Rule.** Every pen surface has a typed equivalent. A visible "Switch to typed text" toggle swaps every pen line to Archivo while it keeps Pen Blue, and pen marks are hidden from assistive tech with the meaning repeated in text.
 
@@ -320,23 +384,24 @@ A fixed 236px left sidebar and a fluid main column (content padded 32px 36px 64p
 
 First-run Home is a map composition. A two-column grid has a 120px gutter that holds the pin and the trail, and the copy sits in the second column. An SVG land lobe sits behind everything (`preserveAspectRatio: none`, non-scaling 2px stroke), with separate wide and tall lobe and trail paths for desktop and mobile. Padding is 112px 56px, minimum height min(580px, 74vh). The map key is pinned bottom-right and hidden on mobile. The coast row of capsules wraps below the lobe.
 
-Spacing follows a loose 6 / 10 / 14 / 18 / 22 / 32px rhythm. Grids use `auto-fit` with `minmax(min(100%, N), 1fr)` (380px for column pairs, 240px for threes, 200px for stats). In test mode (`body.testing`) the sidebar, topbar and footer disappear and content centers. A four-column trail strip sits under the test header, and the same strip leads the results header (capped at 720px, unframed). The Rush bar wraps; its end-round button moves to the far right on desktop and returns to the flow on mobile. Miss-pattern bars use a label / bar / count grid (up to 210px, fluid, 28px) that tightens to a fluid label, 90px bar and 24px count on mobile.
+Spacing follows a loose 6 / 10 / 14 / 18 / 22 / 32px rhythm. Grids use `auto-fit` with `minmax(min(100%, N), 1fr)` (380px for column pairs, 240px for threes, 200px for stats). In test mode (`body.testing`) the sidebar, topbar and footer disappear and content centers. A four-column trail strip sits under the test header, and the same strip leads the results header (capped at 720px, unframed). The Rush bar wraps; its end-round button moves to the far right on desktop and returns to the flow on mobile. A Desmos lesson is a two-column grid (fluid / minmax(320px, 0.82fr), gaps 14px 28px): the intro and the practice stack in column one, and the live calculator spans both rows of column two, sticky at 76px from the top with a frame height of min(620px, 100vh - 160px). Under 900px it collapses to one column in reading order intro, calculator, practice; the calculator goes static at 420px. The skills checklist is an `auto-fill` grid of 300px-minimum rows. Miss-pattern bars use a label / bar / count grid (up to 210px, fluid, 28px) that tightens to a fluid label, 90px bar and 24px count on mobile.
 
 ## Elevation & Depth
 
-The system is flat, and depth comes from ink outlines and paper tones (water, card, shaded card). One soft, ambient lift sits under shell sheets, stat tiles, flashcards, the active filter pill and the toast. Question sheets, test chrome and inset boxes do not lift.
+The system is flat, and depth comes from ink outlines and paper tones (water, card, shaded card). One soft, ambient lift sits under shell sheets, stat tiles, flashcards, the active filter pill, the Desmos lesson calculator and the toast. Question sheets, test chrome and inset boxes do not lift.
 
 ### Shadow Vocabulary
 - **Soft Lift** (`box-shadow: 0 1px 0 rgba(44,46,42,0.05), 0 10px 22px -14px rgba(44,46,42,0.35)`): the only shadow. Dark mode deepens it.
 - **Ring** (`0 0 0 1px <state color> inset`): selected, right and wrong answer choices; the current navigator cell uses a 2px card + 2px ink double ring. The current trail stop carries a 4px coral halo at 30% strength.
 - **Section stripe** (`inset 0 -4px 0 <region>`): a 4px coral or sky band along the bottom of the test header naming the section. Not a lift.
+- **Result underline** (`inset 0 -3px 0 <verdict>`): a 3px green-fill or coral band under a Desmos lesson's question pill, for right or missed last time. Not a lift.
 
 ### Named Rules
 **The Ink Edge Rule.** Shell surfaces get a 2px ink outline (`--edge`). Question and test surfaces step down to 1px Strong Hairline, and the walkthrough panel to a 1.5px dashed Strong Hairline, so a test screen still reads calmer than the map while it carries the trail, section stripe and pen. Pill controls (buttons, tags, the Rush clock) keep their 2px ink edge everywhere.
 
 ## Shapes
 
-Capsules everywhere a finger goes: buttons, tags, nav items, filter pills, chips, the toast and the meter are all fully rounded (999px). Sheets are 18px, list and task containers 16px, the walkthrough panel 14px, choices and inset boxes 12px, inputs 10px, small test controls (flag, strike, navigator cells) 8px. Round forms carry meaning: the ink arrow chip (34px, 44px on big buttons), the pin, answer bubbles (28px) and map-key dots. The land lobe and the pen are the only freeform shapes: the lobe is a wobbly closed bezier with a 2px ink stroke, and pen marks are uneven hand-drawn strokes (2.5px, round caps). Walkthrough step numbers sit in a lopsided hand-drawn circle (26px, 2px stroke, radii 52% 46% 55% 44%, turned -6deg).
+Capsules everywhere a finger goes: buttons, tags, nav items, filter pills, chips, the toast and the meter are all fully rounded (999px). Sheets are 18px, list and task containers 16px, the walkthrough panel, keystroke box, "Desmos way" panel and skill rows 14px, choices and inset boxes 12px, inputs and the embedded Desmos frame 10px, inline `code` 6px, small test controls (flag, strike, navigator cells) 8px. Round forms carry meaning: the ink arrow chip (34px, 44px on big buttons), the pin, answer bubbles (28px), numbered skill stops (32px) and map-key dots. The land lobe and the pen are the only freeform shapes: the lobe is a wobbly closed bezier with a 2px ink stroke, and pen marks are uneven hand-drawn strokes (2.5px, round caps). Walkthrough step numbers sit in a lopsided hand-drawn circle (26px, 2px stroke, radii 52% 46% 55% 44%, turned -6deg).
 
 ## Components
 
@@ -400,6 +465,17 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 - **Results header ("You made it"):** the trail with every stop passed, a headline with one marker-swiped word and one pen line, before the score sheet.
 - **Timing picker:** a labelled segmented pill group for standard or extended time, with a small note that scores are labelled with the timing used.
 
+### Desmos Subject (a tool region, lilac)
+- **Subject header:** a left-aligned stack: the subject heading with one marker-swiped word, a 17px lede, a Trail Yellow "Start" or "Continue" capsule beside a ghost "Mixed challenge", and one pen line counting tricks mastered.
+- **Skills checklist:** a grid of Paper rows (1.5px Strong Hairline, 14px radius) each holding a numbered stop, a bold title with an optional badge over a small status line, and a pill button. Stops are 32px circles with a 2px ink edge and 800 13px numbers: Paper when not started, Lilac when practicing, Trail Yellow when mastered, and a mastered row's edge turns to ink. The pill button ("Learn" or "Review") is a small Paper capsule with a 2px ink edge that inverts to ink on hover.
+- **Best trick badge:** a lilac capsule with a 1.5px ink edge, 11.5px 700 ink text (13px beside a lesson title).
+- **Keystroke box:** a Paper box with a 2px ink edge, 14px radius and 14px 16px padding holding the exact keys in Keys type, no wrapping, sideways scroll, with a small ghost "Copy" button pinned top-right (text reserves 72px for it). The button confirms with "Copied".
+- **Watch out:** a pen note with a bold "Watch out:" lead, under the keystroke box.
+- **Lesson calculator:** the app's single Desmos instance, moved beside the lesson: a Paper sheet with a 2px ink edge, 18px radius, 10px padding and Soft Lift, a small label row with a "Reset to the example" link, and the Desmos frame clipped to 10px. When Desmos cannot load, the same frame holds a short note and a link out.
+- **The Desmos way:** a lilac-tinted panel (1.5px lilac border, 14px radius, 14px 18px padding) with a heading and a numbered list of keystroke steps using inline `code`, set above the by-hand pen walkthrough on a Desmos question.
+- **Question pills:** the standard filter-pill track, each pill underlined green (right last time) or coral (missed) with the Result underline.
+- **Trick pick:** in the mixed challenge, a labelled select (max 360px) asking which trick the student will use, required before checking.
+
 ### Map Furniture (signature, first-run Home)
 - **Land lobe:** a full-bleed Land Green SVG with a 2px ink stroke behind the hero.
 - **Pin:** a coral map pin with an ink stroke and a Paper center, above uppercase map lettering ("You are here: the start"). It drops in with a 700ms overshoot.
@@ -418,6 +494,7 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 - **Do** gate every animation behind `prefers-reduced-motion: no-preference`.
 - **Do** keep the pen in Pen Blue and give every pen surface the typed-text switch.
 - **Do** mark the test section with its region stripe and show progress on the four-stop trail.
+- **Do** put keystrokes students must type in the keystroke box or inline `code`, never in body prose.
 
 ### Don't:
 - **Don't** drift back to a grey SaaS dashboard with white cards and a violet accent.
@@ -427,3 +504,4 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 - **Don't** put pen notes on a timed mock-test question; between-module, break and results screens carry them.
 - **Don't** add a second decorative Caveat note or a second marker swipe to one shell region.
 - **Don't** add gradients or extra shadow tokens; Soft Lift is the only shadow.
+- **Don't** use monospace for anything but literal keystrokes, and don't let keystrokes wrap.
