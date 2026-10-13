@@ -7,6 +7,7 @@
   const MATH = window.CL_MATH;
   const CALC = window.CL_CALC;
   const VOCAB = window.CL_VOCAB;
+  const CLUES = window.CL_CLUES || {};
   const BY_ID = Object.fromEntries(BANK.map((q) => [q.id, q]));
 
   // ------------------------------------------------------------------ taxonomy
@@ -82,12 +83,13 @@
   const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {} });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
   const ui = {
     view: "home",
-    pr: { source: "mixed", skill: "all", diff: "any", q: null, picked: null, spr: "", checked: false, shownAt: 0 },
+    pr: { source: "mixed", skill: "all", diff: "any", q: null, picked: null, spr: "", checked: false, shownAt: 0, hint: false },
+    rush: null, rushScope: "all",
     bank: { section: "all", domain: "all", skill: "all", diff: "any", status: "all", limit: 40 },
     drill: { skills: [], diff: "any", count: 10, timed: false, name: "" },
     reviewTab: "missed",
@@ -106,8 +108,9 @@
     const b = blankProgress();
     if (!p || typeof p !== "object") return b;
     const out = { ...b, ...p, v: 3 };
-    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
+    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
+    if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (const [id, list] of Object.entries(out.attempts)) {
       if (!Array.isArray(list)) { delete out.attempts[id]; continue; }
       const q = getQ(id);
@@ -377,7 +380,7 @@
     beginSet({ kind: "plan", label: "Today's set", ids });
   }
   function beginSet({ kind, label, ids, timed }) {
-    progress.set = { kind, label, date: dayKey(), ids, i: 0, results: [], timeLeft: timed || null };
+    progress.set = { kind, label, date: dayKey(), ids, i: 0, results: [], timeLeft: timed && progress.timeMult ? Math.round(timed * progress.timeMult) : null };
     ui.pr.source = "set";
     save();
     loadPracticeQuestion();
@@ -437,7 +440,7 @@
     const rnd = new Map(qs.map((q) => [q.id, Math.random()]));
     if (section === "rw") qs.sort((a, b) => order.indexOf(a.domain) - order.indexOf(b.domain) || a.diff - b.diff);
     else qs.sort((a, b) => a.diff - b.diff || rnd.get(a.id) - rnd.get(b.id));
-    return { section, n, route: route || null, ids: qs.map((q) => q.id), ans: {}, marked: {}, elim: {}, time: {}, timeLeft: spec.secs, cur: 0, reviewing: false };
+    return { section, n, route: route || null, ids: qs.map((q) => q.id), ans: {}, marked: {}, elim: {}, time: {}, timeLeft: (am.mult ?? 1) ? Math.round(spec.secs * (am.mult ?? 1)) : null, cur: 0, reviewing: false };
   }
   function moduleAcc(m) {
     let got = 0, tot = 0;
@@ -450,7 +453,7 @@
     return clamp(round10(200 + 600 * (0.45 * p1 + 0.55 * p2)), 200, 800);
   }
   function startMock(kind) {
-    const am = { id: "mk" + Date.now(), kind, startedAt: Date.now(), stage: 0, onBreak: false, breakLeft: 0, modules: [] };
+    const am = { id: "mk" + Date.now(), kind, mult: progress.timeMult, startedAt: Date.now(), stage: 0, onBreak: false, breakLeft: 0, modules: [] };
     am.modules.push(buildModule(am, "rw", 1));
     progress.activeMock = am;
     Object.assign(ui, { mockResult: null, pendingSubmit: false, navOpen: false, elimMode: false });
@@ -465,6 +468,7 @@
     if (m.n === 1) {
       am.modules.push(buildModule(am, m.section, 2, moduleAcc(m) >= 0.6 ? "hard" : "easy"));
       am.stage++;
+      toast(`Stop ${am.stage} of 4 done. Keep going!`);
     } else if (m.section === "rw") {
       am.modules.push(buildModule(am, "math", 1));
       am.stage++;
@@ -485,7 +489,7 @@
       if (resp != null && resp !== "") record(q, c, resp, "mock", m.time[id] || null);
     }
     const modules = am.modules.map((m) => ({ s: m.section, n: m.n, route: m.route, right: m.ids.filter((id) => isCorrect(getQ(id), m.ans[id])).length, total: m.ids.length }));
-    const rec = { id: am.id, kind: am.kind, at: Date.now(), rw, math, total: rw + math, route: { rw: r2.route, math: m2.route }, modules, items };
+    const rec = { id: am.id, kind: am.kind, mult: am.mult ?? 1, at: Date.now(), rw, math, total: rw + math, route: { rw: r2.route, math: m2.route }, modules, items };
     progress.mocks.push(rec);
     progress.mocks = progress.mocks.slice(-20);
     progress.activeMock = null;
@@ -518,11 +522,12 @@
   function render() {
     const am = progress.activeMock;
     document.body.classList.toggle("testing", Boolean(am && ui.view === "mock" && !am.onBreak));
+    document.body.classList.toggle("plain-notes", Boolean(progress.plainNotes));
     renderMenu();
     renderTools();
     const banner = document.getElementById("banner");
     banner.replaceChildren(am && ui.view !== "mock"
-      ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${clock(curModule().timeLeft)} left. The timer only runs while the test is open.`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "resume test"))
+      ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "resume test"))
       : "");
     document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
     document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
@@ -580,7 +585,7 @@
       el("p", { class: "sub", text: plan ? "Update these anytime and the plan adjusts." : "Your plan unlocks after two steps: import a real score, then take a diagnostic practice test here." }),
       el("div", { class: "tasks" },
         task(Boolean(imp), "Import your SAT score", imp ? `${SCORE_KINDS[imp.kind]?.label || "Score"} · ${imp.rw + imp.math} (${niceDate(imp.date)})` : "Optional · official SAT, PSAT or Bluebook practice test", "1 min", imp ? "Add another" : "Import", toScores("imp-rw")),
-        task(Boolean(mk), "Take a diagnostic test", mk ? `${MOCK_SPEC[mk.kind].label} · ${mk.total} (${niceDate(mk.at)})` : progress.activeMock ? "In progress" : "Quick adaptive test, Reading and Writing + Math", "68 min", progress.activeMock ? "Resume" : mk ? "Retake" : "Start", () => go("mock")),
+        task(Boolean(mk), "Take a diagnostic test", mk ? `${MOCK_SPEC[mk.kind].label} · ${mk.total} (${niceDate(mk.at)})` : progress.activeMock ? "In progress" : "Quick adaptive test, Reading and Writing + Math", (mockMins("quick") ? mockMins("quick") + " min" : "untimed"), progress.activeMock ? "Resume" : mk ? "Retake" : "Start", () => go("mock")),
         task(Boolean(progress.target.total), "Set your target score", progress.target.total ? `${progress.target.total}${progress.target.date ? " by " + niceDate(progress.target.date) : ""}` : "Optional, but it sharpens your daily plan", "1 min", progress.target.total ? "Edit" : "Set", toScores("tgt-total"))),
       el("div", { class: "row", style: "margin-top:14px" }, el("div", { class: "meter", style: "flex:1;min-width:140px" }, el("i", { style: `width:${plan ? 100 : doneCount * 33}%` })),
         el("span", { class: "tiny", text: plan ? "Plan unlocked" : "Take the diagnostic to unlock your plan" })));
@@ -600,7 +605,7 @@
         el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl", text: "score" }), "."),
         el("p", { class: "sub", text: "One adaptive practice test, Reading and Writing plus Math, shows where you stand and builds your daily plan. The timer pauses whenever you leave." }),
         el("div", { class: "row go" },
-          el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : "68 min" }), arrow()),
+          el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : (mockMins("quick") ? mockMins("quick") + " min" : "untimed") }), arrow()),
           el("span", { class: "row", style: "gap:14px" }, el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question"), el("span", { class: "note", "aria-hidden": "true", text: "← not ready? start small" }))),
         el("p", { class: "tiny", style: "color:inherit" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."),
         el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"], ["var(--lilac)", "Tools"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
@@ -609,7 +614,8 @@
           [["rw", "Reading and Writing", () => { ui.pr.source = "rw"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
             ["math", "Math", () => { ui.pr.source = "math"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
             ["tool", "Question bank", () => go("bank")],
-            ["rw", "Flashcards", () => go("vocab")]].map(([c, a, f]) => el("button", { class: "cap " + c, type: "button", onclick: f }, a, arrow()))));
+            ["rw", "Flashcards", () => go("vocab")],
+            ["tool", "Question Rush", () => { ui.pr.source = "rush"; ui.rush = null; go("practice"); }]].map(([c, a, f]) => el("button", { class: "cap " + c, type: "button", onclick: f }, a, arrow()))));
       return el("div", { class: "stack" }, first, prac.length || imp ? stats : null, quick);
     }
 
@@ -695,7 +701,7 @@
       else if (pr.skill !== "all") q = pickBySkill(pr.skill, diff, ex);
       else q = pickQuestion({ section: pr.source === "rw" || pr.source === "math" ? pr.source : null, diff, exclude: ex });
     }
-    Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now() });
+    Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now(), hint: false });
   }
   function checkPractice() {
     const pr = ui.pr, q = pr.q;
@@ -710,7 +716,7 @@
     save();
     render();
     if (ok) spark(document.querySelector(".verdict-title"));
-    document.getElementById("next-btn")?.focus();
+    (document.getElementById("twin-btn") || document.getElementById("next-btn"))?.focus();
   }
   function nextPractice() {
     if (ui.pr.source === "set" && progress.set) { progress.set.i++; save(); }
@@ -727,16 +733,17 @@
   }
   function renderPractice() {
     const pr = ui.pr;
-    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["weak", "Weak spots"], ["missed", "Missed"], ["saved", "Marked for review"]];
+    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["weak", "Weak spots"], ["missed", "Missed"], ["saved", "Marked for review"], ["rush", "Question Rush"]];
     if (progress.set) sources.unshift(["set", progress.set.label]);
     const parts = [el("div", { class: "controls on-desk" },
       el("div", { class: "pills", role: "group", "aria-label": "Question source" }, sources.map(([k, label]) =>
-        el("button", { class: "pill", type: "button", "aria-pressed": String(pr.source === k || (k === "mixed" && pr.source === "domain")), onclick: () => { pr.source = k; pr.skill = "all"; loadPracticeQuestion(); render(); } }, label))),
-      !["set", "missed", "saved", "weak"].includes(pr.source) ? [
+        el("button", { class: "pill", type: "button", "aria-pressed": String(pr.source === k || (k === "mixed" && pr.source === "domain")), onclick: () => { pr.source = k; pr.skill = "all"; if (k !== "rush") ui.rush = null; loadPracticeQuestion(); render(); } }, label))),
+      !["set", "missed", "saved", "weak", "rush"].includes(pr.source) ? [
         el("label", { class: "field" }, "Skill", skillSelect(pr.skill, (e) => { pr.skill = e.target.value; pr.source = pr.skill === "all" ? "mixed" : "domain"; loadPracticeQuestion(); render(); }, "pr-skill")),
         el("label", { class: "field" }, "Difficulty", el("select", { class: "input", id: "pr-diff", onchange: (e) => { pr.diff = e.target.value; loadPracticeQuestion(); render(); } },
           [["any", "Any"], ["1", "Easy"], ["2", "Medium"], ["3", "Hard"]].map(([v, l]) => el("option", { value: v, selected: pr.diff === v }, l))))
       ] : null)];
+    if (pr.source === "rush") { parts.push(renderRush()); return el("div", {}, parts); }
     const set = progress.set;
     if (pr.source === "set" && set) {
       parts.push(el("div", { class: "setbar" }, el("span", { text: set.label }),
@@ -802,35 +809,106 @@
     } else {
       answerArea = el("div", { class: "choices", role: "radiogroup", "aria-label": "Answer choices" }, q.choices.map((c, i) => {
         let cls = "choice";
+        const missed = pr.checked && i === pr.picked && i !== q.answer;
         if (pr.checked && i === q.answer) cls += " is-right";
-        else if (pr.checked && i === pr.picked) cls += " is-wrong";
-        return el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(pr.picked === i), disabled: pr.checked,
+        else if (missed) cls += " is-wrong";
+        return [el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(pr.picked === i), disabled: pr.checked,
           onclick: () => { if (!pr.checked) { pr.picked = i; render(); document.getElementById("check-btn")?.focus(); } } },
-          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { text: c }));
+          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, c, missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
+          missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", q.why[i]) : null];
       }));
     }
     const canCheck = q.type === "spr" ? Boolean(pr.spr.trim()) : pr.picked !== null;
+    const twin = pr.checked && pr.source !== "set" && !isCorrect(q, q.type === "spr" ? pr.spr : pr.picked);
     const answerSec = [
       !two ? stimulus(q) : null,
       el("p", { class: "prompt" }, rich(q.prompt)),
       answerArea,
       el("div", { class: "actions" },
-        pr.checked ? el("button", { class: "btn", id: "next-btn", type: "button", onclick: nextPractice }, "next")
+        twin ? el("button", { class: "btn sun", id: "twin-btn", type: "button", title: "A new question on the same skill", onclick: () => { const r = remixOf(q); if (!r) { toast("No twin left for this skill. Try the next question."); return; } ui.qCount++; loadPracticeQuestion(r); render(); } }, "Try a twin") : null,
+        pr.checked ? el("button", { class: twin ? "btn ghost" : "btn", id: "next-btn", type: "button", onclick: nextPractice }, "next")
           : el("button", { class: "btn", id: "check-btn", type: "button", disabled: !canCheck, onclick: checkPractice }, "check answer"),
         !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "skip") : null,
+        !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
         q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check") : null),
+      pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", q.steps[0]), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
       pr.checked ? renderVerdict(q, q.type === "spr" ? pr.spr : pr.picked) : null];
     const body = two
       ? el("div", { class: "qgrid" }, el("section", { "aria-label": "Passage" }, chipsFor(q), stimulus(q)), el("section", { "aria-label": "Question" }, answerSec))
       : el("div", { class: "qgrid single" }, el("section", { "aria-label": "Question" }, chipsFor(q), answerSec));
+    if (pr.hint || pr.checked) markClue(body, q);
     return el("section", { class: "sheet qsheet" }, questionTop(q), body);
+  }
+  // ------------------------------------------------------------------ pen: handwritten hints, walkthroughs, miss reasons
+  const PEN = {
+    ring: ["0 0 100 100", "M64 9C34 2 7 20 8 50c1 30 30 45 57 40 27-6 34-36 24-58C80 12 58 3 38 11"],
+    scratch: ["0 0 100 40", "M2 23C24 15 46 27 70 18c10-4 20-6 28-7M5 29c26-6 50 3 92-10"],
+    under: ["0 0 100 20", "M2 13c22-6 48 5 70-2 9-3 18-4 26-3"]
+  };
+  const penMark = (kind) => svg("svg", { class: "mark pen-" + kind, viewBox: PEN[kind][0], preserveAspectRatio: "none", "aria-hidden": "true" }, svg("path", { d: PEN[kind][1], pathLength: "1", "vector-effect": "non-scaling-stroke" }));
+  function markClue(root, q) {
+    const clue = CLUES[q.id];
+    if (!clue) return;
+    for (const box of root.querySelectorAll(".passage, .prompt")) {
+      const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let n; (n = walk.nextNode()); ) {
+        const at = n.data.indexOf(clue);
+        if (at < 0) continue;
+        const hit = n.splitText(at);
+        hit.splitText(clue.length);
+        const span = el("span", { class: "clue" }, el("span", { class: "sr", text: "Clue: " }));
+        hit.replaceWith(span);
+        span.append(hit);
+        span.after(el("span", { class: "pen clue-note", "aria-hidden": "true", text: "clue" }));
+        return;
+      }
+    }
+  }
+  const plainToggle = () => el("button", { class: "link", type: "button", onclick: () => { progress.plainNotes = !progress.plainNotes; save(); render(); } }, progress.plainNotes ? "Use handwriting" : "Switch to typed text");
+  function walkthrough(q) {
+    const pick = q.type === "spr" ? "" : q.choices[q.answer];
+    const ans = q.type === "spr" ? q.answerText : pick.length <= 40 && !/[.!?]$/.test(pick) ? `${LETTERS[q.answer]}, “${pick}”` : LETTERS[q.answer];
+    const gap = 0.5;
+    return el("div", { class: "walk" },
+      el("div", { class: "row between" }, el("h4", { text: "Walkthrough" }), plainToggle()),
+      el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", { text: t }))),
+        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, ans, penMark("under")), "."))));
+  }
+  const MISS = [["misread", "Misread the question"], ["concept", "Didn't know the rule"], ["trap", "Fell for a trap answer"], ["time", "Rushed or ran out of time"], ["slip", "Careless slip"]];
+  const MISS_TIP = {
+    misread: "Read the question line before the passage, and say in your own words what it asks for.",
+    concept: "Open the Guides for that skill, then redo a few easy questions on it before going back to harder ones.",
+    trap: "Before you look at the choices, predict the answer yourself. Then pick the choice that matches your prediction.",
+    time: "Do a Question Rush on that skill. Short timed rounds build speed without the pressure of a full test.",
+    slip: "Before you check, reread the sentence with your choice in it, or plug your number back into the problem."
+  };
+  function missTagger(q) {
+    const a = latest(q.id);
+    if (!a || a.c) return null;
+    const box = el("div", { class: "miss" },
+      el("p", { class: "pen", id: "miss-label", text: "Why do you think you missed it?" }),
+      el("div", { class: "row", style: "gap:8px", role: "group", "aria-labelledby": "miss-label" }, MISS.map(([k, label]) => el("button", { class: "tag", type: "button", "data-k": k, "aria-pressed": String(a.why === k),
+        onclick: () => { a.why = a.why === k ? undefined : k; save(); box.replaceWith(missTagger(q)); document.querySelector(`.miss [data-k="${k}"]`)?.focus(); } }, label))),
+      a.why ? el("p", { class: "tiny", style: "margin:8px 0 0", text: "Tip: " + MISS_TIP[a.why] }) : null);
+    return box;
+  }
+  function missPatterns() {
+    const tagged = flatAttempts().filter((a) => !a.c && a.why && a.at >= Date.now() - 30 * 864e5);
+    if (!tagged.length) return sheet("", title("Your miss patterns", true), el("p", { class: "sub", style: "margin:0", text: "After a miss, tap why it happened. Your most common reason and a fix for it will show up here." }));
+    const counts = MISS.map(([k, l]) => ({ k, l, n: tagged.filter((a) => a.why === k).length })).filter((x) => x.n).sort((a, b) => b.n - a.n);
+    const top = counts[0];
+    return sheet("", title("Your miss patterns", true), el("p", { class: "sub", text: `Last 30 days · ${tagged.length} tagged miss${tagged.length === 1 ? "" : "es"}` }),
+      el("div", { class: "bars" }, counts.map((x) => el("div", {}, el("span", { text: x.l }), el("span", { class: "bar" }, el("i", { style: `width:${Math.round((x.n / top.n) * 100)}%` })), el("b", { text: x.n })))),
+      el("p", { class: "pen tip" }, `Most often: ${top.l.toLowerCase()}. `, MISS_TIP[top.k]),
+      top.k === "time" ? el("button", { class: "btn small", type: "button", onclick: () => { ui.pr.source = "rush"; ui.rush = null; go("practice"); } }, "Start a Question Rush")
+        : top.k === "concept" ? el("button", { class: "btn small", type: "button", onclick: () => go("guides") }, "Open the Guides") : null);
   }
   function renderVerdict(q, resp) {
     const ok = isCorrect(q, resp);
     const box = el("div", { class: "verdict", "aria-live": "polite" },
       el("p", { class: "verdict-title " + (ok ? "ok" : "no") }, ok ? "✓ Correct" : `✕ Incorrect. The correct answer is ${answerLabel(q)}.`),
-      el("h4", { text: "Explanation" }),
-      el("ol", { class: "solve" }, q.steps.map((s) => el("li", { text: s }))),
+      ok ? null : missTagger(q),
+      walkthrough(q),
       q.type !== "spr" ? [el("h4", { text: "Why the other choices are wrong" }),
         el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", { text: t }))))] : null);
     box.append(renderTutor(q, resp), renderReport(q));
@@ -893,6 +971,90 @@
     } }, "flag a problem with this question");
     area.append(open);
     return area;
+  }
+
+  // ------------------------------------------------------------------ question rush: 3-minute speed rounds
+  const RUSH_SECS = 180;
+  function pickRushQ(scope, exclude) {
+    let q = null;
+    for (let i = 0; i < 6; i++) {
+      q = scope === "all" ? pickQuestion({ exclude }) : scope.startsWith("dom:") ? pickQuestion({ domain: scope.slice(4), exclude }) : pickBySkill(scope, null, exclude);
+      if (q && q.type !== "spr") return q;
+    }
+    return q && q.type !== "spr" ? q : pickQuestion({ section: "rw", exclude });
+  }
+  function startRush() {
+    const scope = ui.rushScope;
+    ui.rush = { scope, left: RUSH_SECS, score: 0, tries: 0, combo: 0, best: 0, misses: [], seen: new Set(), flash: null, done: false, q: null, shownAt: Date.now() };
+    ui.rush.q = pickRushQ(scope, ui.rush.seen);
+    render();
+    document.getElementById("rush-0")?.focus();
+  }
+  function rushAnswer(i) {
+    const r = ui.rush;
+    if (!r || r.done || r.flash) return;
+    const q = r.q, ok = isCorrect(q, i);
+    record(q, ok, i, "rush", (Date.now() - r.shownAt) / 1000);
+    r.tries++;
+    r.seen.add(q.id);
+    if (ok) { r.score++; r.combo++; r.best = Math.max(r.best, r.combo); } else { r.combo = 0; if (!r.misses.includes(q.id)) r.misses.push(q.id); }
+    r.flash = { i, ok };
+    render();
+    setTimeout(() => {
+      if (ui.rush !== r || r.done) return;
+      r.flash = null; r.q = pickRushQ(r.scope, r.seen); r.shownAt = Date.now();
+      render();
+      if (ui.view === "practice") document.getElementById("rush-0")?.focus();
+    }, ok ? 380 : 900);
+  }
+  function endRush() {
+    const r = ui.rush;
+    r.done = true; r.flash = null;
+    const prev = progress.rush[r.scope] || 0;
+    r.newBest = r.score > prev;
+    if (r.newBest) progress.rush[r.scope] = r.score;
+    save();
+    render();
+  }
+  function rushScopeLabel(scope) { return scope === "all" ? "all skills" : scope.startsWith("dom:") ? DOMAINS[scope.slice(4)].name : scope; }
+  function renderRush() {
+    const r = ui.rush;
+    if (!r) {
+      const best = progress.rush[ui.rushScope];
+      return sheet("", el("div", { class: "rush-start" },
+        el("h2", { class: "h1" }, "Question ", el("mark", { class: "hl", text: "Rush" })),
+        el("p", { class: "sub", text: "Three minutes. Answer as many as you can. Every right answer in a row builds your combo, and explanations wait until the end." }),
+        el("label", { class: "field" }, "Skill", skillSelect(ui.rushScope, (e) => { ui.rushScope = e.target.value; render(); }, "rush-skill")),
+        el("p", { class: "pen", text: best ? `Your best on ${rushScopeLabel(ui.rushScope)}: ${best}. Beat it?` : `No score yet on ${rushScopeLabel(ui.rushScope)}. Set one!` }),
+        el("button", { class: "btn big sun", type: "button", onclick: startRush }, "Start the clock")));
+    }
+    if (r.done) {
+      return sheet("", el("div", { class: "rush-start" },
+        el("h2", { class: "h1" }, r.left > 0 ? "Round over: " : "Time's up: ", el("mark", { class: "hl", text: `${r.score} right` }), "!"),
+        el("p", { class: "sub", text: `${r.score} out of ${r.tries} on ${rushScopeLabel(r.scope)}${r.best >= 2 ? ` · best combo ×${r.best}` : ""}` }),
+        el("p", { class: "pen", text: r.newBest ? "New personal best!" : progress.rush[r.scope] ? `Your best is still ${progress.rush[r.scope]}. Go get it.` : "Warm-up done. The next round counts!" }),
+        el("div", { class: "row" },
+          r.misses.length ? el("button", { class: "btn sun", type: "button", onclick: () => { ui.rush = null; beginSet({ kind: "rush", label: "Rush misses", ids: r.misses.slice() }); } }, `Go over my ${r.misses.length} miss${r.misses.length === 1 ? "" : "es"}`) : null,
+          el("button", { class: r.misses.length ? "btn ghost" : "btn sun", type: "button", onclick: startRush }, "Go again"),
+          el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.rush = null; render(); } }, "change skill"))));
+    }
+    const q = r.q;
+    const hasStim = (q.passage && q.passage.length) || q.table || q.list;
+    const two = q.section === "rw" && hasStim;
+    const choices = el("div", { class: "choices", role: "group", "aria-label": "Answer choices" }, q.choices.map((c, i) => {
+      const f = r.flash;
+      const cls = "choice" + (f && i === q.answer ? " is-right" : f && i === f.i && !f.ok ? " is-wrong" : "");
+      return el("button", { class: cls, type: "button", id: "rush-" + i, disabled: Boolean(f), onclick: () => rushAnswer(i) }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", { text: c }));
+    }));
+    const ask = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt)), choices,
+      el("p", { class: "tiny", style: "margin-top:12px" }, el("span", { class: "kbd", text: "A–D" }), " answer"));
+    return el("section", { class: "sheet qsheet" },
+      el("div", { class: "rushbar" },
+        el("span", { class: "rush-clock", id: "rush-clock", "aria-label": "Time left", text: clock(r.left) }),
+        el("span", {}, el("b", { text: r.score }), " right"),
+        el("span", { class: "pen combo", "aria-live": "polite", text: r.combo >= 2 ? `×${r.combo} combo!` : r.flash && !r.flash.ok ? "shake it off" : "" }),
+        el("button", { class: "btn small ghost", type: "button", onclick: endRush }, "end round")),
+      el("div", { class: "qgrid" + (two ? "" : " single") }, two ? el("section", { "aria-label": "Passage" }, stimulus(q)) : null, ask));
   }
 
   // ------------------------------------------------------------------ question bank + drill builder
@@ -970,6 +1132,15 @@
   }
 
   // ------------------------------------------------------------------ mock
+  const TIME_OPTS = [[1, "Standard"], [1.5, "1.5× time"], [2, "2× time"], [0, "Untimed"]];
+  const timeLabel = (mult) => (mult === 1 || mult == null ? "" : mult ? ` · ${mult}× time` : " · untimed");
+  function mockMins(kind, mult = progress.timeMult) { const s = MOCK_SPEC[kind]; return mult ? Math.round(((s.rw.secs + s.math.secs) * 2 * mult) / 60) : null; }
+  function trailbar(am, allDone) {
+    const stops = ["Reading and Writing 1", "Reading and Writing 2", "Math 1", "Math 2"];
+    const at = allDone ? 4 : am.stage;
+    return el("ol", { class: "trailbar", "aria-label": allDone ? "All 4 stops done" : `Stop ${at + 1} of 4` }, stops.map((t, i) =>
+      el("li", { class: i < at ? "done" : i === at ? "now" : "" }, el("span", { class: "stop", "aria-hidden": "true" }), el("span", { text: t }))));
+  }
   function renderMock() {
     const am = progress.activeMock;
     if (am) return am.onBreak ? renderBreak(am) : renderTest(am);
@@ -980,9 +1151,9 @@
     const card = (kind, cta, desc) => {
       const s = MOCK_SPEC[kind];
       const n = Object.values(s.rw.counts).reduce((a, b) => a + b, 0) * 2 + Object.values(s.math.counts).reduce((a, b) => a + b, 0) * 2;
-      const mins = Math.round((s.rw.secs * 2 + s.math.secs * 2) / 60);
+      const mins = mockMins(kind);
       return el("div", { class: "step" }, el("strong", { text: s.label.toLowerCase() }),
-        el("span", { style: "font-weight:900;font-size:44px;line-height:1", text: `${n} q` }), el("span", { class: "tiny", text: `${Math.floor(mins / 60)} h ${mins % 60} min + break` }),
+        el("span", { style: "font-weight:900;font-size:44px;line-height:1", text: `${n} q` }), el("span", { class: "tiny", text: mins == null ? "Untimed + break" : `${Math.floor(mins / 60)} h ${mins % 60} min + break` }),
         el("p", { style: "margin:0", text: desc }), el("button", { class: "btn", type: "button", onclick: () => startMock(kind) }, cta));
     };
     const past = progress.mocks.slice().sort((a, b) => b.at - a.at);
@@ -992,29 +1163,36 @@
         el("div", { class: "cols" },
           card("full", "Start full-length test", "27 + 27 Reading and Writing questions, 22 + 22 Math, with a 10-minute break. Best for an accurate score."),
           card("quick", "Start quick test", "About half the length, with a 5-minute break. Good as a diagnostic or a weekly check-in.")),
+        el("div", { class: "timing" },
+          el("span", { class: "field", id: "time-label", text: "Timing" }),
+          el("div", { class: "pills", role: "group", "aria-labelledby": "time-label" }, TIME_OPTS.map(([v, l]) => el("button", { class: "pill", type: "button", "aria-pressed": String(progress.timeMult === v), onclick: () => { progress.timeMult = v; save(); render(); } }, l))),
+          el("p", { class: "tiny", style: "margin:0", text: "Approved for extra time on the real SAT? Practise with it here. It also applies to timed drills, and your score is labelled with the timing you used." })),
         el("p", { class: "tiny", style: "margin:12px 0 0", text: "Tools: mark for review, answer eliminator, question navigator, hideable timer, built-in calculator and grapher, reference sheet. Leave anytime; the timer runs only while the test is open." })),
       sheet("", title("Past practice tests", true), past.length ? el("div", { class: "tour wide" }, past.map((m, i) => el("div", {},
-        el("span", { class: "k", text: "abcdefghijklmnopqrst"[i] }), el("span", { text: `${MOCK_SPEC[m.kind].label.toLowerCase()} · ${niceDate(m.at)}` }),
+        el("span", { class: "k", text: "abcdefghijklmnopqrst"[i] }), el("span", { text: `${MOCK_SPEC[m.kind].label.toLowerCase()} · ${niceDate(m.at)}${timeLabel(m.mult)}` }),
         el("span", { class: "r", text: m.rw }), el("span", { class: "r", text: m.math }), el("span", { class: "r", style: "font-weight:900", text: m.total }),
         el("button", { type: "button", onclick: () => { ui.mockResult = m.id; render(); } }, "results")))) : el("div", { class: "empty", text: "No practice tests yet. Results and a question-by-question review will show up here." })));
   }
   function renderBreak(am) {
     return sheet("", el("div", { class: "stack", style: "justify-items:center;text-align:center" },
-      title("reading & writing done"),
-      el("p", { class: "sub", text: "Stand up, drink some water, look away from the screen. Math starts when the break ends or when you choose." }),
-      el("span", { id: "test-clock", style: "font-weight:900;font-size:72px;line-height:1;font-variant-numeric:tabular-nums", text: clock(am.breakLeft) }),
-      el("button", { class: "btn big", type: "button", onclick: () => { am.onBreak = false; save(true); render(); } }, "start math now")));
+      trailbar(am),
+      el("h2", { class: "h1" }, "Halfway ", el("mark", { class: "hl", text: "there" }), "!"),
+      el("p", { class: "sub", style: "margin:0 auto", text: "Reading and Writing is done. Math starts when the break ends or when you choose." }),
+      el("p", { class: "pen", text: "Stand up, grab some water, look at something far away." }),
+      el("span", { id: "test-clock", style: "font-weight:800;font-size:72px;line-height:1;font-variant-numeric:tabular-nums", text: clock(am.breakLeft) }),
+      el("button", { class: "btn big sun", type: "button", onclick: () => { am.onBreak = false; save(true); render(); } }, "Start Math now")));
   }
   function renderTest(am) {
     const m = curModule();
     const head = el("div", { class: "test-head" },
       el("span", { class: "ttl", text: `Section ${m.section === "rw" ? 1 : 2}, Module ${m.n}: ${SECTION[m.section]}` }),
-      el("span", { class: "clock" + (m.timeLeft <= 300 ? " warn" : ""), id: "test-clock", "aria-label": "Time left", text: ui.hideTimer ? "--:--" : clock(m.timeLeft) }),
+      el("span", { class: "clock" + (m.timeLeft != null && m.timeLeft <= 300 ? " warn" : ""), id: "test-clock", "aria-label": "Time left", text: m.timeLeft == null ? "untimed" : ui.hideTimer ? "--:--" : clock(m.timeLeft) }),
       el("div", { class: "right" },
-        el("button", { class: "btn small", type: "button", onclick: () => { ui.hideTimer = !ui.hideTimer; render(); } }, ui.hideTimer ? "show timer" : "hide timer"),
+        m.timeLeft != null ? el("button", { class: "btn small", type: "button", onclick: () => { ui.hideTimer = !ui.hideTimer; render(); } }, ui.hideTimer ? "show timer" : "hide timer") : null,
         m.section === "math" ? [el("button", { class: "btn small", type: "button", onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, "calculator"), el("button", { class: "btn small", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "reference")] : null,
         el("button", { class: "btn small", type: "button", onclick: () => { save(true); go("home"); } }, "pause & exit")));
-    if (m.reviewing) return el("section", { class: "sheet qsheet", "aria-label": "Module review" }, head, renderModuleReview(m));
+    const sec = "sheet qsheet sec-" + m.section;
+    if (m.reviewing) return el("section", { class: sec, "aria-label": "Module review" }, head, trailbar(am), renderModuleReview(m));
     const id = m.ids[m.cur], q = getQ(id), resp = m.ans[id];
     const struck = new Set(m.elim[id] || []);
     const qbar = el("div", { class: "qbar" },
@@ -1043,7 +1221,7 @@
       el("div", { class: "row" },
         el("button", { class: "btn ghost", type: "button", disabled: m.cur === 0, onclick: () => { m.cur--; render(); } }, "back"),
         el("button", { class: "btn", type: "button", onclick: () => { if (m.cur < m.ids.length - 1) m.cur++; else m.reviewing = true; ui.navOpen = false; save(); render(); } }, m.cur < m.ids.length - 1 ? "next" : "review module")));
-    return el("section", { class: "sheet qsheet", "aria-label": "Mock test" }, head, qbar, body, ui.navOpen ? el("div", { style: "padding:16px 18px;border-top:2px dashed var(--rule)" }, navGrid(m)) : null, foot);
+    return el("section", { class: sec, "aria-label": "Mock test" }, head, trailbar(am), qbar, body, ui.navOpen ? el("div", { style: "padding:16px 18px;border-top:2px dashed var(--line-strong)" }, navGrid(m)) : null, foot);
   }
   function navGrid(m) {
     return el("div", { class: "stack", style: "gap:10px" },
@@ -1059,6 +1237,7 @@
     const last = progress.activeMock.stage === 3;
     return el("div", { class: "stack", style: "padding:20px 22px" },
       title("check your work", true),
+      el("p", { class: "pen", text: unanswered ? "No penalty for guessing, so fill in every answer!" : last ? "Last stop. You've got this." : "Nice, every answer filled in." }),
       el("p", { class: "sub", text: `${unanswered ? unanswered + " unanswered" : "Every question answered"}${marked ? ` · ${marked} marked for review` : ""}. There's no penalty for guessing, so answer everything. Once you submit, you can't come back to this module.` }),
       navGrid(m),
       el("div", { class: "row" },
@@ -1079,11 +1258,15 @@
     const misses = rec.items.filter((i) => !i.c).length;
     const routeText = (r) => (r === "hard" ? "harder module 2" : "easier module 2");
     const skills = [...new Set(rec.items.map((i) => i.k || skillOf(getQ(i.id))))].map((k) => { const it = rec.items.filter((i) => (i.k || skillOf(getQ(i.id))) === k); return { k, right: it.filter((i) => i.c).length, total: it.length }; }).sort((a, b) => a.right / a.total - b.right / b.total);
+    const fresh = Date.now() - rec.at < 10 * 60e3;
     return el("div", { class: "stack" },
-      sheet("", title(`${MOCK_SPEC[rec.kind].label.toLowerCase()} · ${niceDate(rec.at)}`, true),
+      fresh ? el("div", { class: "made-it" }, trailbar(null, true),
+        el("h2", { class: "h1" }, "You made it to the ", el("mark", { class: "hl", text: "end" }), "!"),
+        el("p", { class: "pen", text: rec.kind === "full" ? "A whole practice SAT. That takes grit." : "Test done. Every one you take makes the real one feel more familiar." })) : null,
+      sheet("", title(`${MOCK_SPEC[rec.kind].label.toLowerCase()} · ${niceDate(rec.at)}${timeLabel(rec.mult)}`, true),
         el("div", { class: "numgrid", style: "max-width:560px" }, el("div", { class: "numbox" }, el("small", { text: "total" }), el("b", { style: "font-size:56px", text: rec.total })), el("div", { class: "numbox" }, el("small", { text: "R&W" }), el("b", { text: rec.rw })), el("div", { class: "numbox" }, el("small", { text: "math" }), el("b", { text: rec.math }))),
         rec.modules ? el("div", { class: "tour", style: "margin-top:14px" }, rec.modules.map((m, i) => el("div", {}, el("span", { class: "k", text: "abcd"[i] }), el("span", { text: `${SECTION[m.s]} · module ${m.n}${m.route ? ` (${m.route})` : ""}` }), el("span", { class: "r", text: `${m.right}/${m.total}` })))) : null,
-        el("p", { class: "sub", style: "margin-top:12px", text: `You were routed to the ${routeText(rec.route.rw)} in Reading and Writing and the ${routeText(rec.route.math)} in Math. ${imp ? `Your latest imported score is ${imp.rw + imp.math}.` : "Import a real score to compare and unlock your plan."} This is an estimate, not an official score.` }),
+        el("p", { class: "sub", style: "margin-top:12px", text: `You were routed to the ${routeText(rec.route.rw)} in Reading and Writing and the ${routeText(rec.route.math)} in Math. ${imp ? `Your latest imported score is ${imp.rw + imp.math}.` : "Import a real score to compare it."} This is an estimate, not an official score.` }),
         el("div", { class: "row" },
           misses ? el("button", { class: "btn big", type: "button", onclick: () => beginSet({ kind: "mock-miss", label: "Practice test review", ids: mockMissSet(rec) }) }, `practice what I missed (${misses})`) : null,
           el("button", { class: "btn ghost", type: "button", onclick: () => go("home") }, "see my plan"),
@@ -1100,7 +1283,7 @@
               q.type !== "spr" ? el("ol", { type: "A", class: "solve", style: "margin-bottom:10px" }, q.choices.map((c, j) => el("li", { style: j === q.answer ? "font-weight:700" : "" }, c))) : null,
               el("ol", { class: "solve" }, q.steps.map((s) => el("li", { text: s }))),
               q.type !== "spr" ? el("div", { class: "why", style: "margin-top:8px" }, Object.entries(q.why).map(([j, t]) => el("div", {}, el("b", { text: LETTERS[j] }), el("span", { text: t })))) : null,
-              el("div", { class: "row", style: "margin-top:10px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(remixOf(q)); go("practice"); } }, "↻ remix this"))));
+              el("div", { class: "row", style: "margin-top:10px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(remixOf(q)); go("practice"); } }, "↻ try a twin"))));
         })))));
   }
 
@@ -1255,8 +1438,9 @@
     const ids = tab === "missed" ? missedIds() : savedIds();
     const tabs = el("div", { class: "pills on-desk", style: "margin-bottom:14px" }, [["missed", `missed (${missedIds().length})`], ["saved", `Marked for review (${savedIds().length})`]].map(([k, l]) =>
       el("button", { class: "pill", type: "button", "aria-pressed": String(tab === k), onclick: () => { ui.reviewTab = k; render(); } }, l)));
-    if (!ids.length) return el("div", {}, tabs, sheet("", el("div", { class: "empty", text: tab === "missed" ? "No missed questions right now. Anything you miss lands here until you get it right." : "Nothing saved yet. Tap “save” on any question to keep it here." })));
-    return el("div", {}, tabs, sheet("",
+    const patterns = tab === "missed" ? missPatterns() : null;
+    if (!ids.length) return el("div", { class: "stack" }, tabs, patterns, sheet("", el("div", { class: "empty", text: tab === "missed" ? "No missed questions right now. Anything you miss lands here until you get it right." : "Nothing saved yet. Tap “save” on any question to keep it here." })));
+    return el("div", { class: "stack" }, tabs, patterns, sheet("",
       el("div", { class: "row between", style: "margin-bottom:12px" }, title(tab === "missed" ? "retry your misses" : "saved questions", true),
         el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: tab, label: tab === "missed" ? "Missed questions" : "Marked for review", ids: ids.slice(0, 30) }) }, `retry ${Math.min(30, ids.length)} now`)),
       el("div", { class: "tour" }, ids.map((id, i) => {
@@ -1472,6 +1656,13 @@
       if (sc) sc.textContent = clock(set.timeLeft);
       if (set.timeLeft === 0) { toast("Time's up for this drill. Finish at your own pace."); set.timeLeft = null; save(); }
     }
+    const r = ui.rush;
+    if (r && !r.done && ui.view === "practice" && ui.pr.source === "rush" && visible) {
+      r.left--;
+      const rc = document.getElementById("rush-clock");
+      if (rc) rc.textContent = clock(r.left);
+      if (r.left <= 0) endRush();
+    }
     const am = progress.activeMock;
     if (am && ui.view === "mock" && visible) {
       const clockEl = document.getElementById("test-clock");
@@ -1481,11 +1672,13 @@
         if (am.breakLeft <= 0) { am.onBreak = false; save(true); render(); }
       } else {
         const m = curModule();
-        m.timeLeft--;
         if (!m.reviewing) { const id = m.ids[m.cur]; m.time[id] = (m.time[id] || 0) + 1; }
-        if (clockEl && !ui.hideTimer) { clockEl.textContent = clock(m.timeLeft); clockEl.classList.toggle("warn", m.timeLeft <= 300); }
-        if (m.timeLeft === 300) toast("5 minutes left in this module");
-        if (m.timeLeft <= 0) { m.timeLeft = 0; toast("Time's up. Module submitted."); submitModule(); }
+        if (m.timeLeft != null) {
+          m.timeLeft--;
+          if (clockEl && !ui.hideTimer) { clockEl.textContent = clock(m.timeLeft); clockEl.classList.toggle("warn", m.timeLeft <= 300); }
+          if (m.timeLeft === 300) toast("5 minutes left in this module");
+          if (m.timeLeft <= 0) { m.timeLeft = 0; toast("Time's up. Module submitted."); submitModule(); }
+        }
       }
       if (ticks % 10 === 0) save();
     }
@@ -1500,7 +1693,8 @@
     if (["TEXTAREA", "INPUT", "SELECT"].includes(tag)) return;
     if (document.activeElement?.closest?.(".dock")) return;
     const idx = "abcd".indexOf(e.key.toLowerCase());
-    if (ui.view === "practice" && ui.pr.q && ui.pr.q.type !== "spr") {
+    if (ui.view === "practice" && ui.pr.source === "rush") { if (idx >= 0 && ui.rush && !ui.rush.done && ui.rush.q?.choices[idx] != null) { rushAnswer(idx); e.preventDefault(); } }
+    else if (ui.view === "practice" && ui.pr.q && ui.pr.q.type !== "spr") {
       if (idx >= 0 && !ui.pr.checked) { ui.pr.picked = idx; render(); e.preventDefault(); }
       else if (e.key === "Enter" && tag !== "BUTTON" && tag !== "SUMMARY") { e.preventDefault(); ui.pr.checked ? nextPractice() : checkPractice(); }
     } else if (ui.view === "mock" && progress.activeMock && !progress.activeMock.onBreak) {
@@ -1529,6 +1723,7 @@
     for (const [k, v] of Object.entries(B.study)) out.study[k] = Math.max(out.study[k] || 0, v);
     for (const key of ["scores", "mocks", "drills"]) { const ids = new Set(out[key].map((x) => x.id)); out[key].push(...B[key].filter((x) => !ids.has(x.id))); }
     for (const [k, v] of Object.entries(B.saved)) if (!out.saved[k]) out.saved[k] = v;
+    for (const [k, v] of Object.entries(B.rush)) out.rush[k] = Math.max(out.rush[k] || 0, v);
     for (const [k, v] of Object.entries(B.vocab)) if (!out.vocab[k] || (v.due || 0) > (out.vocab[k].due || 0)) out.vocab[k] = v;
     if (!out.target.total && B.target.total) out.target = B.target;
     if (!out.activeMock || (B.activeMock && B.activeMock.startedAt > out.activeMock.startedAt)) out.activeMock = B.activeMock || out.activeMock;
