@@ -588,18 +588,22 @@
     if (!plan) {
       const practiceOne = () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); };
       const arrow = () => el("span", { class: "go-chip", "aria-hidden": "true" }, svg("svg", { width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" }, svg("path", { d: "M3 8h9M8.5 4.5 12 8l-3.5 3.5" })));
+      const nss = { "vector-effect": "non-scaling-stroke" };
       const lobe = svg("svg", { class: "lobe", viewBox: "0 0 1000 600", preserveAspectRatio: "none", "aria-hidden": "true" },
-        svg("path", { class: "landmass", "vector-effect": "non-scaling-stroke", d: "M60 560 C20 470 40 330 120 240 C200 150 300 130 400 80 C520 20 660 60 780 36 C880 16 970 40 985 120 C1000 260 990 420 975 520 C960 585 900 592 780 590 L200 592 C120 594 80 590 60 560 Z" }),
-        svg("path", { class: "trail", "vector-effect": "non-scaling-stroke", d: "M20 598 C60 560 130 540 110 480 C92 425 140 400 118 352" }),
-        svg("path", { class: "pin", "vector-effect": "non-scaling-stroke", d: "M118 344 c-9 -12 -14 -20 -14 -27 a14 14 0 0 1 28 0 c0 7 -5 15 -14 27 z" }));
-      const first = el("div", { class: "first" }, lobe,
+        svg("path", { class: "landmass wide", ...nss, d: "M50 570 C10 440 20 260 60 160 C100 70 200 36 360 40 C520 44 660 18 800 22 C900 24 970 50 985 130 C1000 270 985 420 975 520 C962 585 900 590 780 588 L220 590 C130 592 80 596 50 570 Z" }),
+        svg("path", { class: "landmass tall", ...nss, d: "M30 40 C200 10 400 30 600 15 C800 0 950 20 975 60 C995 250 960 400 985 560 C900 595 600 580 400 592 C200 600 60 590 25 560 C5 400 40 250 15 120 C10 70 15 50 30 40 Z" }));
+      const trail = (cls, d) => [svg("path", { class: "edge " + cls, ...nss, d }), svg("path", { class: "dash " + cls, ...nss, d })];
+      const route = el("div", { class: "route", "aria-hidden": "true" },
+        el("span", { class: "here" }, svg("svg", { width: "26", height: "32", viewBox: "0 0 26 32" }, svg("path", { d: "M13 30C6 21 2 16 2 11a11 11 0 0 1 22 0c0 5-4 10-11 19z" }), svg("circle", { cx: "13", cy: "11", r: "4" })), el("span", { text: "You are here" })),
+        svg("svg", { class: "trail", viewBox: "0 0 100 100", preserveAspectRatio: "none" }, trail("wide", "M50 0C28 22 72 42 46 62C32 74 36 88 100 88"), trail("tall", "M50 0C28 30 72 55 46 78C38 88 46 95 50 100")));
+      const first = el("div", { class: "first" }, lobe, route,
         el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl", text: "score" }), "."),
         el("p", { class: "sub", text: "One adaptive practice test, Reading and Writing plus Math, shows where you stand and builds your daily plan. The timer pauses whenever you leave." }),
         el("div", { class: "row go" },
           el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : "68 min" }), arrow()),
           el("span", { class: "row", style: "gap:14px" }, el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question"), el("span", { class: "note", "aria-hidden": "true", text: "← not ready? start small" }))),
         el("p", { class: "tiny", style: "color:inherit" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."),
-        el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
+        el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"], ["var(--lilac)", "Tools"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
       const quick = el("section", { class: "jump" }, el("h2", { class: "title", text: "Or wander off the path" }),
         el("div", { class: "coast" },
           [["rw", "Reading and Writing", () => { ui.pr.source = "rw"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
