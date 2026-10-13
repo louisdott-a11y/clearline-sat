@@ -158,6 +158,32 @@
     for (const kid of kids.flat()) if (kid != null) n.append(kid);
     return n;
   }
+  // Math display: "(3r − 6)/2" becomes a stacked fraction and "x^(1/2)" a raised exponent, like the real test.
+  // Typed keystrokes (code spans, key boxes) and typed-answer choices stay literal.
+  const PAREN = String.raw`\((?:[^()]|\([^()]*\))*\)`;
+  const BARE = String.raw`(?:\d+(?:\.\d+)?[a-zA-Zπ]{0,2}|[a-zA-Zπ]{1,2})[²³]?`;
+  const MATH_RE = new RegExp(String.raw`\^(\([^()]*\)|[−-]?[0-9a-zA-Z]+)|(?<![\p{L}\p{N}.)])((?:\d+(?:\.\d+)?|[a-zA-Z])?(?:${PAREN})+|${BARE})\/(${PAREN}|${BARE})(?![\p{L}\p{N}(])`, "gu");
+  const unwrap = (t) => {
+    if (!/^\(.*\)$/.test(t)) return t;
+    let d = 0;
+    for (const ch of t.slice(1, -1)) { if (ch === "(") d++; else if (ch === ")" && --d < 0) return t; }
+    return t.slice(1, -1);
+  };
+  function math(text) {
+    const s = String(text ?? ""), out = [];
+    let at = 0;
+    for (const m of s.matchAll(MATH_RE)) {
+      const [whole, sup, num, den] = m;
+      // shortcut: two bare words like "km/h" stay as written; only math-shaped operands stack.
+      if (!sup && /^[a-zA-Z]+$/.test(num) && /^[a-zA-Z]+$/.test(den) && (num.length > 1 || den.length > 1)) continue;
+      if (m.index > at) out.push(s.slice(at, m.index));
+      out.push(sup ? el("sup", { text: unwrap(sup) })
+        : el("span", { class: "frac" }, el("span", { class: "num" }, ...math(unwrap(num))), el("span", { class: "sr", text: " over " }), el("span", { class: "den" }, ...math(unwrap(den)))));
+      at = m.index + whole.length;
+    }
+    if (at < s.length) out.push(s.slice(at));
+    return out;
+  }
   function rich(text) {
     const frag = document.createDocumentFragment();
     let u = null;
@@ -165,7 +191,7 @@
       if (part === "{blank}") (u || frag).append(el("span", { class: "blank", "aria-label": "blank" }));
       else if (part === "{u}") { u = el("u"); frag.append(u); }
       else if (part === "{/u}") u = null;
-      else if (part) (u || frag).append(part);
+      else if (part) (u || frag).append(...math(part));
     }
     return frag;
   }
@@ -667,9 +693,9 @@
     ["Transitions", ["Addition: additionally, furthermore, moreover, similarly.", "Contrast: however, nevertheless, by contrast, instead, even so.", "Cause and effect: therefore, as a result, consequently, thus.", "Example: for example, for instance, specifically.", "Sequence and time: eventually, later, meanwhile, finally, previously.", "Summary or synthesis: in other words, taken together, in short.", "Read the sentence before and after the blank, name the relationship, then pick the word."]],
     ["Rhetorical synthesis (student notes)", ["Read the goal in the question first. Underline every part of it.", "The right answer meets every part of the goal, often including the audience (familiar or unfamiliar).", "Ignore accuracy alone: wrong choices are usually true facts from the notes that miss the goal."]],
     ["Reading: words in context and evidence", ["Cover the choices, predict a word from the clues around the blank, then match.", "Watch contrast signals (but, although, far from) that flip the meaning.", "Evidence questions: the right choice supports the exact claim, not just the topic.", "Data questions: check every number against the table, and don't accept causal claims from correlations.", "Inference questions: pick the conclusion the text forces, not the one that's merely possible."]],
-    ["Linear equations and systems", ["Slope = (y₂ − y₁) / (x₂ − x₁). In y = mx + b, m is the rate and b is the starting value.", "Parallel lines have equal slopes. Perpendicular slopes multiply to −1.", "No solution: same slope, different intercept (coefficients proportional, constants not).", "Infinitely many solutions: the equations are multiples of each other.", "Look for shortcuts: if 3x = 18, then 6x = 36 without finding x."]],
-    ["Quadratics and nonlinear functions", ["Discriminant b² − 4ac: positive = 2 real solutions, zero = 1, negative = none.", "For ax² + bx + c = 0: sum of solutions = −b/a, product = c/a.", "Vertex form y = a(x − h)² + k has vertex (h, k). The minimum (a > 0) or maximum (a < 0) value is k.", "Vertex x-coordinate in standard form: x = −b / (2a).", "Exponential f(t) = a(b)ᵗ: b > 1 grows by (b − 1)×100% per step; b < 1 decays by (1 − b)×100%."]],
-    ["Percents, ratios and data", ["Percent change = (new − old) / old × 100.", "Successive changes multiply: +25% then −20% is 1.25 × 0.80 = 1, no change.", "Mean uses every value; median only the middle. An outlier moves the mean much more than the median.", "Probability = favorable outcomes / total in the group the question names. Read “of the students who…” carefully.", "Unit rates: divide to get per-one, then multiply. Keep units in your work."]],
+    ["Linear equations and systems", ["Slope = (y₂ − y₁)/(x₂ − x₁). In y = mx + b, m is the rate and b is the starting value.", "Parallel lines have equal slopes. Perpendicular slopes multiply to −1.", "No solution: same slope, different intercept (coefficients proportional, constants not).", "Infinitely many solutions: the equations are multiples of each other.", "Look for shortcuts: if 3x = 18, then 6x = 36 without finding x."]],
+    ["Quadratics and nonlinear functions", ["Discriminant b² − 4ac: positive = 2 real solutions, zero = 1, negative = none.", "For ax² + bx + c = 0: sum of solutions = −b/a, product = c/a.", "Vertex form y = a(x − h)² + k has vertex (h, k). The minimum (a > 0) or maximum (a < 0) value is k.", "Vertex x-coordinate in standard form: x = −b/(2a).", "Exponential f(t) = a(b)ᵗ: b > 1 grows by (b − 1)×100% per step; b < 1 decays by (1 − b)×100%."]],
+    ["Percents, ratios and data", ["Percent change = (new − old)/(old) × 100.", "Successive changes multiply: +25% then −20% is 1.25 × 0.80 = 1, no change.", "Mean uses every value; median only the middle. An outlier moves the mean much more than the median.", "Probability = favorable outcomes / total in the group the question names. Read “of the students who…” carefully.", "Unit rates: divide to get per-one, then multiply. Keep units in your work."]],
     ["Geometry and trigonometry", ["Special right triangles: 30-60-90 is x, x√3, 2x. 45-45-90 is s, s, s√2. Common triples: 3-4-5, 5-12-13, 8-15-17.", "SOH-CAH-TOA. In a right triangle, sin A = cos B for the two acute angles.", "Circle: (x − h)² + (y − k)² = r². Complete the square to find the center and radius.", "Arc length = (angle/360) × 2πr. Sector area = (angle/360) × πr².", "Similar figures: lengths scale by k, areas by k², volumes by k³.", "Triangle angles add to 180°. A full circle is 360° or 2π radians."]]
   ];
   function estimateSection(right, total, hard) {
@@ -690,7 +716,7 @@
     const scoreOut = () => { const rw = out("rw", 54), m = out("math", 44); return `${rw + m} total · R&W ${rw} · Math ${m}`; };
     calc.querySelector("#sc-out").textContent = scoreOut();
     const sheets = sheet("", el("h2", { class: "title", text: "Cheatsheets" }), el("p", { class: "sub", text: "The rules and formulas that come up most, on one page each." }),
-      el("div", { class: "stack", style: "gap:8px" }, CHEATS.map(([t, items], i) => el("details", { class: "cheat", open: i === 0 }, el("summary", {}, el("span", { text: t }), el("span", { class: "tiny", text: `${items.length} points` })), el("ul", {}, items.map((x) => el("li", { text: x })))))));
+      el("div", { class: "stack", style: "gap:8px" }, CHEATS.map(([t, items], i) => el("details", { class: "cheat", open: i === 0 }, el("summary", {}, el("span", { text: t }), el("span", { class: "tiny", text: `${items.length} points` })), el("ul", {}, items.map((x) => el("li", {}, math(x))))))));
     return el("div", { class: "cols", style: "align-items:start" }, sheets, el("div", { class: "stack" }, calc,
       sheet("", el("h2", { class: "title", text: "Reference sheet" }), el("p", { class: "sub", text: "The same formulas you get on test day." }), el("button", { class: "btn ghost", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "Open reference sheet"))));
   }
@@ -826,8 +852,8 @@
         else if (missed) cls += " is-wrong";
         return [el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(pr.picked === i), disabled: pr.checked,
           onclick: () => { if (!pr.checked) { pr.picked = i; render(); document.getElementById("check-btn")?.focus(); } } },
-          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, c, missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
-          missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", q.why[i]) : null];
+          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, q.plain ? c : math(c), missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
+          missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", math(q.why[i])) : null];
       }));
     }
     const challenge = q.trick && pr.source === "set" && progress.set?.kind === "desmos-challenge";
@@ -847,7 +873,7 @@
         !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "Skip") : null,
         !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
         q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check") : null),
-      pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", q.steps[0]), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
+      pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", math(q.steps[0])), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
       pr.checked ? renderVerdict(q, q.type === "spr" ? pr.spr : pr.picked) : null];
     const body = two
       ? el("div", { class: "qgrid" }, el("section", { "aria-label": "Passage" }, chipsFor(q), stimulus(q)), el("section", { "aria-label": "Question" }, answerSec))
@@ -887,8 +913,8 @@
     const gap = 0.5;
     return el("div", { class: "walk" },
       el("div", { class: "row between" }, el("h4", { text: heading }), plainToggle()),
-      el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", { text: t }))),
-        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, ans, penMark("under"))))));
+      el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", {}, math(t)))),
+        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, math(ans), penMark("under"))))));
   }
   const MISS = [["misread", "Misread the question"], ["concept", "Didn't know the rule"], ["trap", "Fell for a trap answer"], ["time", "Rushed or ran out of time"], ["slip", "Careless slip"]];
   const MISS_TIP = {
@@ -928,7 +954,7 @@
       q.desmos ? desmosWay(q) : null,
       walkthrough(q, q.desmos ? "By hand" : "Walkthrough"),
       q.type !== "spr" ? [el("h4", { text: "Why the other choices are wrong" }),
-        el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", { text: t }))))] : null);
+        el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", {}, math(t)))))] : null);
     box.append(renderTutor(q, resp), renderReport(q));
     return box;
   }
@@ -1062,7 +1088,7 @@
     const choices = el("div", { class: "choices", role: "group", "aria-label": "Answer choices" }, q.choices.map((c, i) => {
       const f = r.flash;
       const cls = "choice" + (f && i === q.answer ? " is-right" : f && i === f.i && !f.ok ? " is-wrong" : "");
-      return el("button", { class: cls, type: "button", id: "rush-" + i, disabled: Boolean(f), onclick: () => rushAnswer(i) }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", { text: c }));
+      return el("button", { class: cls, type: "button", id: "rush-" + i, disabled: Boolean(f), onclick: () => rushAnswer(i) }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c)));
     }));
     const ask = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt)), choices,
       el("p", { class: "tiny", style: "margin-top:12px" }, el("span", { class: "kbd", text: "A–D" }), " answer"));
@@ -1099,7 +1125,7 @@
   }
   const STATE_LABEL = { mastered: "Mastered", practicing: "Practicing", new: "Not started" };
   // Inline `code` spans in the keystroke steps.
-  const typed = (t) => t.split(/`([^`]+)`/).map((part, i) => (i % 2 ? el("code", { text: part }) : part));
+  const typed = (t) => t.split(/`([^`]+)`/).map((part, i) => (i % 2 ? el("code", { text: part }) : math(part)));
   function copyBox(text, label = "Copy") {
     const b = el("button", { class: "btn small ghost", type: "button", onclick: async () => {
       try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; }
@@ -1176,9 +1202,9 @@
           el("button", { class: "link", type: "button", onclick: () => { ui.desmos.lesson = null; render(); } }, "← All tricks"),
           el("span", { class: "tiny", text: `Trick ${L.n} of 18` })),
         el("h2", { class: "h1" }, L.title, L.best ? el("span", { class: "best big", text: "Best trick" }) : null),
-        L.body.map((t) => el("p", { class: "lede", text: t })),
+        L.body.map((t) => el("p", { class: "lede" }, math(t))),
         el("h3", { class: "title", text: "Type this" }), copyBox(L.keys),
-        el("p", { class: "pen watch" }, el("b", { text: "Watch out: " }), L.watch)),
+        el("p", { class: "pen watch" }, el("b", { text: "Watch out: " }), math(L.watch))),
       lessonCalc(L),
       el("div", { class: "dmain dpractice" },
         el("div", { class: "row between", style: "margin-top:14px" }, el("h3", { class: "title", style: "margin:0", text: "Practice" }),
@@ -1348,7 +1374,7 @@
       answerArea = el("div", { class: "choices", role: "radiogroup", "aria-label": "Answer choices" }, q.choices.map((c, i) => el("div", { class: "choice-row" },
         el("button", { class: "choice" + (struck.has(i) ? " struck" : ""), type: "button", role: "radio", "aria-checked": String(resp === i), id: "choice-" + i,
           onclick: () => { m.ans[id] = resp === i ? null : i; if (struck.has(i)) m.elim[id] = [...struck].filter((x) => x !== i); save(); render(); } },
-          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { text: c })),
+          el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c))),
         ui.elimMode ? el("button", { class: "strike", type: "button", "aria-pressed": String(struck.has(i)), "aria-label": (struck.has(i) ? "Restore choice " : "Eliminate choice ") + LETTERS[i],
           onclick: () => { struck.has(i) ? struck.delete(i) : struck.add(i); m.elim[id] = [...struck]; if (struck.has(i) && resp === i) m.ans[id] = null; save(); render(); } }, struck.has(i) ? "undo" : LETTERS[i] + "̶") : null)));
     }
@@ -1420,9 +1446,9 @@
             el("summary", {}, el("span", { class: "tiny", text: `${it.s === "rw" ? "RW" : "M"}${it.m}` }), el("span", { class: it.c ? "ok" : "no", text: it.c ? "✓" : "✗" }),
               el("span", { class: "snip", text: plain(q.passage?.[0] || q.prompt) }), el("span", { class: "tiny", text: `you: ${respLabel(q, it.r)} · key: ${answerLabel(q)}${it.t ? ` · ${it.t}s` : ""}` })),
             el("div", { class: "inner" }, chipsFor(q, false), stimulus(q), el("p", { class: "prompt" }, rich(q.prompt)),
-              q.type !== "spr" ? el("ol", { type: "A", class: "solve", style: "margin-bottom:10px" }, q.choices.map((c, j) => el("li", { style: j === q.answer ? "font-weight:700" : "" }, c))) : null,
-              el("ol", { class: "solve" }, q.steps.map((s) => el("li", { text: s }))),
-              q.type !== "spr" ? el("div", { class: "why", style: "margin-top:8px" }, Object.entries(q.why).map(([j, t]) => el("div", {}, el("b", { text: LETTERS[j] }), el("span", { text: t })))) : null,
+              q.type !== "spr" ? el("ol", { type: "A", class: "solve", style: "margin-bottom:10px" }, q.choices.map((c, j) => el("li", { style: j === q.answer ? "font-weight:700" : "" }, q.plain ? c : math(c)))) : null,
+              el("ol", { class: "solve" }, q.steps.map((s) => el("li", {}, math(s)))),
+              q.type !== "spr" ? el("div", { class: "why", style: "margin-top:8px" }, Object.entries(q.why).map(([j, t]) => el("div", {}, el("b", { text: LETTERS[j] }), el("span", {}, math(t))))) : null,
               el("div", { class: "row", style: "margin-top:10px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(remixOf(q)); go("practice"); } }, "↻ try a twin"))));
         })))));
   }

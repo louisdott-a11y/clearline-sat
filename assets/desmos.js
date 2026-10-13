@@ -122,7 +122,7 @@ window.CL_DESMOS = (() => {
       accept: [-8 / 3], answerText: "-8/3, -2.666 or -2.667",
       desmos: ["Type `y = 3x + 8` and click the curve where it crosses the x-axis: (−2.667, 0).", "Fill the box: `-2.666`, `-2.667` or `-8/3`. A negative answer gets 6 characters, so −2.67 is too short."],
       steps: ["Set y = 0: 3x + 8 = 0.", "x = −8/3, which is −2.666…"] }),
-    mc({ id: "d1-2", trick: 1, domain: "ALG", diff: 1, prompt: "Desmos shows the solution to an equation as x = 0.4545454545. Which entry in the answer box would be scored as correct?",
+    mc({ id: "d1-2", trick: 1, plain: true, domain: "ALG", diff: 1, prompt: "Desmos shows the solution to an equation as x = 0.4545454545. Which entry in the answer box would be scored as correct?",
       choices: [".45", "0.45", ".4545", "45/100"], answer: 2,
       why: { 0: "Too short. A positive answer gets 5 characters, so keep typing until the box is full.", 1: "Too short for the same reason: 0.454 or 0.455 would fill the box.", 3: "45/100 is 0.45, a different number from 0.4545…" },
       desmos: ["Keep typing digits until the box stops you: `.4545` uses all 5 characters.", "`0.454`, `0.455` and `5/11` would also be scored correct."],
