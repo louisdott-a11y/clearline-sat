@@ -169,29 +169,54 @@
     for (const ch of t.slice(1, -1)) { if (ch === "(") d++; else if (ch === ")" && --d < 0) return t; }
     return t.slice(1, -1);
   };
-  function math(text) {
+  // Variables print in italic serif, like KaTeX on the real test. Only math text gets this (Reading and Writing
+  // passages have letters like "E Minor" that aren't variables). "a"/"A" count only when touching math, since they're usually articles.
+  const NOT_VARS = new Set(["I", "at", "in", "is", "of", "or", "to", "an", "as", "be", "by", "if", "it", "no", "on", "so", "up", "we", "do", "the", "and", "for", "are", "but", "not", "all", "any", "can", "has", "its", "new", "one", "two", "set", "per", "sum", "sin", "cos", "tan", "log", "max", "min", "cm", "mm", "km", "ft", "kg", "mg", "ml", "mi", "hr", "SAT", "ACT", "AP", "US"]);
+  const OP = "=+−×·÷<>≤≥^/~";
+  function vars(s, inFrac = false) {
+    const out = [];
+    let at = 0;
+    for (const m of s.matchAll(/(?<![\p{L}'’&])[A-Za-z]{1,3}(?![\p{L}'’&])/gu)) {
+      const w = m[0], before = s.slice(0, m.index), after = s.slice(m.index + w.length);
+      const touch = /[\d²³)]$/.test(before) || /^[\d²³(]/.test(after);
+      const prev = before.trimEnd().slice(-1), next = after.trimStart()[0] || "";
+      const nearOp = (prev && OP.includes(prev)) || (next && OP.includes(next)) || prev === "(" || next === ")";
+      const word = !(inFrac && w.length <= 2) && (NOT_VARS.has(w) || (w.length > 1 && NOT_VARS.has(w.toLowerCase())));
+      const plural = w === "s" && /\d$/.test(before); // "the 9s"
+      const isVar = !word && !plural && (w.length === 1 ? (w === "a" || w === "A" ? touch || nearOp || next === "," : true)
+        : w === "xy" || w === w.toUpperCase() || touch || (w.length === 2 && (nearOp || inFrac))); // 3-letter runs like "fee =" are words unless they touch a number
+      if (!isVar) continue;
+      if (m.index > at) out.push(s.slice(at, m.index));
+      out.push(el("var", { text: w }));
+      at = m.index + w.length;
+    }
+    if (at < s.length) out.push(s.slice(at));
+    return out;
+  }
+  function math(text, v = false, inFrac = false) {
     const s = String(text ?? ""), out = [];
     let at = 0;
     for (const m of s.matchAll(MATH_RE)) {
       const [whole, sup, num, den] = m;
       // shortcut: two bare words like "km/h" stay as written; only math-shaped operands stack.
       if (!sup && /^[a-zA-Z]+$/.test(num) && /^[a-zA-Z]+$/.test(den) && (num.length > 1 || den.length > 1)) continue;
-      if (m.index > at) out.push(s.slice(at, m.index));
-      out.push(sup ? el("sup", { text: unwrap(sup) })
-        : el("span", { class: "frac" }, el("span", { class: "num" }, ...math(unwrap(num))), el("span", { class: "sr", text: " over " }), el("span", { class: "den" }, ...math(unwrap(den)))));
+      if (m.index > at) out.push(...plain(s.slice(at, m.index)));
+      out.push(sup ? el("sup", {}, ...plain(unwrap(sup)))
+        : el("span", { class: "frac" }, el("span", { class: "num" }, ...math(unwrap(num), v, true)), el("span", { class: "sr", text: " over " }), el("span", { class: "den" }, ...math(unwrap(den), v, true))));
       at = m.index + whole.length;
     }
-    if (at < s.length) out.push(s.slice(at));
+    if (at < s.length) out.push(...plain(s.slice(at)));
     return out;
+    function plain(t) { return v ? vars(t, inFrac) : [t]; }
   }
-  function rich(text) {
+  function rich(text, v = false) {
     const frag = document.createDocumentFragment();
     let u = null;
     for (const part of String(text).split(/(\{blank\}|\{u\}|\{\/u\})/)) {
       if (part === "{blank}") (u || frag).append(el("span", { class: "blank", "aria-label": "blank" }));
       else if (part === "{u}") { u = el("u"); frag.append(u); }
       else if (part === "{/u}") u = null;
-      else if (part) (u || frag).append(...math(part));
+      else if (part) (u || frag).append(...math(part, v));
     }
     return frag;
   }
@@ -716,7 +741,7 @@
     const scoreOut = () => { const rw = out("rw", 54), m = out("math", 44); return `${rw + m} total · R&W ${rw} · Math ${m}`; };
     calc.querySelector("#sc-out").textContent = scoreOut();
     const sheets = sheet("", el("h2", { class: "title", text: "Cheatsheets" }), el("p", { class: "sub", text: "The rules and formulas that come up most, on one page each." }),
-      el("div", { class: "stack", style: "gap:8px" }, CHEATS.map(([t, items], i) => el("details", { class: "cheat", open: i === 0 }, el("summary", {}, el("span", { text: t }), el("span", { class: "tiny", text: `${items.length} points` })), el("ul", {}, items.map((x) => el("li", {}, math(x))))))));
+      el("div", { class: "stack", style: "gap:8px" }, CHEATS.map(([t, items], i) => el("details", { class: "cheat", open: i === 0 }, el("summary", {}, el("span", { text: t }), el("span", { class: "tiny", text: `${items.length} points` })), el("ul", {}, items.map((x) => el("li", {}, math(x, /Linear|Quadratic|Percent|Geometry/.test(t)))))))));
     return el("div", { class: "cols", style: "align-items:start" }, sheets, el("div", { class: "stack" }, calc,
       sheet("", el("h2", { class: "title", text: "Reference sheet" }), el("p", { class: "sub", text: "The same formulas you get on test day." }), el("button", { class: "btn ghost", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "Open reference sheet"))));
   }
@@ -810,12 +835,12 @@
   function stimulus(q) {
     const isEq = (p) => q.section === "math" && p.length < 40 && /=/.test(p) && !/[.?]$/.test(p);
     return el("div", { class: "passage" },
-      (q.passage || []).map((p) => el("p", { class: isEq(p) ? "eq" : "" }, rich(p))),
+      (q.passage || []).map((p) => el("p", { class: isEq(p) ? "eq" : "" }, rich(p, q.section === "math"))),
       q.table ? el("div", { class: "tbl" }, el("table", {},
         el("thead", {}, el("tr", {}, q.table.head.map((h) => el("th", { text: h })))),
         el("tbody", {}, q.table.rows.map((r) => el("tr", {}, r.map((c, i) => el(i === 0 ? "th" : "td", { class: i ? "n" : "", text: c }))))))) : null,
       q.list ? el("ul", {}, q.list.map((li) => el("li", { text: li }))) : null,
-      q.passage2 ? el("p", {}, rich(q.passage2)) : null);
+      q.passage2 ? el("p", {}, rich(q.passage2, q.section === "math")) : null);
   }
   function questionTop(q) {
     const saved = Boolean(progress.saved[q.id]);
@@ -852,8 +877,8 @@
         else if (missed) cls += " is-wrong";
         return [el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(pr.picked === i), disabled: pr.checked,
           onclick: () => { if (!pr.checked) { pr.picked = i; render(); document.getElementById("check-btn")?.focus(); } } },
-          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, q.plain ? c : math(c), missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
-          missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", math(q.why[i])) : null];
+          el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, q.plain ? c : math(c, q.section === "math"), missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
+          missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", math(q.why[i], q.section === "math")) : null];
       }));
     }
     const challenge = q.trick && pr.source === "set" && progress.set?.kind === "desmos-challenge";
@@ -861,7 +886,7 @@
     const twin = pr.checked && pr.source !== "set" && !isCorrect(q, q.type === "spr" ? pr.spr : pr.picked);
     const answerSec = [
       !two ? stimulus(q) : null,
-      el("p", { class: "prompt" }, rich(q.prompt)),
+      el("p", { class: "prompt" }, rich(q.prompt, q.section === "math")),
       answerArea,
       challenge ? el("label", { class: "field trick-pick" }, "Which trick will you use?",
         el("select", { class: "input", id: "trick-pick", disabled: pr.checked, onchange: (e) => { pr.trickPick = e.target.value; const b = document.getElementById("check-btn"); if (b) b.disabled = !(pr.trickPick && (q.type === "spr" ? pr.spr.trim() : pr.picked !== null)); } },
@@ -873,7 +898,7 @@
         !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "Skip") : null,
         !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
         q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check") : null),
-      pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", math(q.steps[0])), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
+      pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", math(q.steps[0], q.section === "math")), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
       pr.checked ? renderVerdict(q, q.type === "spr" ? pr.spr : pr.picked) : null];
     const body = two
       ? el("div", { class: "qgrid" }, el("section", { "aria-label": "Passage" }, chipsFor(q), stimulus(q)), el("section", { "aria-label": "Question" }, answerSec))
@@ -913,8 +938,8 @@
     const gap = 0.5;
     return el("div", { class: "walk" },
       el("div", { class: "row between" }, el("h4", { text: heading }), plainToggle()),
-      el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", {}, math(t)))),
-        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, math(ans), penMark("under"))))));
+      el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", {}, math(t, q.section === "math")))),
+        el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, math(ans, q.section === "math"), penMark("under"))))));
   }
   const MISS = [["misread", "Misread the question"], ["concept", "Didn't know the rule"], ["trap", "Fell for a trap answer"], ["time", "Rushed or ran out of time"], ["slip", "Careless slip"]];
   const MISS_TIP = {
@@ -954,7 +979,7 @@
       q.desmos ? desmosWay(q) : null,
       walkthrough(q, q.desmos ? "By hand" : "Walkthrough"),
       q.type !== "spr" ? [el("h4", { text: "Why the other choices are wrong" }),
-        el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", {}, math(t)))))] : null);
+        el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", {}, math(t, q.section === "math")))))] : null);
     box.append(renderTutor(q, resp), renderReport(q));
     return box;
   }
@@ -1088,9 +1113,9 @@
     const choices = el("div", { class: "choices", role: "group", "aria-label": "Answer choices" }, q.choices.map((c, i) => {
       const f = r.flash;
       const cls = "choice" + (f && i === q.answer ? " is-right" : f && i === f.i && !f.ok ? " is-wrong" : "");
-      return el("button", { class: cls, type: "button", id: "rush-" + i, disabled: Boolean(f), onclick: () => rushAnswer(i) }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c)));
+      return el("button", { class: cls, type: "button", id: "rush-" + i, disabled: Boolean(f), onclick: () => rushAnswer(i) }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c, q.section === "math")));
     }));
-    const ask = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt)), choices,
+    const ask = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt, q.section === "math")), choices,
       el("p", { class: "tiny", style: "margin-top:12px" }, el("span", { class: "kbd", text: "A–D" }), " answer"));
     return el("section", { class: "sheet qsheet" },
       el("div", { class: "rushbar" },
@@ -1125,7 +1150,7 @@
   }
   const STATE_LABEL = { mastered: "Mastered", practicing: "Practicing", new: "Not started" };
   // Inline `code` spans in the keystroke steps.
-  const typed = (t) => t.split(/`([^`]+)`/).map((part, i) => (i % 2 ? el("code", { text: part }) : math(part)));
+  const typed = (t) => t.split(/`([^`]+)`/).map((part, i) => (i % 2 ? el("code", { text: part }) : math(part, true)));
   function copyBox(text, label = "Copy") {
     const b = el("button", { class: "btn small ghost", type: "button", onclick: async () => {
       try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; }
@@ -1202,9 +1227,9 @@
           el("button", { class: "link", type: "button", onclick: () => { ui.desmos.lesson = null; render(); } }, "← All tricks"),
           el("span", { class: "tiny", text: `Trick ${L.n} of 18` })),
         el("h2", { class: "h1" }, L.title, L.best ? el("span", { class: "best big", text: "Best trick" }) : null),
-        L.body.map((t) => el("p", { class: "lede" }, math(t))),
+        L.body.map((t) => el("p", { class: "lede" }, math(t, true))),
         el("h3", { class: "title", text: "Type this" }), copyBox(L.keys),
-        el("p", { class: "pen watch" }, el("b", { text: "Watch out: " }), math(L.watch))),
+        el("p", { class: "pen watch" }, el("b", { text: "Watch out: " }), math(L.watch, true))),
       lessonCalc(L),
       el("div", { class: "dmain dpractice" },
         el("div", { class: "row between", style: "margin-top:14px" }, el("h3", { class: "title", style: "margin:0", text: "Practice" }),
@@ -1374,13 +1399,13 @@
       answerArea = el("div", { class: "choices", role: "radiogroup", "aria-label": "Answer choices" }, q.choices.map((c, i) => el("div", { class: "choice-row" },
         el("button", { class: "choice" + (struck.has(i) ? " struck" : ""), type: "button", role: "radio", "aria-checked": String(resp === i), id: "choice-" + i,
           onclick: () => { m.ans[id] = resp === i ? null : i; if (struck.has(i)) m.elim[id] = [...struck].filter((x) => x !== i); save(); render(); } },
-          el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c))),
+          el("span", { class: "bubble", text: LETTERS[i] }), el("span", {}, q.plain ? c : math(c, q.section === "math"))),
         ui.elimMode ? el("button", { class: "strike", type: "button", "aria-pressed": String(struck.has(i)), "aria-label": (struck.has(i) ? "Restore choice " : "Eliminate choice ") + LETTERS[i],
           onclick: () => { struck.has(i) ? struck.delete(i) : struck.add(i); m.elim[id] = [...struck]; if (struck.has(i) && resp === i) m.ans[id] = null; save(); render(); } }, struck.has(i) ? "undo" : LETTERS[i] + "̶") : null)));
     }
     const hasStim = (q.passage && q.passage.length) || q.table || q.list;
     const two = q.section === "rw" && hasStim;
-    const answerSec = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt)), answerArea);
+    const answerSec = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt, q.section === "math")), answerArea);
     const body = el("div", { class: "qgrid" + (two ? "" : " single") }, two ? el("section", { "aria-label": "Passage" }, stimulus(q)) : null, answerSec);
     const foot = el("div", { class: "test-foot" },
       el("button", { class: "btn small ghost", type: "button", "aria-expanded": String(ui.navOpen), onclick: () => { ui.navOpen = !ui.navOpen; render(); } }, `question ${m.cur + 1} of ${m.ids.length} ${ui.navOpen ? "▾" : "▴"}`),
@@ -1445,10 +1470,10 @@
           return el("details", {},
             el("summary", {}, el("span", { class: "tiny", text: `${it.s === "rw" ? "RW" : "M"}${it.m}` }), el("span", { class: it.c ? "ok" : "no", text: it.c ? "✓" : "✗" }),
               el("span", { class: "snip", text: plain(q.passage?.[0] || q.prompt) }), el("span", { class: "tiny", text: `you: ${respLabel(q, it.r)} · key: ${answerLabel(q)}${it.t ? ` · ${it.t}s` : ""}` })),
-            el("div", { class: "inner" }, chipsFor(q, false), stimulus(q), el("p", { class: "prompt" }, rich(q.prompt)),
-              q.type !== "spr" ? el("ol", { type: "A", class: "solve", style: "margin-bottom:10px" }, q.choices.map((c, j) => el("li", { style: j === q.answer ? "font-weight:700" : "" }, q.plain ? c : math(c)))) : null,
-              el("ol", { class: "solve" }, q.steps.map((s) => el("li", {}, math(s)))),
-              q.type !== "spr" ? el("div", { class: "why", style: "margin-top:8px" }, Object.entries(q.why).map(([j, t]) => el("div", {}, el("b", { text: LETTERS[j] }), el("span", {}, math(t))))) : null,
+            el("div", { class: "inner" }, chipsFor(q, false), stimulus(q), el("p", { class: "prompt" }, rich(q.prompt, q.section === "math")),
+              q.type !== "spr" ? el("ol", { type: "A", class: "solve", style: "margin-bottom:10px" }, q.choices.map((c, j) => el("li", { style: j === q.answer ? "font-weight:700" : "" }, q.plain ? c : math(c, q.section === "math")))) : null,
+              el("ol", { class: "solve" }, q.steps.map((s) => el("li", {}, math(s, q.section === "math")))),
+              q.type !== "spr" ? el("div", { class: "why", style: "margin-top:8px" }, Object.entries(q.why).map(([j, t]) => el("div", {}, el("b", { text: LETTERS[j] }), el("span", {}, math(t, q.section === "math"))))) : null,
               el("div", { class: "row", style: "margin-top:10px" }, el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pr.source = "mixed"; loadPracticeQuestion(remixOf(q)); go("practice"); } }, "↻ try a twin"))));
         })))));
   }
