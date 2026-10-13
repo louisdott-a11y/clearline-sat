@@ -46,7 +46,7 @@ Success means the student studies regularly and their score estimate goes up.
 - The Gem coach can be renamed or turned into a mascot.
 - The voice is honest and plain about scores and limits.
 - The app shell (home, navigation, rewards) should feel fun, silly and unlike other websites.
-- Question and mock-test screens stay calm and test-like, because they must feel like the real SAT.
+- Question and mock-test screens keep the real SAT format (Bluebook timing, modules, tools) but stay friendly and playful, because a scary test makes students shy away from the site. Fun lives in the voice, colour and feedback, never in anything that changes how a question is asked or timed.
 
 ## Evidence on Hand
 
@@ -59,7 +59,7 @@ Success means the student studies regularly and their score estimate goes up.
 
 1. Get a student practicing in one tap. Nothing is gated behind a score they don't have.
 2. Be honest about scores, and never imply they are official.
-3. The fun lives in the shell and the rewards. Test fidelity lives in the question screens.
+3. Fun everywhere, including tests. Test fidelity means the format and timing match the SAT, not that the screen has to feel cold.
 4. The app is fully usable by keyboard and screen reader, including timed tests.
 
 ## Accessibility & Inclusion
