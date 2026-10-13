@@ -27,6 +27,23 @@ colors:
   red-wash: "#fde7e2"
   amber-fill: "#f5a524"
   amber: "#8a5a00"
+  dark-water: "#141813"
+  dark-card: "#1c211a"
+  dark-card-2: "#232a20"
+  dark-hover: "#283024"
+  dark-ink-soft: "#b9b5a6"
+  dark-line: "#343c30"
+  dark-line-strong: "#56604f"
+  dark-land: "#2c5a20"
+  dark-swipe: "#3f7a2d"
+  dark-pen: "#a8c4ff"
+  dark-accent-soft: "#10283d"
+  dark-accent-text: "#7cc4ff"
+  dark-green: "#8ed462"
+  dark-green-wash: "#1a2c14"
+  dark-red: "#ff8b7a"
+  dark-red-wash: "#34160f"
+  dark-amber: "#fbbf24"
 typography:
   display:
     fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
@@ -71,10 +88,29 @@ typography:
     fontSize: "24px"
     fontWeight: 600
     lineHeight: 1
+  pen:
+    fontFamily: "Caveat, Comic Sans MS, cursive"
+    fontSize: "22px"
+    fontWeight: 600
+    lineHeight: 1.2
+  pen-plain:
+    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 500
+    lineHeight: 1.5
+  trail-label:
+    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 600
+  clock:
+    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontSize: "26px"
+    fontWeight: 800
 rounded:
   pill: "999px"
   sheet: "18px"
   list: "16px"
+  walk: "14px"
   field: "12px"
   small: "8px"
 spacing:
@@ -150,6 +186,46 @@ components:
     textColor: "{colors.ink}"
     rounded: "10px"
     padding: "8px 11px"
+  walkthrough:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.pen}"
+    rounded: "{rounded.walk}"
+    padding: "14px 18px 16px"
+    typography: "{typography.pen}"
+  pen-note:
+    textColor: "{colors.pen}"
+    typography: "{typography.pen}"
+  miss-tag-pressed:
+    backgroundColor: "{colors.coral}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "5px 11px"
+  miss-bar:
+    backgroundColor: "{colors.coral}"
+    rounded: "{rounded.pill}"
+    height: "14px"
+  rush-clock:
+    backgroundColor: "{colors.sun}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "2px 14px"
+    typography: "{typography.clock}"
+  rushbar:
+    backgroundColor: "{colors.card-2}"
+    textColor: "{colors.ink}"
+    padding: "12px 18px"
+  trail-stop-done:
+    backgroundColor: "{colors.sun}"
+    rounded: "{rounded.pill}"
+    size: "16px"
+  trail-stop-now:
+    backgroundColor: "{colors.coral}"
+    rounded: "{rounded.pill}"
+    size: "16px"
+  trail-stop-ahead:
+    backgroundColor: "{colors.card}"
+    rounded: "{rounded.pill}"
+    size: "16px"
 ---
 
 # Design System: Clearline
@@ -160,7 +236,7 @@ components:
 
 Studying is a walk around a hand-drawn park map. The ground is cream water, subjects are flat colored regions, everything is outlined in a 2px ink pen line, and the student is a coral pin with a dotted yellow trail leading to the one next step. The shell (Home, navigation, rewards) is loud, flat and printed-looking: saturated fills, chunky Archivo, pill-shaped capsules with a round ink arrow chip. It rejects the category default of a grey SaaS dashboard with white cards and a violet accent.
 
-Question and test screens set the map aside but keep the same paper, ink and voice. They switch reading text to Source Serif 4, step the outline down to hairlines, and keep the SAT layout (passage beside question, Bluebook-style header, timer, navigator grid) unchanged. The fun comes from voice, color and feedback. Nothing changes how a question is asked or timed.
+Question and test screens set the land lobe and pin aside but keep the same paper, ink and voice. They switch reading text to Source Serif 4, step the outline down to hairlines, and keep the SAT layout (passage beside question, Bluebook-style header, timer, navigator grid) unchanged. They stay friendly: a flat four-stop trail shows where a mock test is, a coral or blue stripe under the test header names the section, and a tutor's blue pen marks wrong picks, circles walkthrough steps and leaves short notes between questions. The fun comes from voice, color, pen and feedback. Nothing changes how a question is asked or timed.
 
 Density is relaxed on the shell (generous gutters, one big heading, one action) and tighter in practice and test views, where the work happens.
 
@@ -169,7 +245,7 @@ Density is relaxed on the shell (generous gutters, one big heading, one action) 
 - Region color coding: yellow next step, coral Reading and Writing, blue Math, lilac tools.
 - Capsule buttons with a round ink arrow chip that slides forward on hover.
 - Archivo for the shell; Source Serif 4 for question and passage text.
-- One marker swipe per region and one Caveat handwritten note on first-run Home.
+- One marker swipe per region; the Caveat hand is a tutor's blue pen that annotates practice, review and between-module screens, always switchable to typed text.
 - Flat fills with a single soft lift shadow; no gradients.
 
 ## Colors
@@ -177,17 +253,17 @@ Density is relaxed on the shell (generous gutters, one big heading, one action) 
 A flat, saturated map palette on warm cream paper, with ink lines doing the structural work.
 
 ### Primary
-- **Trail Yellow** (sun): the next step and only the next step. It fills the primary call to action (the diagnostic capsule, "Start" on today's plan), the dotted trail, the progress meter fill, the map-key "Next step" swatch and text selection.
+- **Trail Yellow** (sun): the next step and only the next step. It fills the primary call to action (the diagnostic capsule, "Start" on today's plan), the dotted trail, the progress meter fill, the map-key "Next step" swatch and text selection. On the test trail it fills the stops already passed, and on a Question Rush round it fills the clock, the only yellow on that view.
 
 ### Secondary
-- **Coral Region** (coral): Reading and Writing. Also fills the "you are here" pin, the Flashcards capsule (vocabulary sits with R&W) and the nav count badge.
-- **Lake Blue** (sky): Math. In the build the same blue is also `--accent`, which drives answer selection, answered-question cells, the activity heatmap and chart lines on every screen (see Do's and Don'ts).
+- **Coral Region** (coral): Reading and Writing. Also fills the "you are here" pin, the Flashcards capsule (vocabulary sits with R&W), the nav count badge, the Reading and Writing section stripe, the current stop on the test trail, a pressed miss-reason tag and the miss-pattern bars on Review.
+- **Lake Blue** (sky): Math, including the Math section stripe under the test header. In the build the same blue is also `--accent`, which drives answer selection, answered-question cells, the activity heatmap and chart lines on every screen (see Do's and Don'ts).
 
 ### Tertiary
 - **Lilac Kiosk** (lilac): tools and side paths (Question bank capsule, Ask Gem tag, the map-key "Tools" swatch).
 - **Land Green** (land): the landmass lobe behind first-run Home and the brand mark disc. Never a button fill.
 - **Marker Green** (swipe): the highlighter swipe behind one word per region ("score").
-- **Pen Blue** (pen): handwritten Caveat notes only.
+- **Pen Blue** (pen): the tutor's pen and nothing else: Caveat notes, walkthrough steps, hand-drawn rings, scratches and underlines, the wavy clue underline and pen hint links.
 
 ### Neutral
 - **Water Cream** (water): page ground, sidebar and topbar.
@@ -201,7 +277,8 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 ### Feedback
 - **Right** (green-fill / green / green-wash), **Wrong** (red-fill / red / red-wash), **Flagged** (amber-fill / amber): only for answer verdicts, the timer warning, flags and the review list. **Selection Blue** (accent-soft / accent-text) tints selected choices and checked filters.
 
-Dark-mode overrides exist (`prefers-color-scheme` and `data-theme="dark"`): near-black green ground #141813, cream ink, a darker land #2c5a20 and a yellow focus ring. They have not been visually verified.
+### Dark Mode
+The same roles re-tinted for night (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`): a near-black green ground (dark-water) with stepped dark papers (dark-card, dark-card-2, dark-hover), Water Cream as ink, a muted Soft Ink (dark-ink-soft), dark hairlines (dark-line, dark-line-strong), a darker land and swipe, a light Pen Blue (dark-pen), dark washes with lighter verdict text, and a yellow focus ring. Region fills (sun, coral, sky, lilac) and the fill shades of the verdict colors do not change, and text on them stays dark ink. Verified on the walkthrough screen: pen notes, rings, scratches and the clue underline stay legible.
 
 ### Named Rules
 **The One Yellow Rule.** Yellow means "the next step". One yellow action per view; never use it for decoration, status or a second option.
@@ -212,7 +289,7 @@ Dark-mode overrides exist (`prefers-color-scheme` and `data-theme="dark"`): near
 
 **Display Font:** Archivo (with Segoe UI, system-ui, sans-serif)
 **Reading Font:** Source Serif 4 (with Georgia, Times New Roman, serif)
-**Hand Font:** Caveat 600 (with Comic Sans MS, cursive)
+**Hand Font:** Caveat 600 (with Comic Sans MS, cursive), the tutor's pen
 
 **Character:** Archivo at 800 with tight tracking reads like a park sign: bold, friendly, slightly condensed. Source Serif 4 brings the calm of a printed test booklet to questions. Caveat is the pen note someone scribbled on the map.
 
@@ -224,13 +301,18 @@ Dark-mode overrides exist (`prefers-color-scheme` and `data-theme="dark"`): near
 - **Body** (400, 14.5px, 1.5): shell copy; secondary copy uses Soft Ink at max 72ch.
 - **Reading** (400 / 600 for the prompt, 17px, 1.7, max 64ch): passages, prompts, answer choices (16px), explanations. 16px on mobile.
 - **Map lettering** (700, 12px, 0.06em, uppercase): the pin label and the map key, the printed lettering of the map itself.
-- **Hand** (600, 24px, 1, rotated -4deg, Pen Blue): one handwritten margin note.
+- **Hand** (600, 24px, 1, rotated -4deg, Pen Blue): the one handwritten margin note on first-run Home.
+- **Pen** (600, 22px, 1.2, Pen Blue, upright): tutor notes, walkthrough steps, Rush feedback, the miss-reason question. Smaller pen sizes: 20px for the note under a wrong pick and for pen hint links, 16px for the raised "clue" note. With typed text switched on, pen text becomes Archivo 500 at 15px, 1.5 (pen links 13px) and keeps Pen Blue.
+- **Trail label** (600, 12px, Soft Ink; 10.5px under 900px): the four stop names on the test trail. The current stop goes to 800 and ink.
+- **Clock** (800, 26px, tabular): the Question Rush countdown; the running score beside it is 22px.
 - Numbers (stats, timer, scores) use tabular figures at 800.
 
 ### Named Rules
 **The Two Registers Rule.** Archivo runs the shell and all chrome. Source Serif 4 is only for what a student reads to answer a question. Don't mix them inside one block.
 
-**The One Note Rule.** One Caveat note and one marker swipe per region. More than one turns the map into a scrapbook.
+**The One Note Rule.** On the shell, one decorative Caveat note and one marker swipe per region. More than one turns the map into a scrapbook. The tutor's pen on practice, review and between-module screens is not decoration and is not counted, but it only explains, encourages or marks a student's work.
+
+**The Typed Text Rule.** Every pen surface has a typed equivalent. A visible "Switch to typed text" toggle swaps every pen line to Archivo while it keeps Pen Blue, and pen marks are hidden from assistive tech with the meaning repeated in text.
 
 ## Layout
 
@@ -238,7 +320,7 @@ A fixed 236px left sidebar and a fluid main column (content padded 32px 36px 64p
 
 First-run Home is a map composition. A two-column grid has a 120px gutter that holds the pin and the trail, and the copy sits in the second column. An SVG land lobe sits behind everything (`preserveAspectRatio: none`, non-scaling 2px stroke), with separate wide and tall lobe and trail paths for desktop and mobile. Padding is 112px 56px, minimum height min(580px, 74vh). The map key is pinned bottom-right and hidden on mobile. The coast row of capsules wraps below the lobe.
 
-Spacing follows a loose 6 / 10 / 14 / 18 / 22 / 32px rhythm. Grids use `auto-fit` with `minmax(min(100%, N), 1fr)` (380px for column pairs, 240px for threes, 200px for stats). In test mode (`body.testing`) the sidebar, topbar and footer disappear and content centers.
+Spacing follows a loose 6 / 10 / 14 / 18 / 22 / 32px rhythm. Grids use `auto-fit` with `minmax(min(100%, N), 1fr)` (380px for column pairs, 240px for threes, 200px for stats). In test mode (`body.testing`) the sidebar, topbar and footer disappear and content centers. A four-column trail strip sits under the test header, and the same strip leads the results header (capped at 720px, unframed). The Rush bar wraps; its end-round button moves to the far right on desktop and returns to the flow on mobile. Miss-pattern bars use a label / bar / count grid (up to 210px, fluid, 28px) that tightens to a fluid label, 90px bar and 24px count on mobile.
 
 ## Elevation & Depth
 
@@ -246,14 +328,15 @@ The system is flat, and depth comes from ink outlines and paper tones (water, ca
 
 ### Shadow Vocabulary
 - **Soft Lift** (`box-shadow: 0 1px 0 rgba(44,46,42,0.05), 0 10px 22px -14px rgba(44,46,42,0.35)`): the only shadow. Dark mode deepens it.
-- **Ring** (`0 0 0 1px <state color> inset`): selected, right and wrong answer choices; the current navigator cell uses a 2px card + 2px ink double ring.
+- **Ring** (`0 0 0 1px <state color> inset`): selected, right and wrong answer choices; the current navigator cell uses a 2px card + 2px ink double ring. The current trail stop carries a 4px coral halo at 30% strength.
+- **Section stripe** (`inset 0 -4px 0 <region>`): a 4px coral or sky band along the bottom of the test header naming the section. Not a lift.
 
 ### Named Rules
-**The Ink Edge Rule.** Shell surfaces get a 2px ink outline (`--edge`). Question and test surfaces step down to 1px Strong Hairline, so the test reads calmer than the map.
+**The Ink Edge Rule.** Shell surfaces get a 2px ink outline (`--edge`). Question and test surfaces step down to 1px Strong Hairline, and the walkthrough panel to a 1.5px dashed Strong Hairline, so a test screen still reads calmer than the map while it carries the trail, section stripe and pen. Pill controls (buttons, tags, the Rush clock) keep their 2px ink edge everywhere.
 
 ## Shapes
 
-Capsules everywhere a finger goes: buttons, tags, nav items, filter pills, chips, the toast and the meter are all fully rounded (999px). Sheets are 18px, list and task containers 16px, choices and inset boxes 12px, inputs 10px, small test controls (flag, strike, navigator cells) 8px. Round forms carry meaning: the ink arrow chip (34px, 44px on big buttons), the pin, answer bubbles (28px) and map-key dots. The land lobe is the only freeform shape: a wobbly closed bezier with a 2px ink stroke.
+Capsules everywhere a finger goes: buttons, tags, nav items, filter pills, chips, the toast and the meter are all fully rounded (999px). Sheets are 18px, list and task containers 16px, the walkthrough panel 14px, choices and inset boxes 12px, inputs 10px, small test controls (flag, strike, navigator cells) 8px. Round forms carry meaning: the ink arrow chip (34px, 44px on big buttons), the pin, answer bubbles (28px) and map-key dots. The land lobe and the pen are the only freeform shapes: the lobe is a wobbly closed bezier with a 2px ink stroke, and pen marks are uneven hand-drawn strokes (2.5px, round caps). Walkthrough step numbers sit in a lopsided hand-drawn circle (26px, 2px stroke, radii 52% 46% 55% 44%, turned -6deg).
 
 ## Components
 
@@ -290,6 +373,33 @@ Sidebar items are 15px medium pills with 19px line icons. Hover shows Hover Pape
 ### Answer Choice
 Paper row, 1px Strong Hairline, 12px radius, serif text, with a 28px round letter bubble. Selected: blue border and inset ring, Selection Blue wash, filled bubble. Right and wrong use green or red ring, wash and filled bubble. A struck choice is 45% opacity with a line-through.
 
+### Pen (signature, practice and review)
+A tutor's blue pen that works on the student's page. Upright Caveat, never rotated, never on the shell sheets.
+- **Note:** a pen line under a heading or next to an action ("Beat it?", "Last stop. You've got this.").
+- **Wrong-pick note:** a 20px pen note indented under the chosen wrong answer, explaining why it misleads.
+- **Marks:** a ring around the right answer's bubble, a scratch through the wrong pick's text, an underline under a walkthrough answer. Drawn with stroke-dashoffset over 700ms; in a walkthrough each mark lands 400ms after its line.
+- **Clue:** a wavy 1.5px Pen Blue underline (5px offset) on the passage words that hold the clue, with a raised 16px "clue" note after them. Screen readers hear "Clue:" instead.
+- **Pen link:** a hint trigger set in 20px Caveat, underlined in Pen Blue at 45%.
+- **Typed text:** the body-level switch sets all of the above in Archivo (see The Typed Text Rule).
+
+### Walkthrough
+A dashed panel (1.5px dashed Strong Hairline, 14px radius, Paper, 14px 18px 16px padding) holding numbered pen steps. Each number sits in a hand-drawn circle; the final "so" line drops the circle and gets a pen underline. Lines write in left to right one after another (600ms clip reveal, staggered), behind `prefers-reduced-motion: no-preference`. A smaller variant opens as the hint before answering.
+
+### Miss Reasons
+After a wrong answer, a pen question ("Why do you think you missed it?") over a wrapping group of tags. The pressed reason fills coral with ink text. Review totals them as pattern bars: 14px ink-edged pill tracks on Paper filled coral, with tabular counts and one pen tip naming the most common reason.
+
+### Question Rush
+- **Start / end card:** a headline with one marker-swiped word, a skill picker, one pen line about the personal best and one yellow "Start the clock" button.
+- **Rush bar:** a Shaded Paper strip with a hairline bottom: the clock, the running score (22px tabular), spoken feedback and an end-round button.
+- **Clock:** a Trail Yellow capsule with a 2px ink edge, 26px 800 tabular figures.
+- **Feedback:** a pen line in a polite live region ("Right! ×3 combo!", "Not quite, it was B."), 16ch minimum so the bar does not jump.
+
+### Test Trail and Section Stripe
+- **Trail:** four stops (Reading and Writing 1 and 2, Math 1 and 2) joined by 2.5px dotted hairlines. Passed stops are Trail Yellow with an ink ring and an ink connector, the current stop is coral with an ink ring and a soft coral halo, stops ahead are hollow Paper. Shown on the test head, the module review, the break and the results header.
+- **Section stripe:** coral under the header in Reading and Writing, sky in Math.
+- **Results header ("You made it"):** the trail with every stop passed, a headline with one marker-swiped word and one pen line, before the score sheet.
+- **Timing picker:** a labelled segmented pill group for standard or extended time, with a small note that scores are labelled with the timing used.
+
 ### Map Furniture (signature, first-run Home)
 - **Land lobe:** a full-bleed Land Green SVG with a 2px ink stroke behind the hero.
 - **Pin:** a coral map pin with an ink stroke and a Paper center, above uppercase map lettering ("You are here: the start"). It drops in with a 700ms overshoot.
@@ -306,11 +416,14 @@ Paper row, 1px Strong Hairline, 12px radius, serif text, with a 28px round lette
 - **Do** end forward actions with the round ink arrow chip, and let it slide on hover and focus.
 - **Do** set passages, prompts and choices in Source Serif 4 at 16 to 17px, 1.7 line height, 64ch maximum.
 - **Do** gate every animation behind `prefers-reduced-motion: no-preference`.
+- **Do** keep the pen in Pen Blue and give every pen surface the typed-text switch.
+- **Do** mark the test section with its region stripe and show progress on the four-stop trail.
 
 ### Don't:
 - **Don't** drift back to a grey SaaS dashboard with white cards and a violet accent.
 - **Don't** use yellow for anything but the next step and progress toward it.
 - **Don't** put white text on a region color; ink is the text color on every fill.
-- **Don't** bring the land lobe, pin or trail into question or mock-test screens. Their fun comes from voice, color and feedback, never from changing SAT format or timing.
-- **Don't** add a second Caveat note or a second marker swipe to one region.
+- **Don't** bring the land lobe, pin or the drawn SVG trail into question or mock-test screens; the test's trail is the flat four-stop strip. Their fun comes from voice, color, pen and feedback, never from changing SAT format or timing.
+- **Don't** put pen notes on a timed mock-test question; between-module, break and results screens carry them.
+- **Don't** add a second decorative Caveat note or a second marker swipe to one shell region.
 - **Don't** add gradients or extra shadow tokens; Soft Lift is the only shadow.
