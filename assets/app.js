@@ -8,6 +8,9 @@
   const CALC = window.CL_CALC;
   const VOCAB = window.CL_VOCAB;
   const CLUES = window.CL_CLUES || {};
+  const DESMOS = window.CL_DESMOS || { lessons: [], questions: [] };
+  const D_BY_ID = Object.fromEntries(DESMOS.questions.map((q) => [q.id, q]));
+  const lessonQs = (n) => DESMOS.questions.filter((q) => q.trick === n);
   const BY_ID = Object.fromEntries(BANK.map((q) => [q.id, q]));
 
   // ------------------------------------------------------------------ taxonomy
@@ -38,6 +41,7 @@
   };
   function skillOf(q) {
     if (!q) return "";
+    if (q.trick) return "Desmos: " + DESMOS.lessons[q.trick - 1].short;
     if (q.gen) return GEN_SKILL[q.gen];
     if (ID_SKILL[q.id]) return ID_SKILL[q.id];
     const p = q.prompt;
@@ -68,10 +72,11 @@
     psat89: { label: "PSAT 8/9", min: 120, max: 720 },
     other: { label: "Other practice test", min: 200, max: 800 }
   };
-  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Flashcards"], ["guides", "Guides"]];
+  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["desmos", "Desmos"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Flashcards"], ["guides", "Guides"]];
   const ICONS = {
     home: "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10",
     practice: "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4",
+    desmos: "M3 20h18M4 4v16M5 17c3-9 6-11 8-6s4 5 7-5",
     bank: "M4 6h16M4 12h16M4 18h10",
     mock: "M9 3h6M12 3v3M5.5 13a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0M12 13V10",
     stats: "M5 20V11M12 20V5M19 20v-6",
@@ -89,7 +94,7 @@
   const ui = {
     view: "home",
     pr: { source: "mixed", skill: "all", diff: "any", q: null, picked: null, spr: "", checked: false, shownAt: 0, hint: false },
-    rush: null, rushScope: "all",
+    rush: null, rushScope: "all", desmos: { lesson: null, qi: 0 },
     bank: { section: "all", domain: "all", skill: "all", diff: "any", status: "all", limit: 40 },
     drill: { skills: [], diff: "any", count: 10, timed: false, name: "" },
     reviewTab: "missed",
@@ -102,7 +107,7 @@
     mockResult: null, pendingSubmit: false, navOpen: false, refOpen: false, hideTimer: false, elimMode: false,
     armed: {}, restoreText: "", lastActive: Date.now()
   };
-  const getQ = (id) => BY_ID[id] || MATH.fromId(id);
+  const getQ = (id) => BY_ID[id] || D_BY_ID[id] || MATH.fromId(id);
 
   function normalize(p) {
     const b = blankProgress();
@@ -213,7 +218,8 @@
     if (q.type === "spr") {
       const p = parseNum(resp);
       if (!p) return false;
-      return q.accept.some((a) => Math.abs(p.val - a) < 1e-9 || (p.dec >= 3 && Math.abs(p.val - a) < 10 ** -p.dec));
+      const full = String(resp).trim().replace(/^-/, "").length >= 5;
+      return q.accept.some((a) => Math.abs(p.val - a) < 1e-9 || ((p.dec >= 3 || (full && p.dec)) && Math.abs(p.val - a) < 10 ** -p.dec));
     }
     return resp === q.answer;
   }
@@ -294,6 +300,7 @@
   }
   function remixOf(q) {
     if (!q) return null;
+    if (q.trick) { const sib = lessonQs(q.trick).filter((x) => x.id !== q.id); return sib.length ? sib[Math.floor(Math.random() * sib.length)] : null; }
     if (q.gen) return MATH.variant(q);
     return pickBySkill(skillOf(q), q.diff, new Set([q.id]));
   }
@@ -531,8 +538,9 @@
       : "");
     document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
     document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
-    const views = { home: renderHome, practice: renderPractice, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides };
+    const views = { home: renderHome, practice: renderPractice, desmos: renderDesmosView, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides };
     document.getElementById("view").replaceChildren(views[ui.view]());
+    if (ui.view === "desmos" && desmosCalc && desmosEl?.isConnected) desmosCalc.resize();
     document.getElementById("modal-root").replaceChildren(ui.refOpen ? renderReference() : "");
     renderDock();
   }
@@ -615,6 +623,7 @@
             ["math", "Math", () => { ui.pr.source = "math"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
             ["tool", "Question bank", () => go("bank")],
             ["rw", "Flashcards", () => go("vocab")],
+            ["tool", "Desmos tricks", () => { ui.desmos.lesson = null; go("desmos"); }],
             ["tool", "Question Rush", () => { ui.pr.source = "rush"; ui.rush = null; go("practice"); }]].map(([c, a, f]) => el("button", { class: "cap " + c, type: "button", onclick: f }, a, arrow()))));
       return el("div", { class: "stack" }, first, prac.length || imp ? stats : null, quick);
     }
@@ -695,13 +704,14 @@
       const diff = pr.diff === "any" ? null : Number(pr.diff);
       const ex = new Set(pr.q ? [pr.q.id] : []);
       if (pr.source === "set") q = set && set.i < set.ids.length ? getQ(set.ids[set.i]) : null;
+      else if (pr.source === "desmos") q = ui.desmos.lesson ? lessonQs(ui.desmos.lesson)[ui.desmos.qi] || null : null;
       else if (pr.source === "missed" || pr.source === "saved") { const ids = (pr.source === "missed" ? missedIds() : savedIds()).filter((id) => id !== pr.q?.id); q = ids.length ? getQ(ids[Math.floor(Math.random() * Math.min(ids.length, 8))]) : null; }
       else if (pr.source === "weak") q = pickBySkill(shuffle(weakestSkills(2))[0].skill, diff, ex);
       else if (pr.skill.startsWith("dom:")) q = pickQuestion({ domain: pr.skill.slice(4), diff, exclude: ex });
       else if (pr.skill !== "all") q = pickBySkill(pr.skill, diff, ex);
       else q = pickQuestion({ section: pr.source === "rw" || pr.source === "math" ? pr.source : null, diff, exclude: ex });
     }
-    Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now(), hint: false });
+    Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now(), hint: false, trickPick: "" });
   }
   function checkPractice() {
     const pr = ui.pr, q = pr.q;
@@ -720,6 +730,7 @@
   }
   function nextPractice() {
     if (ui.pr.source === "set" && progress.set) { progress.set.i++; save(); }
+    if (ui.pr.source === "desmos") { const qs = lessonQs(ui.desmos.lesson), at = qs.findIndex((x) => x.id === ui.pr.q?.id); ui.desmos.qi = (at < 0 ? ui.desmos.qi : at) + 1; }
     ui.qCount++;
     loadPracticeQuestion();
     render();
@@ -733,11 +744,11 @@
   }
   function renderPractice() {
     const pr = ui.pr;
-    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["weak", "Weak spots"], ["missed", "Missed"], ["saved", "Marked for review"], ["rush", "Question Rush"]];
+    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["desmos", "Desmos"], ["weak", "Weak spots"], ["missed", "Missed"], ["saved", "Marked for review"], ["rush", "Question Rush"]];
     if (progress.set) sources.unshift(["set", progress.set.label]);
     const parts = [el("div", { class: "controls on-desk" },
       el("div", { class: "pills", role: "group", "aria-label": "Question source" }, sources.map(([k, label]) =>
-        el("button", { class: "pill", type: "button", "aria-pressed": String(pr.source === k || (k === "mixed" && pr.source === "domain")), onclick: () => { pr.source = k; pr.skill = "all"; if (k !== "rush") ui.rush = null; loadPracticeQuestion(); render(); } }, label))),
+        el("button", { class: "pill", type: "button", "aria-pressed": String(pr.source === k || (k === "mixed" && pr.source === "domain")), onclick: () => { if (k === "desmos") { ui.desmos.lesson = null; go("desmos"); return; } pr.source = k; pr.skill = "all"; if (k !== "rush") ui.rush = null; loadPracticeQuestion(); render(); } }, label))),
       !["set", "missed", "saved", "weak", "rush"].includes(pr.source) ? [
         el("label", { class: "field" }, "Skill", skillSelect(pr.skill, (e) => { pr.skill = e.target.value; pr.source = pr.skill === "all" ? "mixed" : "domain"; loadPracticeQuestion(); render(); }, "pr-skill")),
         el("label", { class: "field" }, "Difficulty", el("select", { class: "input", id: "pr-diff", onchange: (e) => { pr.diff = e.target.value; loadPracticeQuestion(); render(); } },
@@ -765,9 +776,9 @@
     const st = skillStats(skillOf(q));
     return el("div", { class: "chips" },
       el("span", { class: "chip" }, gem(levelOf(st.total >= 3 ? st.rate : null)), SECTION[q.section]),
-      el("span", { class: "chip", text: skillOf(q) }),
+      q.trick && progress.set?.kind === "desmos-challenge" && ui.pr.source === "set" ? null : el("span", { class: "chip", text: skillOf(q) }),
       el("span", { class: "chip", text: DIFF[q.diff] }),
-      full ? el("span", { class: "chip", text: q.generated ? "computed answer" : "hand-checked" }) : null,
+      full ? el("span", { class: "chip", text: q.generated ? "computed answer" : q.trick ? "Desmos practice" : "hand-checked" }) : null,
       q.type === "spr" ? el("span", { class: "chip", text: "type your answer" }) : null);
   }
   function stimulus(q) {
@@ -783,13 +794,14 @@
   function questionTop(q) {
     const saved = Boolean(progress.saved[q.id]);
     const set = progress.set;
-    const num = ui.pr.source === "set" && set ? set.i + 1 : ui.qCount;
+    const num = ui.pr.source === "set" && set ? set.i + 1 : ui.pr.source === "desmos" && q.trick ? lessonQs(q.trick).findIndex((x) => x.id === q.id) + 1 : ui.qCount;
     return el("div", { class: "qtop" },
       el("div", { class: "left" }, el("span", { class: "qnum", text: num }),
         el("button", { class: "flag", type: "button", "aria-pressed": String(saved), onclick: () => { if (saved) delete progress.saved[q.id]; else progress.saved[q.id] = Date.now(); save(); render(); toast(saved ? "Removed from review list" : "Marked for review"); } },
           svg("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: saved ? "currentColor" : "none", stroke: "currentColor", "stroke-width": "2", "aria-hidden": "true" }, svg("path", { d: "M6 3h12v18l-6-4-6 4z" })), saved ? "Marked for review" : "Mark for review")),
       el("div", { class: "row", style: "gap:6px" },
         el("button", { class: "btn small ghost", type: "button", title: "Same skill, different question", onclick: () => { const r = remixOf(q); if (r) { if (ui.pr.source === "set") ui.pr.source = "mixed"; loadPracticeQuestion(r); render(); toast("Remixed: same skill, new question"); } } }, "↻ Remix"),
+        lessonFor(q) ? el("button", { class: "btn small ghost", type: "button", title: `Desmos trick ${lessonFor(q)}: ${DESMOS.lessons[lessonFor(q) - 1].title}`, onclick: () => openLesson(lessonFor(q)) }, lessonFor(q) === 18 ? "Why not Desmos?" : "Desmos way") : null,
         q.section === "math" ? el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.dock = "calc"; renderDock(); } }, "Calculator") : null,
         q.section === "math" ? el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.refOpen = true; render(); } }, "Reference") : null));
   }
@@ -803,7 +815,7 @@
       answerArea = el("div", { class: "spr" + (pr.checked ? (ok ? " is-right" : " is-wrong") : "") },
         el("label", { class: "field", for: "spr-input" }, "Your answer"),
         el("input", { id: "spr-input", inputmode: "decimal", autocomplete: "off", value: pr.spr, disabled: pr.checked, placeholder: "12, −3, 3/4, .75",
-          oninput: (e) => { pr.spr = e.target.value; const b = document.getElementById("check-btn"); if (b) b.disabled = !pr.spr.trim(); },
+          oninput: (e) => { pr.spr = e.target.value; const b = document.getElementById("check-btn"); if (b) b.disabled = !pr.spr.trim() || (q.trick && pr.source === "set" && progress.set?.kind === "desmos-challenge" && !pr.trickPick); },
           onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); checkPractice(); } } }),
         el("span", { class: "tiny", text: "Fractions and decimals both count. For long decimals, enter at least 3 decimal places." }));
     } else {
@@ -818,12 +830,16 @@
           missed && q.why[i] ? el("p", { class: "pen choice-note" }, "↑ You picked this. ", q.why[i]) : null];
       }));
     }
-    const canCheck = q.type === "spr" ? Boolean(pr.spr.trim()) : pr.picked !== null;
+    const challenge = q.trick && pr.source === "set" && progress.set?.kind === "desmos-challenge";
+    const canCheck = (q.type === "spr" ? Boolean(pr.spr.trim()) : pr.picked !== null) && (!challenge || Boolean(pr.trickPick));
     const twin = pr.checked && pr.source !== "set" && !isCorrect(q, q.type === "spr" ? pr.spr : pr.picked);
     const answerSec = [
       !two ? stimulus(q) : null,
       el("p", { class: "prompt" }, rich(q.prompt)),
       answerArea,
+      challenge ? el("label", { class: "field trick-pick" }, "Which trick will you use?",
+        el("select", { class: "input", id: "trick-pick", disabled: pr.checked, onchange: (e) => { pr.trickPick = e.target.value; const b = document.getElementById("check-btn"); if (b) b.disabled = !(pr.trickPick && (q.type === "spr" ? pr.spr.trim() : pr.picked !== null)); } },
+          el("option", { value: "", text: "Choose a trick…" }), DESMOS.lessons.map((L) => el("option", { value: String(L.n), selected: pr.trickPick === String(L.n) }, `${L.n}. ${L.title}`)))) : null,
       el("div", { class: "actions" },
         twin ? el("button", { class: "btn sun", id: "twin-btn", type: "button", title: "A new question on the same skill", onclick: () => { const r = remixOf(q); if (!r) { toast("No twin left for this skill. Try the next question."); return; } ui.qCount++; loadPracticeQuestion(r); render(); } }, "Try a twin") : null,
         pr.checked ? el("button", { class: twin ? "btn ghost" : "btn", id: "next-btn", type: "button", onclick: nextPractice }, "Next")
@@ -865,12 +881,12 @@
     }
   }
   const plainToggle = () => el("button", { class: "link", type: "button", onclick: () => { progress.plainNotes = !progress.plainNotes; save(); render(); } }, progress.plainNotes ? "Use handwriting" : "Switch to typed text");
-  function walkthrough(q) {
+  function walkthrough(q, heading = "Walkthrough") {
     const pick = q.type === "spr" ? "" : q.choices[q.answer];
     const ans = q.type === "spr" ? q.answerText : pick.length <= 40 && !/[.!?]$/.test(pick) ? `${LETTERS[q.answer]}, “${pick}”` : LETTERS[q.answer];
     const gap = 0.5;
     return el("div", { class: "walk" },
-      el("div", { class: "row between" }, el("h4", { text: "Walkthrough" }), plainToggle()),
+      el("div", { class: "row between" }, el("h4", { text: heading }), plainToggle()),
       el("ol", { class: "pen" }, q.steps.map((t, i) => el("li", { style: `--d:${i * gap}s` }, el("i", { text: i + 1 }), el("span", { text: t }))),
         el("li", { class: "so", style: `--d:${q.steps.length * gap}s` }, el("i"), el("span", {}, "So the answer is ", el("b", {}, ans, penMark("under"))))));
   }
@@ -908,7 +924,9 @@
     const box = el("div", { class: "verdict", "aria-live": "polite" },
       el("p", { class: "verdict-title " + (ok ? "ok" : "no") }, ok ? "✓ Correct" : `✕ Incorrect. The correct answer is ${answerLabel(q)}.`),
       ok ? null : missTagger(q),
-      walkthrough(q),
+      q.trick && ui.pr.trickPick ? el("p", { class: "pen" }, Number(ui.pr.trickPick) === q.trick ? `Right tool: trick ${q.trick}, ${DESMOS.lessons[q.trick - 1].title.toLowerCase()}.` : `This one is trick ${q.trick}: ${DESMOS.lessons[q.trick - 1].title.toLowerCase()}.`) : null,
+      q.desmos ? desmosWay(q) : null,
+      walkthrough(q, q.desmos ? "By hand" : "Walkthrough"),
       q.type !== "spr" ? [el("h4", { text: "Why the other choices are wrong" }),
         el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", { text: t }))))] : null);
     box.append(renderTutor(q, resp), renderReport(q));
@@ -1055,6 +1073,128 @@
         el("span", { class: "pen combo", "aria-live": "polite", text: r.flash ? (r.flash.ok ? (r.combo >= 2 ? `Right! ×${r.combo} combo!` : "Right!") : `Not quite, it was ${LETTERS[q.answer]}.`) : r.combo >= 2 ? `×${r.combo} combo` : "" }),
         el("button", { class: "btn small ghost", type: "button", onclick: endRush }, "End round")),
       el("div", { class: "qgrid" + (two ? "" : " single") }, two ? el("section", { "aria-label": "Passage" }, stimulus(q)) : null, ask));
+  }
+
+  // ------------------------------------------------------------------ desmos: 18 tricks, live calculator, checklist, challenge
+  // Which lesson teaches the fastest Desmos route for a regular Math question (by generator id or bank id).
+  const DESMOS_FOR = {
+    lin_expr: 6, lin_both: 6, fee_rate: 3, system_sum: 4, slope_pts: 3, no_solution: 18, budget: 9, interpret: 18,
+    f_eval: 2, diff_sq: 10, one_sol: 5, quad_root: 6, exp_model: 18, compose: 2, vertex: 2, succ_pct: 15, mean_median: 16,
+    pct_change: 15, two_way: 18, pyth: 17, circle_r: 17, trig: 17, angles: 18, cylinder: 18, similar: 18, arc: 18,
+    m1: 6, m2: 3, m3: 4, m4: 18, m5: 2, m6: 10, m7: 5, m9: 15, m10: 16, m11: 17, m12: 17, m13: 17
+  };
+  const lessonFor = (q) => (q && !q.trick && q.section === "math" ? DESMOS_FOR[q.gen || q.id] : null);
+  function openLesson(n) {
+    ui.desmos = { lesson: n, qi: 0 };
+    ui.pr.source = "desmos";
+    loadPracticeQuestion(lessonQs(n)[0]);
+    go("desmos");
+    scrollTo({ top: 0 });
+  }
+  // Mastered: the latest try is right on at least 3 of the trick's questions.
+  function trickStatus(n) {
+    const qs = lessonQs(n), last = qs.map((q) => latest(q.id)).filter(Boolean);
+    const right = last.filter((a) => a.c).length;
+    return { right, total: qs.length, state: right >= Math.min(3, qs.length) ? "mastered" : last.length ? "practicing" : "new" };
+  }
+  const STATE_LABEL = { mastered: "Mastered", practicing: "Practicing", new: "Not started" };
+  // Inline `code` spans in the keystroke steps.
+  const typed = (t) => t.split(/`([^`]+)`/).map((part, i) => (i % 2 ? el("code", { text: part }) : part));
+  function copyBox(text, label = "Copy") {
+    const b = el("button", { class: "btn small ghost", type: "button", onclick: async () => {
+      try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; }
+      setTimeout(() => { b.textContent = label; }, 1600);
+    } }, label);
+    return el("div", { class: "keybox" }, el("pre", { text: text }), b);
+  }
+  function desmosWay(q) {
+    return el("div", { class: "dway" },
+      el("div", { class: "row between" }, el("h4", { text: "The Desmos way" }),
+        ui.view !== "desmos" || ui.desmos.lesson !== q.trick ? el("button", { class: "link", type: "button", onclick: () => openLesson(q.trick) }, `Trick ${q.trick}: ${DESMOS.lessons[q.trick - 1].title}`) : null),
+      el("ol", {}, q.desmos.map((t) => el("li", {}, typed(t)))));
+  }
+  // The live calculator is the app's one Desmos instance, moved next to the lesson and filled with its example.
+  let desmosShows = null;
+  function fillDesmos(L) {
+    if (!desmosCalc) return;
+    desmosCalc.setBlank();
+    desmosCalc.updateSettings({ degreeMode: Boolean(L.degree), invertedColors: getComputedStyle(document.documentElement).colorScheme === "dark" });
+    desmosCalc.setExpressions(L.calc.map((e, i) => ({ id: `L${L.n}-${i}`, ...e })));
+    desmosShows = L.n;
+  }
+  function lessonCalc(L) {
+    loadDesmos();
+    if (!window.Desmos) {
+      return el("div", { class: "lesson-calc empty-calc" },
+        el("p", { class: "tiny", style: "margin:0" }, desmosState === "loading" ? "Loading Desmos…" : window.claude ? "Desmos loads when Clearline runs on its own website. Inside Claude, outside scripts are blocked." : "Desmos couldn't load right now."),
+        el("a", { class: "btn small", href: "https://www.desmos.com/calculator", target: "_blank", rel: "noopener" }, "Open Desmos in a new tab ↗"));
+    }
+    renderDesmos();
+    if (desmosShows !== L.n) fillDesmos(L);
+    return el("div", { class: "lesson-calc", id: "lesson-calc" },
+      el("div", { class: "row between" }, el("span", { class: "tiny", text: L.degree ? "Live Desmos · degree mode" : "Live Desmos · try the example" }),
+        el("button", { class: "link", type: "button", onclick: () => fillDesmos(L) }, "Reset to the example")),
+      desmosEl);
+  }
+  function renderDesmosHome() {
+    const st = DESMOS.lessons.map((L) => trickStatus(L.n));
+    const done = st.filter((x) => x.state === "mastered").length;
+    const next = DESMOS.lessons.find((L, i) => st[i].state !== "mastered") || DESMOS.lessons[0];
+    return el("div", { class: "stack" },
+      el("div", { class: "dhero" },
+        el("h2", { class: "h1" }, "Let Desmos do the ", el("mark", { class: "hl", text: "math" }), "."),
+        el("p", { class: "sub", text: "18 short lessons on the Desmos tricks that turn long SAT algebra into a few keystrokes. Each one has the exact keys to type, a live calculator, and original practice." }),
+        el("div", { class: "row go" },
+          el("button", { class: "btn big sun", type: "button", onclick: () => openLesson(next.n) }, done ? `Continue: trick ${next.n}` : "Start with trick 1"),
+          el("button", { class: "btn ghost", type: "button", onclick: startChallenge }, "Mixed challenge")),
+        el("p", { class: "pen", text: `${done} of 18 tricks mastered` })),
+      sheet("", title("Skills checklist", true), el("p", { class: "sub", text: "A trick counts as mastered when your latest try is right on at least 3 of its questions." }),
+        el("ol", { class: "checklist" }, DESMOS.lessons.map((L, i) => el("li", { class: st[i].state },
+          el("span", { class: "stop", "aria-hidden": "true", text: L.n }),
+          el("span", {}, el("b", { text: L.title }), L.best ? el("span", { class: "best", text: "Best trick" }) : null, el("br"), el("small", { text: st[i].state === "new" ? `${st[i].total} questions` : `${STATE_LABEL[st[i].state]} · ${st[i].right}/${st[i].total} right` })),
+          el("button", { type: "button", "aria-label": `Open trick ${L.n}: ${L.title}`, onclick: () => openLesson(L.n) }, st[i].state === "new" ? "Learn" : "Review"))))),
+      sheet("", title("Mixed challenge", true),
+        el("p", { class: "sub", text: "One question from every trick, shuffled. Before you check each answer, pick the trick you'd use — knowing which tool fits is half the skill." }),
+        el("button", { class: "btn", type: "button", onclick: startChallenge }, "Start the challenge")));
+  }
+  function startChallenge() {
+    const ids = shuffle(DESMOS.lessons.map((L) => { const qs = lessonQs(L.n); return qs[Math.floor(Math.random() * qs.length)].id; }));
+    beginSet({ kind: "desmos-challenge", label: "Desmos challenge", ids });
+  }
+  function renderLesson(L) {
+    const qs = lessonQs(L.n), pr = ui.pr;
+    const prev = DESMOS.lessons[L.n - 2], nextL = DESMOS.lessons[L.n];
+    const pills = el("div", { class: "pills", role: "group", "aria-label": "Practice questions" }, qs.map((q, i) => {
+      const l = latest(q.id);
+      return el("button", { class: "pill" + (l ? (l.c ? " got" : " missed") : ""), type: "button", "aria-pressed": String(pr.q?.id === q.id), "aria-label": `Question ${i + 1}, ${DIFF[q.diff]}${l ? (l.c ? ", right last time" : ", missed last time") : ""}`,
+        onclick: () => { ui.desmos.qi = i; loadPracticeQuestion(q); render(); } }, `Q${i + 1} · ${DIFF[q.diff]}`);
+    }));
+    const lessonDone = !pr.q && ui.desmos.qi >= qs.length;
+    return el("div", { class: "dlesson" },
+      el("div", { class: "dmain dintro" },
+        el("div", { class: "row between crumbs" },
+          el("button", { class: "link", type: "button", onclick: () => { ui.desmos.lesson = null; render(); } }, "← All tricks"),
+          el("span", { class: "tiny", text: `Trick ${L.n} of 18` })),
+        el("h2", { class: "h1" }, L.title, L.best ? el("span", { class: "best big", text: "Best trick" }) : null),
+        L.body.map((t) => el("p", { class: "lede", text: t })),
+        el("h3", { class: "title", text: "Type this" }), copyBox(L.keys),
+        el("p", { class: "pen watch" }, el("b", { text: "Watch out: " }), L.watch)),
+      lessonCalc(L),
+      el("div", { class: "dmain dpractice" },
+        el("div", { class: "row between", style: "margin-top:14px" }, el("h3", { class: "title", style: "margin:0", text: "Practice" }),
+          el("div", { class: "row" }, prev ? el("button", { class: "btn small ghost", type: "button", onclick: () => openLesson(prev.n) }, `← Trick ${prev.n}`) : null,
+            nextL ? el("button", { class: "btn small ghost", type: "button", onclick: () => openLesson(nextL.n) }, `Trick ${nextL.n} →`) : null)),
+        pills,
+        lessonDone ? sheet("", el("div", { class: "rush-start" }, el("h3", { class: "h1", style: "font-size:30px" }, "Trick ", el("mark", { class: "hl", text: "done" }), "!"),
+          el("p", { class: "sub", text: `${trickStatus(L.n).right} of ${qs.length} right on your latest tries.` }),
+          el("div", { class: "row" }, nextL ? el("button", { class: "btn sun", type: "button", onclick: () => openLesson(nextL.n) }, `Next: ${nextL.title}`) : el("button", { class: "btn sun", type: "button", onclick: startChallenge }, "Take the mixed challenge"),
+            el("button", { class: "btn ghost", type: "button", onclick: () => { ui.desmos.lesson = null; render(); } }, "Skills checklist"))))
+          : pr.q ? renderQuestion(pr.q) : null));
+  }
+  function renderDesmosView() {
+    const n = ui.desmos.lesson;
+    if (n && (ui.pr.source !== "desmos" || (ui.pr.q && ui.pr.q.trick !== n))) { ui.pr.source = "desmos"; loadPracticeQuestion(); }
+    return n ? renderLesson(DESMOS.lessons[n - 1]) : renderDesmosHome();
   }
 
   // ------------------------------------------------------------------ question bank + drill builder
@@ -1491,6 +1631,7 @@
   // ------------------------------------------------------------------ dock: calculator + gem
   function renderDock() {
     const root = document.getElementById("dock");
+    if (ui.view === "desmos" && ui.desmos.lesson && ui.dock === "calc") { ui.dock = null; document.getElementById("lesson-calc")?.scrollIntoView({ block: "center" }); }
     if (!ui.dock) { root.replaceChildren(); return; }
     const useDesmos = ui.dock === "calc" && window.Desmos;
     if (ui.dock === "calc") loadDesmos();
@@ -1509,8 +1650,8 @@
     desmosState = "loading";
     const s = document.createElement("script");
     s.src = `https://www.desmos.com/api/v1.11/calculator.js?apiKey=${DESMOS_API_KEY}`;
-    s.onload = () => { desmosState = window.Desmos ? "ready" : "failed"; if (ui.dock === "calc") renderDock(); };
-    s.onerror = () => { desmosState = "failed"; if (ui.dock === "calc") renderDock(); };
+    s.onload = () => { desmosState = window.Desmos ? "ready" : "failed"; if (ui.dock === "calc") renderDock(); if (ui.view === "desmos") render(); };
+    s.onerror = () => { desmosState = "failed"; if (ui.dock === "calc") renderDock(); if (ui.view === "desmos") render(); };
     document.head.append(s);
   }
   function renderDesmos() {
@@ -1694,7 +1835,7 @@
     if (document.activeElement?.closest?.(".dock")) return;
     const idx = "abcd".indexOf(e.key.toLowerCase());
     if (ui.view === "practice" && ui.pr.source === "rush") { if (idx >= 0 && ui.rush && !ui.rush.done && ui.rush.q?.choices[idx] != null) { rushAnswer(idx); e.preventDefault(); } }
-    else if (ui.view === "practice" && ui.pr.q && ui.pr.q.type !== "spr") {
+    else if ((ui.view === "practice" || (ui.view === "desmos" && ui.desmos.lesson)) && ui.pr.q && ui.pr.q.type !== "spr" && !document.activeElement?.closest?.(".lesson-calc")) {
       if (idx >= 0 && !ui.pr.checked) { ui.pr.picked = idx; render(); e.preventDefault(); }
       else if (e.key === "Enter" && tag !== "BUTTON" && tag !== "SUMMARY") { e.preventDefault(); ui.pr.checked ? nextPractice() : checkPractice(); }
     } else if (ui.view === "mock" && progress.activeMock && !progress.activeMock.onBreak) {
