@@ -426,6 +426,7 @@ Region-colored capsules (coral, sky, lilac) with 20px left padding, 16px semibol
 - **Sheet:** Paper, 2px ink edge, 18px radius, 20px 22px padding, Soft Lift.
 - **Lists and tasks:** a 16px ink-edged container with 1px hairline row dividers and hover fill.
 - **Inset box / step:** 1px hairline, 12px radius, Shaded Paper or Paper.
+- **Countdown (Home, with a plan):** a Paper box beside the greeting, 2px ink edge, Soft Lift, 10px 16px padding, max 300px. A 40px 800 tabular day count ("Today" on test day) next to a small line with the date and target. With no date, or a date already passed, it becomes a dashed, unlifted button ("?" or "✓") that opens the test-date field. The Trail Yellow "Start today's session" button leads the hero row and turns into "Continue today's session (n/total)" once a set is open.
 
 ### Inputs / Fields
 - **Style:** Paper, 1px Strong Hairline, 10px radius (12px and 22px bold for answer entry).

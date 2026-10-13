@@ -360,6 +360,7 @@
   }
 
   // ------------------------------------------------------------------ plan
+  const daysToTest = () => progress.target.date ? Math.ceil((Date.parse(progress.target.date + "T12:00:00") - Date.now()) / 864e5) : null;
   const latestImport = () => progress.scores.slice().sort((a, b) => b.date.localeCompare(a.date))[0] || null;
   const latestMock = () => progress.mocks.slice().sort((a, b) => b.at - a.at)[0] || null;
   function band(level) {
@@ -403,7 +404,7 @@
       reasons.push(`${Math.round(D.share * 100)}% of ${D.section === "rw" ? "R&W" : "Math"}`);
       return { k, acc, score, reasons };
     }).sort((a, b) => b.score - a.score);
-    const days = progress.target.date ? Math.ceil((Date.parse(progress.target.date + "T12:00:00") - Date.now()) / 864e5) : null;
+    const days = daysToTest();
     const gapTotal = (sec.rw.gap ?? 60) + (sec.math.gap ?? 60);
     let goal = gapTotal > 150 ? 25 : gapTotal > 60 ? 20 : 15;
     if (days != null && days > 0 && days < 14) goal = Math.min(30, goal + 5);
@@ -620,12 +621,22 @@
     const prac = flatAttempts().filter((a) => a.src !== "mock");
     const acc = prac.length ? Math.round((prac.filter((a) => a.c).length / prac.length) * 100) + "%" : "—";
     const est = plan ? String(plan.sec.rw.level + plan.sec.math.level) : mk ? String(mk.total) : imp ? String(imp.rw + imp.math) : "—";
-    const days = progress.target.date ? Math.ceil((Date.parse(progress.target.date + "T12:00:00") - Date.now()) / 864e5) : null;
+    const days = daysToTest();
+    const set = progress.set;
+    const today = set && set.kind === "plan" && set.date === dayKey();
+    const setActive = today && set.i < set.ids.length;
+    const runToday = () => { if (setActive) { ui.pr.source = "set"; loadPracticeQuestion(); go("practice"); } else startTodaySet(plan); };
+    const toTarget = () => { go("stats"); setTimeout(() => document.getElementById("tgt-date")?.focus(), 30); };
+    const countdown = days == null ? el("button", { class: "countdown unset", type: "button", onclick: toTarget }, el("b", { text: "?" }), el("span", { class: "tiny", text: "Set your test date" }))
+      : days < 0 ? el("button", { class: "countdown unset", type: "button", onclick: toTarget }, el("b", { text: "✓" }), el("span", { class: "tiny", text: "Test done? Set your next date" }))
+      : el("div", { class: "countdown", role: "status" }, el("b", { text: days === 0 ? "Today" : String(days) }),
+        el("span", { class: "tiny", text: days === 0 ? "is test day. Light review, then rest." : `day${days === 1 ? "" : "s"} until your SAT · ${niceDate(progress.target.date)}${progress.target.total ? ` · target ${progress.target.total}` : ""}` }));
     const hero = el("div", { class: "hero" },
-      el("div", {}, el("h2", { class: "h1", text: greeting() }),
-        el("p", { class: "sub", style: "margin:6px 0 0", text: days != null && days >= 0 ? `${days} day${days === 1 ? "" : "s"} until your SAT${progress.target.total ? ` · target ${progress.target.total}` : ""}.` : "Pick up the trail where you left it." })),
+      el("div", { class: "row", style: "gap:18px;align-items:flex-end" }, el("div", {}, el("h2", { class: "h1", text: greeting() }),
+        el("p", { class: "sub", style: "margin:6px 0 0", text: "Pick up the trail where you left it." })), plan ? countdown : null),
       el("div", { class: "row" },
-        el("button", { class: "btn", type: "button", onclick: () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); } }, "Practice questions"),
+        plan ? el("button", { class: "btn sun", type: "button", onclick: runToday }, setActive ? `Continue today's session (${set.i}/${set.ids.length})` : today ? "Start another session" : "Start today's session") : null,
+        el("button", { class: plan ? "btn ghost" : "btn", type: "button", onclick: () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); } }, "Practice questions"),
         el("button", { class: "btn ghost", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume practice test" : "Take a practice test")));
     const stats = el("div", { class: "stats" },
       stat("Score estimate", est, plan ? (imp ? "imported score + practice test" : "latest practice test") : mk ? "latest practice test" : imp ? "imported score" : "take a practice test"),
@@ -679,15 +690,11 @@
       return el("div", { class: "stack" }, first, prac.length || imp ? stats : null, quick);
     }
 
-    const set = progress.set;
-    const today = set && set.kind === "plan" && set.date === dayKey();
-    const setActive = today && set.i < set.ids.length;
     const mins = (k, n) => Math.round((n * PACE[DOMAINS[k].section]) / 60);
     const todayCard = sheet("",
       el("div", { class: "row between", style: "margin-bottom:12px" },
         el("div", {}, el("h2", { class: "title", text: "Today's plan" }), el("span", { class: "tiny", text: `${plan.goal} questions · about ${Object.entries(plan.counts).reduce((s, [k, n]) => s + mins(k, n), 0)} min` })),
-        setActive ? el("button", { class: "btn sun", type: "button", onclick: () => { ui.pr.source = "set"; loadPracticeQuestion(); go("practice"); } }, `Continue (${set.i}/${set.ids.length})`)
-          : el("button", { class: "btn sun", type: "button", onclick: () => startTodaySet(plan) }, today ? "Start another set" : "Start")),
+        el("button", { class: "btn sun", type: "button", onclick: runToday }, setActive ? `Continue (${set.i}/${set.ids.length})` : today ? "Start another set" : "Start")),
       el("div", { class: "tasks" }, Object.entries(plan.counts).map(([k, n]) => el("div", { class: "task" },
         el("span", { class: "tick", "aria-hidden": "true" }),
         el("div", {}, el("b", { text: DOMAINS[k].name }), el("span", { class: "tiny", text: `${DOMAINS[k].section === "rw" ? "R&W" : "Math"} · ${n} questions · ${plan.sec[DOMAINS[k].section].band.label}` })),

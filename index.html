@@ -161,6 +161,10 @@ button.tag.sun:hover { background: var(--lilac); opacity: 0.9; }
 
 /* ---------- Home ---------- */
 .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.countdown { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 12px; max-width: 300px; padding: 10px 16px; background: var(--card); border: var(--edge); border-radius: var(--r); box-shadow: var(--shadow); color: var(--ink); text-align: left; font: inherit; }
+.countdown b { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown.unset { cursor: pointer; border-style: dashed; box-shadow: none; }
+.countdown.unset:hover { background: var(--card-2); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; }
 .stat { background: var(--card); border: var(--edge); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 4px; box-shadow: var(--shadow); }
 .stat b { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
