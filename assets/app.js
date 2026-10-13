@@ -524,6 +524,7 @@
     banner.replaceChildren(am && ui.view !== "mock"
       ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${clock(curModule().timeLeft)} left. The timer only runs while the test is open.`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "resume test"))
       : "");
+    document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
     document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
     const views = { home: renderHome, practice: renderPractice, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides };
     document.getElementById("view").replaceChildren(views[ui.view]());
