@@ -1,4 +1,8 @@
 // Clearline SAT: safe expression parser for the built-in calculator and grapher (no eval).
+// This file handles three main tasks:
+// 1. Tokenizing: Breaking a math string into recognizable pieces (numbers, operators, functions).
+// 2. Parsing: Building a mathematical tree to respect the order of operations.
+// 3. Evaluating: Calculating the result of the expression, supporting variables (x) and trig modes.
 window.CL_CALC = (() => {
   const FUNCS = { sqrt: Math.sqrt, abs: Math.abs, sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan, ln: Math.log, log: Math.log10, exp: Math.exp };
   const TRIG = new Set(["sin", "cos", "tan"]);
