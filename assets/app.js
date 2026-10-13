@@ -559,7 +559,7 @@
     const days = progress.target.date ? Math.ceil((Date.parse(progress.target.date + "T12:00:00") - Date.now()) / 864e5) : null;
     const hero = el("div", { class: "hero" },
       el("div", {}, el("h2", { class: "h1", text: greeting() }),
-        el("p", { class: "sub", style: "margin:6px 0 0", text: days != null && days >= 0 ? `${days} day${days === 1 ? "" : "s"} until your SAT${progress.target.total ? ` · target ${progress.target.total}` : ""}.` : "Diagnose, plan and practice smarter." })),
+        el("p", { class: "sub", style: "margin:6px 0 0", text: days != null && days >= 0 ? `${days} day${days === 1 ? "" : "s"} until your SAT${progress.target.total ? ` · target ${progress.target.total}` : ""}.` : "Pick up the trail where you left it." })),
       el("div", { class: "row" },
         el("button", { class: "btn", type: "button", onclick: () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); } }, "Practice questions"),
         el("button", { class: "btn ghost", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume practice test" : "Take a practice test")));
