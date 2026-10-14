@@ -111,7 +111,7 @@
   const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, timeMult: 1, plainNotes: false });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
   const ui = {
@@ -138,6 +138,7 @@
     const out = { ...b, ...p, v: 3 };
     for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl", "qnotes", "cols", "games"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
+    if (!out.rushRound || typeof out.rushRound !== "object" || !Array.isArray(out.rushRound.seen)) out.rushRound = null;
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (const [id, list] of Object.entries(out.attempts)) {
       if (!Array.isArray(list)) { delete out.attempts[id]; continue; }
@@ -1298,6 +1299,24 @@
     const count = ui.rushCount || 10, pace = ui.rushPace || "normal";
     ui.rush = { scope, count, pace, left: rushTimeLimit(count, pace), score: 0, tries: 0, combo: 0, best: 0, stars: 0, misses: [], seen: new Set(), flash: null, done: false, q: null, shownAt: Date.now() };
     ui.rush.q = pickRushQ(scope, ui.rush.seen);
+    saveRushRound();
+    render();
+    document.getElementById("rush-0")?.focus();
+  }
+  // A round in progress is saved, so a student who leaves (or closes the tab) can pick it up later with the same clock.
+  function saveRushRound() {
+    const r = ui.rush;
+    if (!r || r.done) return;
+    progress.rushRound = { scope: r.scope, count: r.count, pace: r.pace, left: r.left, score: r.score, tries: r.tries, combo: r.combo, best: r.best, stars: r.stars, misses: r.misses.slice(), seen: [...r.seen], qid: r.q?.id || null, at: Date.now() };
+    save();
+  }
+  function resumeRush() {
+    const s = progress.rushRound;
+    if (!s) return;
+    ui.rushScope = s.scope; ui.rushCount = s.count; ui.rushPace = s.pace;
+    ui.rush = { ...s, misses: s.misses.slice(), seen: new Set(s.seen), flash: null, done: false, q: null, shownAt: Date.now() };
+    const q = s.qid && getQ(s.qid);
+    ui.rush.q = q && q.type !== "spr" ? q : pickRushQ(s.scope, ui.rush.seen);
     render();
     document.getElementById("rush-0")?.focus();
   }
@@ -1316,6 +1335,7 @@
       if (ui.rush !== r || r.done) return;
       if (r.tries >= r.count) { endRush(); return; }
       r.flash = null; r.q = pickRushQ(r.scope, r.seen); r.shownAt = Date.now();
+      saveRushRound();
       render();
       if (ui.view === "practice") document.getElementById("rush-0")?.focus();
     }, ok ? 380 : 900);
@@ -1323,6 +1343,7 @@
   function endRush() {
     const r = ui.rush;
     r.done = true; r.flash = null;
+    progress.rushRound = null;
     const prev = progress.rush[r.scope] || 0;
     r.newBest = r.score > prev;
     if (r.newBest) progress.rush[r.scope] = r.score;
@@ -1345,7 +1366,7 @@
   function renderRush() {
     const r = ui.rush;
     if (!r) {
-      const best = progress.rush[ui.rushScope];
+      const best = progress.rush[ui.rushScope], saved = progress.rushRound;
       return sheet("", el("div", { class: "rush-start" },
         el("h2", { class: "h1" }, "Question ", el("mark", { class: "hl", text: "Rush" })),
         el("p", { class: "sub", text: `${ui.rushCount} questions in ${clock(rushTimeLimit(ui.rushCount, ui.rushPace))}. Every right answer in a row builds your combo, fast right answers earn a star, and explanations wait until the end.` }),
@@ -1354,7 +1375,11 @@
           el("label", { class: "field" }, "Questions", el("select", { class: "input", id: "rush-count", onchange: (e) => { ui.rushCount = Number(e.target.value); render(); } }, [10, 20, 30].map((n) => el("option", { value: n, selected: ui.rushCount === n }, `${n} questions`)))),
           el("label", { class: "field" }, "Pace", el("select", { class: "input", id: "rush-pace", onchange: (e) => { ui.rushPace = e.target.value; render(); } }, ["relaxed", "normal", "fast"].map((p) => el("option", { value: p, selected: ui.rushPace === p }, `${p[0].toUpperCase() + p.slice(1)} (${RUSH_PACE[p]}s each)`))))),
         el("p", { class: "pen", text: best ? `Your best on ${rushScopeLabel(ui.rushScope)}: ${best}. Beat it?` : `No score yet on ${rushScopeLabel(ui.rushScope)}. Set one!` }),
-        el("button", { class: "btn big sun", type: "button", onclick: startRush }, "Start the clock")));
+        saved ? el("div", { class: "catchup", style: "width:100%;max-width:560px;margin-bottom:12px" },
+          el("p", { class: "tiny", text: `You have a round in progress: ${saved.tries} of ${saved.count} answered, ${saved.score} right, ${clock(saved.left)} left on ${rushScopeLabel(saved.scope)}.` }),
+          el("div", { class: "row" }, el("button", { class: "btn sun", type: "button", onclick: resumeRush }, "Resume your round"),
+            el("button", { class: "link", type: "button", onclick: () => { progress.rushRound = null; save(); render(); } }, "Discard it"))) : null,
+        el("button", { class: saved ? "btn big ghost" : "btn big sun", type: "button", onclick: startRush }, saved ? "Start a new round" : "Start the clock")));
     }
     if (r.done) {
       return sheet("", el("div", { class: "rush-start" },
@@ -2302,6 +2327,7 @@
       const rc = document.getElementById("rush-clock");
       if (rc) rc.textContent = clock(r.left);
       if (r.left <= 0) endRush();
+      else if (r.left % 5 === 0 && progress.rushRound) { progress.rushRound.left = r.left; save(); }
     }
     const am = progress.activeMock;
     if (am && ui.view === "mock" && visible) {
@@ -2373,6 +2399,7 @@
     if (!out.target.total && B.target.total) out.target = B.target;
     if (!out.activeMock || (B.activeMock && B.activeMock.startedAt > out.activeMock.startedAt)) out.activeMock = B.activeMock || out.activeMock;
     if (!out.set && B.set) out.set = B.set;
+    if (B.rushRound && (!out.rushRound || B.rushRound.at > out.rushRound.at)) out.rushRound = B.rushRound;
     return out;
   }
   (async () => {
