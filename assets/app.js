@@ -110,7 +110,7 @@
   const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, timeMult: 1, plainNotes: false });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
   const ui = {
@@ -119,7 +119,7 @@
     rush: null, rushScope: "all", rushCount: 10, rushPace: "normal", desmos: { lesson: null, qi: 0 },
     bank: { section: "all", domain: "all", skill: "all", diff: "any", status: "all", limit: 40 },
     drill: { skills: [], diff: "any", count: 10, timed: false, name: "" },
-    reviewTab: "missed",
+    rv: { tab: "missed", sec: "all", status: "all", days: 0, col: null }, nbOpen: false,
     guides: { rw: 40, math: 30 },
     qCount: 1,
     vocab: { flipped: false, word: null, mode: "due" },
@@ -135,7 +135,7 @@
     const b = blankProgress();
     if (!p || typeof p !== "object") return b;
     const out = { ...b, ...p, v: 3 };
-    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
+    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl", "qnotes", "cols"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (const [id, list] of Object.entries(out.attempts)) {
@@ -321,6 +321,10 @@
   const domainStats = (dom, recent = 0, practiceOnly = false) => statsWhere((a) => a.d === dom && (!practiceOnly || a.src !== "mock"), recent);
   const skillStats = (skill, recent = 0) => statsWhere((a) => a.s === skill, recent);
   const missedIds = () => Object.keys(progress.attempts).filter((id) => { const l = latest(id); return l && !l.c && getQ(id); }).sort((a, b) => lastAt(b) - lastAt(a));
+  // Mistakes log: every question missed at least once (in its last 6 tries), newest miss first.
+  const lastMiss = (id) => Math.max(0, ...(progress.attempts[id] || []).filter((a) => !a.c).map((a) => a.at));
+  const mistakeIds = () => Object.keys(progress.attempts).filter((id) => lastMiss(id) && getQ(id)).sort((a, b) => lastMiss(b) - lastMiss(a));
+  const noteIds = () => Object.keys(progress.qnotes).concat(Object.keys(progress.hl).filter((id) => progress.hl[id].some((h) => h.n))).filter((id, i, a) => a.indexOf(id) === i && getQ(id));
   const savedIds = () => Object.keys(progress.saved).filter((id) => getQ(id)).sort((a, b) => progress.saved[b] - progress.saved[a]);
   const attemptsOn = (key) => flatAttempts().filter((a) => dayKey(new Date(a.at)) === key && a.src !== "mock" && a.src !== "catchup").length;
   function streak() {
@@ -838,6 +842,7 @@
       else if (pr.skill !== "all") q = pickBySkill(pr.skill, diff, ex);
       else q = pickQuestion({ section: pr.source === "rw" || pr.source === "math" ? pr.source : null, diff, exclude: ex });
     }
+    if (q?.id !== pr.q?.id) ui.nbOpen = false;
     Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now(), hint: false, trickPick: "" });
   }
   function checkPractice() {
@@ -904,6 +909,35 @@
     parts.push(renderQuestion(pr.q));
     return el("div", {}, parts);
   }
+  // Mistakes notebook: a note on the question and the collections it belongs to. Collection toggles update in
+  // place (no render) so an unsaved note isn't wiped.
+  function notebookPanel(q) {
+    const note = el("textarea", { class: "input", id: "qnote", rows: "2", maxlength: "1000", placeholder: "What tripped you up? The rule to remember next time…" });
+    note.value = progress.qnotes[q.id]?.n || "";
+    const colTag = (c) => el("button", { class: "tag", type: "button", "aria-pressed": String(progress.cols[c].includes(q.id)), onclick: (e) => {
+      const list = progress.cols[c], at = list.indexOf(q.id);
+      if (at < 0) list.push(q.id); else list.splice(at, 1);
+      e.currentTarget.setAttribute("aria-pressed", String(at < 0)); save();
+    } }, c);
+    const tags = el("div", { class: "row", style: "gap:8px", role: "group", "aria-label": "Collections" }, Object.keys(progress.cols).sort().map(colTag));
+    const name = el("input", { class: "input", id: "col-new", maxlength: "40", placeholder: "New collection, like “Comma rules”", "aria-label": "New collection name",
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); addCol(); } } });
+    const addCol = () => {
+      const c = name.value.trim();
+      if (!c) return;
+      if (!progress.cols[c]) { progress.cols[c] = []; tags.append(colTag(c)); }
+      if (!progress.cols[c].includes(q.id)) progress.cols[c].push(q.id);
+      [...tags.children].find((b) => b.textContent === c)?.setAttribute("aria-pressed", "true");
+      name.value = ""; save();
+    };
+    return el("div", { class: "notebook" },
+      el("label", { class: "field", for: "qnote" }, "Your note on this question"), note,
+      el("span", { class: "field", id: "col-label" }, "Collections"), tags,
+      el("div", { class: "row" }, name, el("button", { class: "btn small ghost", type: "button", onclick: addCol }, "Add to new collection")),
+      el("div", { class: "row" },
+        el("button", { class: "btn small", type: "button", onclick: () => { const v = note.value.trim(); if (v) progress.qnotes[q.id] = { n: v, at: Date.now() }; else delete progress.qnotes[q.id]; ui.nbOpen = false; save(); render(); toast(v ? "Note saved. Find it in Review → Notes." : "Note removed"); } }, "Save note"),
+        el("button", { class: "link", type: "button", onclick: () => { ui.nbOpen = false; render(); } }, "Close")));
+  }
   function chipsFor(q, full = true) {
     const st = skillStats(skillOf(q));
     return el("div", { class: "chips" },
@@ -932,6 +966,7 @@
         el("button", { class: "flag", type: "button", "aria-pressed": String(saved), onclick: () => { if (saved) delete progress.saved[q.id]; else progress.saved[q.id] = Date.now(); save(); render(); toast(saved ? "Removed from review list" : "Marked for review"); } },
           svg("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: saved ? "currentColor" : "none", stroke: "currentColor", "stroke-width": "2", "aria-hidden": "true" }, svg("path", { d: "M6 3h12v18l-6-4-6 4z" })), saved ? "Marked for review" : "Mark for review")),
       el("div", { class: "row", style: "gap:6px" },
+        el("button", { class: "btn small ghost", type: "button", "aria-expanded": String(ui.nbOpen), onclick: () => { ui.nbOpen = !ui.nbOpen; render(); if (ui.nbOpen) document.getElementById("qnote")?.focus(); } }, progress.qnotes[q.id] ? "✎ Note" : "Note"),
         el("button", { class: "btn small ghost", type: "button", title: "Same skill, different question", onclick: () => { const r = remixOf(q); if (r) { if (ui.pr.source === "set") ui.pr.source = "mixed"; loadPracticeQuestion(r); render(); toast("Remixed: same skill, new question"); } } }, "↻ Remix"),
         lessonFor(q) ? el("button", { class: "btn small ghost", type: "button", title: `Desmos trick ${lessonFor(q)}: ${DESMOS.lessons[lessonFor(q) - 1].title}`, onclick: () => openLesson(lessonFor(q)) }, lessonFor(q) === 18 ? "Why not Desmos?" : "Desmos way") : null,
         q.section === "math" ? el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.dock = "calc"; renderDock(); } }, "Calculator") : null,
@@ -986,7 +1021,7 @@
       : el("div", { class: "qgrid single" }, el("section", { "aria-label": "Question" }, chipsFor(q), answerSec));
     if (pr.hint || pr.checked) markClue(body, q);
     applyHighlights(body, q);
-    return el("section", { class: "sheet qsheet", "data-q": q.id }, questionTop(q), body);
+    return el("section", { class: "sheet qsheet", "data-q": q.id }, questionTop(q), ui.nbOpen ? notebookPanel(q) : null, body);
   }
   // ------------------------------------------------------------------ pen: handwritten hints, walkthroughs, miss reasons
   const PEN = {
@@ -1796,20 +1831,46 @@
 
   // ------------------------------------------------------------------ review
   function renderReview() {
-    const tab = ui.reviewTab;
-    const ids = tab === "missed" ? missedIds() : savedIds();
-    const tabs = el("div", { class: "pills on-desk", style: "margin-bottom:14px" }, [["missed", `missed (${missedIds().length})`], ["saved", `Marked for review (${savedIds().length})`]].map(([k, l]) =>
-      el("button", { class: "pill", type: "button", "aria-pressed": String(tab === k), onclick: () => { ui.reviewTab = k; render(); } }, l)));
-    const patterns = tab === "missed" ? missPatterns() : null;
-    if (!ids.length) return el("div", { class: "stack" }, tabs, patterns, sheet("", el("div", { class: "empty", text: tab === "missed" ? "No missed questions right now. Anything you miss lands here until you get it right." : "Nothing saved yet. Tap “save” on any question to keep it here." })));
-    return el("div", { class: "stack" }, tabs, patterns, sheet("",
-      el("div", { class: "row between", style: "margin-bottom:12px" }, title(tab === "missed" ? "retry your misses" : "saved questions", true),
-        el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: tab, label: tab === "missed" ? "Missed questions" : "Marked for review", ids: ids.slice(0, 30) }) }, `Retry ${Math.min(30, ids.length)} now`)),
+    const rv = ui.rv, cols = Object.keys(progress.cols).sort();
+    if (rv.tab === "collections" && !progress.cols[rv.col]) rv.col = cols[0] || null;
+    const TABS = { missed: ["Mistakes", mistakeIds], saved: ["Marked for review", savedIds], notes: ["Notes", noteIds], collections: ["Collections", () => (progress.cols[rv.col] || []).filter((id) => getQ(id))] };
+    // When each item last happened, for the 7/30-day filter.
+    const when = { missed: lastMiss, saved: (id) => progress.saved[id], notes: (id) => progress.qnotes[id]?.at || lastAt(id), collections: lastAt }[rv.tab];
+    const all = TABS[rv.tab][1]();
+    const ids = all.filter((id) => {
+      const q = getQ(id);
+      if (rv.sec !== "all" && q.section !== rv.sec) return false;
+      if (rv.days && (when(id) || 0) < Date.now() - rv.days * 864e5) return false;
+      if (rv.tab === "missed" && rv.status !== "all" && Boolean(latest(id)?.c) !== (rv.status === "fixed")) return false;
+      return true;
+    });
+    const tabs = el("div", { class: "pills on-desk", role: "group", "aria-label": "Notebook", style: "margin-bottom:14px" }, Object.entries(TABS).map(([k, [l]]) =>
+      el("button", { class: "pill", type: "button", "aria-pressed": String(rv.tab === k), onclick: () => { rv.tab = k; render(); } }, `${l} (${k === "collections" ? cols.length : TABS[k][1]().length})`)));
+    const pick = (id, label, key, opts) => el("label", { class: "field" }, label, el("select", { class: "input", id, onchange: (e) => { rv[key] = key === "days" ? Number(e.target.value) : e.target.value; render(); } },
+      opts.map(([v, t]) => el("option", { value: v, selected: rv[key] === v }, t))));
+    const filters = el("div", { class: "controls" },
+      rv.tab === "collections" && cols.length ? pick("rv-col", "Collection", "col", cols.map((c) => [c, `${c} (${progress.cols[c].length})`])) : null,
+      pick("rv-sec", "Section", "sec", [["all", "Both sections"], ["rw", "Reading and Writing"], ["math", "Math"]]),
+      rv.tab === "missed" ? pick("rv-status", "Status", "status", [["all", "All mistakes"], ["open", "Never corrected"], ["fixed", "Corrected since"]]) : null,
+      pick("rv-days", "When", "days", [[0, "Any time"], [7, "Last 7 days"], [30, "Last 30 days"]]));
+    const patterns = rv.tab === "missed" ? missPatterns() : null;
+    const EMPTY = { missed: "No mistakes yet. Anything you miss lands here, and stays as a log after you fix it.", saved: "Nothing marked yet. Tap “Mark for review” on any question to keep it here.",
+      notes: "No notes yet. Tap “Note” on a question, or highlight text and add a note.", collections: "No collections yet. Tap “Note” on any question to start one, like “Comma rules”." };
+    if (!ids.length) return el("div", { class: "stack" }, tabs, filters, patterns, sheet("", el("div", { class: "empty", text: all.length ? "Nothing matches these filters." : EMPTY[rv.tab] })));
+    const label = rv.tab === "collections" ? rv.col : TABS[rv.tab][0];
+    return el("div", { class: "stack" }, tabs, filters, patterns, sheet("",
+      el("div", { class: "row between", style: "margin-bottom:12px" }, title(`${label}: ${ids.length} question${ids.length === 1 ? "" : "s"}`, true),
+        el("div", { class: "row" },
+          rv.tab === "collections" ? confirmBtn("del-col", "Delete collection", "Tap again to delete", () => { delete progress.cols[rv.col]; rv.col = null; save(); render(); }) : null,
+          el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: "review", label, ids: ids.slice() }) }, `Practise all ${ids.length}`))),
       el("div", { class: "tour" }, ids.map((id, i) => {
-        const q = getQ(id);
+        const q = getQ(id), fixed = Boolean(latest(id)?.c);
+        const notes = [progress.qnotes[id]?.n, ...(progress.hl[id] || []).map((h) => h.n)].filter(Boolean);
         return el("div", {}, el("span", { class: "k", text: i + 1 }),
-          el("span", {}, el("b", { text: `${skillOf(q)} · ${DIFF[q.diff]}` }), el("br"), el("small", { class: "snip", style: "display:block;color:inherit;opacity:.8", text: plain(q.passage?.[0] || q.prompt) })),
-          el("button", { type: "button", onclick: () => { ui.pr.source = tab; loadPracticeQuestion(q); go("practice"); } }, "Retry"));
+          el("span", {}, el("b", { text: `${skillOf(q)} · ${DIFF[q.diff]}` }), rv.tab === "missed" ? el("small", { text: fixed ? " · corrected since" : " · never corrected" }) : null, el("br"),
+            el("small", { class: "snip", style: "display:block;color:inherit;opacity:.8", text: plain(q.passage?.[0] || q.prompt) }),
+            notes.map((n) => el("small", { class: "rv-note", text: "Note: " + n }))),
+          el("button", { type: "button", onclick: () => { ui.pr.source = rv.tab === "missed" || rv.tab === "saved" ? rv.tab : "mixed"; loadPracticeQuestion(q); go("practice"); } }, "Retry"));
       }))));
   }
 
@@ -2088,6 +2149,8 @@
     for (const key of ["scores", "mocks", "drills"]) { const ids = new Set(out[key].map((x) => x.id)); out[key].push(...B[key].filter((x) => !ids.has(x.id))); }
     for (const [k, v] of Object.entries(B.saved)) if (!out.saved[k]) out.saved[k] = v;
     for (const [k, v] of Object.entries(B.hl)) if (!out.hl[k]) out.hl[k] = v;
+    for (const [k, v] of Object.entries(B.qnotes)) if (!out.qnotes[k] || v.at > out.qnotes[k].at) out.qnotes[k] = v;
+    for (const [k, v] of Object.entries(B.cols)) out.cols[k] = [...new Set([...(out.cols[k] || []), ...v])];
     for (const [k, v] of Object.entries(B.rush)) out.rush[k] = Math.max(out.rush[k] || 0, v);
     for (const [k, v] of Object.entries(B.vocab)) if (!out.vocab[k] || (v.due || 0) > (out.vocab[k].due || 0)) out.vocab[k] = v;
     if (!out.target.total && B.target.total) out.target = B.target;
