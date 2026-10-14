@@ -129,7 +129,7 @@
     dock: null,
     calc: { tab: "calc", expr: "", out: "", err: "", hist: [], deg: false, fns: ["x^2 - 4", "2x + 1", ""], range: 10 },
     gemTurns: [],
-    mockResult: null, pendingSubmit: false, navOpen: false, refOpen: false, hideTimer: false, elimMode: false,
+    mockResult: null, pendingSubmit: false, navOpen: false, refOpen: false, settingsOpen: false, hideTimer: false, elimMode: false,
     armed: {}, restoreText: "", lastActive: Date.now()
   };
   const getQ = (id) => BY_ID[id] || D_BY_ID[id] || MATH.fromId(id);
@@ -681,13 +681,15 @@
     document.getElementById("view").replaceChildren(views[ui.view]());
     if (ui.view === "desmos" && desmosCalc && desmosEl?.isConnected) desmosCalc.resize();
     document.getElementById("modal-root").replaceChildren(ui.refOpen ? renderReference() : "");
+    renderSettings();
     renderDock();
   }
   function renderMenu() {
     const missed = missedIds().length;
     document.getElementById("menu").replaceChildren(...VIEWS.map(([k, label]) => el("button", { type: "button", "aria-current": ui.view === k ? "page" : false, onclick: () => { if (k === "mock" && !progress.activeMock) ui.mockResult = null; go(k); } },
       svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d: ICONS[k] })),
-      el("span", { class: "menu-label", text: label }), k === "review" && missed ? el("span", { class: "count", text: missed }) : null)));
+      el("span", { class: "menu-label", text: label }), k === "review" && missed ? el("span", { class: "count", text: missed }) : null)),
+      el("button", { type: "button", class: "menu-settings settings-trigger", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: toggleSettings }, gearIcon(19), el("span", { class: "menu-label", text: "Settings" })));
   }
   function renderTools() {
     const ico = (d) => svg("svg", { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d }));
@@ -697,6 +699,7 @@
       el("button", { class: "tag", type: "button", id: "focus-btn", "aria-label": "Focus timer, start or pause", onclick: () => { focus.running = !focus.running; renderFocus(); } }, el("span", { id: "focus-label", text: focus.phase === "focus" ? "Focus" : "Break" }), el("b", { id: "focus-clock", text: clock(focus.left) }), el("span", { id: "focus-state", text: focus.running ? "❚❚" : "▶" })),
       el("button", { class: "tag", type: "button", "aria-pressed": String(ui.dock === "calc"), onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, ico("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), "Calculator"),
       el("button", { class: "tag", type: "button", onclick: () => { ui.refOpen = true; render(); } }, ico("M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"), "Reference"),
+      el("button", { class: "tag gear settings-trigger", type: "button", "aria-label": "Settings", title: "Settings", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: toggleSettings }, gearIcon(17)),
       ...(IN_CLAUDE ? [el("button", { class: "tag sun", type: "button", "aria-pressed": String(ui.dock === "gem"), onclick: () => { ui.dock = ui.dock === "gem" ? null : "gem"; renderDock(); } }, ico("M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"), "Ask Gem")] : []));
   }
 
@@ -1728,6 +1731,43 @@
           ? [el("b", { text: "Submit this module?" }), el("button", { class: "btn", type: "button", onclick: submitModule }, last ? "Yes, finish the test" : "Yes, submit"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pendingSubmit = false; render(); } }, "Cancel")]
           : el("button", { class: "btn", type: "button", onclick: () => { ui.pendingSubmit = true; render(); } }, last ? "Submit & see score" : "Submit module")));
   }
+  // ------------------------------------------------------------------ settings: appearance (stored per device, applied by the inline script in <head> before paint)
+  const THEME_KEY = "clearline-theme";
+  const getTheme = () => { try { const t = localStorage.getItem(THEME_KEY); return t === "light" || t === "dark" ? t : "system"; } catch { return "system"; } };
+  function setTheme(t) {
+    try { if (t === "system") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, t); } catch {}
+    if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+    if (desmosCalc) desmosCalc.updateSettings({ invertedColors: getComputedStyle(document.documentElement).colorScheme === "dark" });
+    renderDock();
+  }
+  function gearIcon(size) {
+    return svg("svg", { width: String(size), height: String(size), viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
+      svg("circle", { cx: "12", cy: "12", r: "3" }),
+      svg("path", { d: "M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" }));
+  }
+  function toggleSettings(e) {
+    ui.settingsOpen = !ui.settingsOpen;
+    settingsReturn = ui.settingsOpen ? e?.currentTarget?.classList.contains("menu-settings") ? "menu" : "tools" : settingsReturn;
+    render();
+    if (ui.settingsOpen) document.querySelector("#settings-panel input:checked")?.focus();
+    else focusSettingsTrigger();
+  }
+  let settingsReturn = "tools";
+  const focusSettingsTrigger = () => document.querySelector(settingsReturn === "menu" ? ".menu-settings" : ".tag.gear")?.focus();
+  function closeSettings(refocus = true) { if (!ui.settingsOpen) return; ui.settingsOpen = false; render(); if (refocus) focusSettingsTrigger(); }
+  function renderSettings() {
+    let root = document.getElementById("settings-root");
+    if (!root) { root = el("div", { id: "settings-root" }); document.body.append(root); }
+    if (!ui.settingsOpen) { root.replaceChildren(); return; }
+    const cur = getTheme();
+    root.replaceChildren(el("section", { class: "settings-panel", id: "settings-panel", role: "dialog", "aria-labelledby": "settings-title" },
+      el("div", { class: "row between", style: "margin-bottom:10px" }, el("h2", { class: "title sm", id: "settings-title", text: "Settings" }),
+        el("button", { class: "btn small ghost", type: "button", onclick: () => closeSettings() }, "Done")),
+      el("fieldset", { class: "seg" }, el("legend", { class: "label", text: "Appearance" }),
+        el("div", { class: "pills" }, [["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([v, l]) =>
+          el("label", { class: "pill" }, el("input", { type: "radio", name: "theme", value: v, checked: cur === v, onchange: () => setTheme(v) }), l)))),
+      el("p", { class: "tiny", style: "margin:10px 0 0", text: "Saved on this device." })));
+  }
   function renderReference() {
     const f = [["Circle", "A = πr²,  C = 2πr"], ["Rectangle", "A = ℓw"], ["Triangle", "A = ½bh"], ["Pythagorean theorem", "c² = a² + b²"], ["Special right triangles", "30-60-90: x, x√3, 2x · 45-45-90: s, s, s√2"],
       ["Rectangular prism", "V = ℓwh"], ["Cylinder", "V = πr²h"], ["Sphere", "V = (4/3)πr³"], ["Cone", "V = (1/3)πr²h"], ["Pyramid", "V = (1/3)ℓwh"], ["Circle facts", "360° = 2π radians"], ["Triangle facts", "Angles add to 180°"]];
@@ -2390,9 +2430,11 @@
 
   // ------------------------------------------------------------------ events
   for (const ev of ["pointerdown", "keydown", "scroll"]) addEventListener(ev, () => { ui.lastActive = Date.now(); }, { passive: true });
+  document.addEventListener("pointerdown", (e) => { if (ui.settingsOpen && !e.target.closest("#settings-panel, .settings-trigger")) closeSettings(false); });
   document.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "Escape" && document.getElementById("hl-pop")) { closeHlPop(); return; }
+    if (e.key === "Escape" && ui.settingsOpen) { closeSettings(); return; }
     if (e.key === "Escape") { if (ui.refOpen) { ui.refOpen = false; render(); } else if (ui.dock) { ui.dock = null; renderDock(); } return; }
     const tag = document.activeElement?.tagName;
     if (["TEXTAREA", "INPUT", "SELECT"].includes(tag)) return;

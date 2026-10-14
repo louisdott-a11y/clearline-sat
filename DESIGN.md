@@ -473,6 +473,9 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 ### Challenge Set
 A Practice source with a Rush-style start card: a headline with one marker-swiped word, a section filter-pill group, challenge accuracy by content area as green-fill bars (the miss bars' shape, green because it is accuracy), and one yellow "Start the challenge". The set runs 10 hard questions (hand-written hard R&W, fresh hard Math variants), each with a "Module 2 hard" chip.
 
+### Settings
+A round gear tag (Paper, 2px ink edge, icon only, labelled "Settings") ends the top bar; under 900px it moves to a "Settings" item at the end of the scrolling menu strip. It opens a small non-modal panel (Paper, 2px ink edge, 18px radius, Soft Lift, 360px, pinned under the top bar; full width minus 16px gutters on phones) with a ghost "Done" button and an "Appearance" filter-pill group of real radio buttons: Light, Dark, Match my device (default). The choice sets `data-theme` on the root immediately, is stored per device in localStorage (`clearline-theme`), and an inline script in `<head>` applies it before first paint. Esc, Done or a click outside closes it and returns focus to the trigger.
+
 ### Gem Mascot
 An original cut gem in Lilac (Gem is a tool) with a 2.5px ink outline, ink facet lines, dot eyes, coral cheeks and a smile (an open grin when cheering), 64px. Beside it sits a speech bubble: Paper, 2px ink edge, 16px radius, Soft Lift, a tail on the left, Archivo 14.5px (not Caveat, so it never counts against the One Note Rule). It appears on Home (both first-run and plan views), the test break and Question Rush results, with one short line that fits the moment. It bobs gently, and hops twice when cheering, behind `prefers-reduced-motion: no-preference`. Screen readers hear "Gem says:" before the line.
 
