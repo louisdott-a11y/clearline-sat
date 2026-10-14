@@ -27,23 +27,34 @@ colors:
   red-wash: "#fde7e2"
   amber-fill: "#f5a524"
   amber: "#8a5a00"
-  dark-water: "#141813"
-  dark-card: "#1c211a"
-  dark-card-2: "#232a20"
-  dark-hover: "#283024"
-  dark-ink-soft: "#b9b5a6"
-  dark-line: "#343c30"
-  dark-line-strong: "#56604f"
-  dark-land: "#2c5a20"
-  dark-swipe: "#3f7a2d"
-  dark-pen: "#a8c4ff"
-  dark-accent-soft: "#10283d"
-  dark-accent-text: "#7cc4ff"
-  dark-green: "#8ed462"
-  dark-green-wash: "#1a2c14"
-  dark-red: "#ff8b7a"
-  dark-red-wash: "#34160f"
-  dark-amber: "#fbbf24"
+  dark-water: "#14161b"
+  dark-card: "#1c1f25"
+  dark-card-2: "#272b33"
+  dark-hover: "#2b3038"
+  dark-ink: "#ebe8e0"
+  dark-ink-soft: "#a6a8ae"
+  dark-line: "#3a3f48"
+  dark-line-strong: "#6a707d"
+  dark-edge: "#6a7080"
+  dark-on-color: "#191b20"
+  dark-sun: "#e8d55a"
+  dark-coral: "#ef8778"
+  dark-sky: "#6cb4ef"
+  dark-lilac: "#c9aeea"
+  dark-land: "#26392b"
+  dark-swipe: "#4a7f3f"
+  dark-mark: "#5ba84b"
+  dark-pen: "#a9c0f7"
+  dark-accent-soft: "#1b2b3e"
+  dark-accent-text: "#8ec8f7"
+  dark-green-fill: "#5ba84b"
+  dark-green: "#8ccf7c"
+  dark-green-wash: "#1b2a1f"
+  dark-red-fill: "#e0685a"
+  dark-red: "#ff9b8e"
+  dark-red-wash: "#331f1d"
+  dark-amber-fill: "#e3a94a"
+  dark-amber: "#f0c060"
 typography:
   display:
     fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
@@ -337,7 +348,15 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 - **Right** (green-fill / green / green-wash), **Wrong** (red-fill / red / red-wash), **Flagged** (amber-fill / amber): only for answer verdicts, the timer warning, flags and the review list. **Selection Blue** (accent-soft / accent-text) tints selected choices and checked filters.
 
 ### Dark Mode
-The same roles re-tinted for night (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`): a near-black green ground (dark-water) with stepped dark papers (dark-card, dark-card-2, dark-hover), Water Cream as ink, a muted Soft Ink (dark-ink-soft), dark hairlines (dark-line, dark-line-strong), a darker land and swipe, a light Pen Blue (dark-pen), dark washes with lighter verdict text, and a yellow focus ring. Region fills (sun, coral, sky, lilac) and the fill shades of the verdict colors do not change, and text on them stays dark ink. Verified on the walkthrough screen: pen notes, rings, scratches and the clue underline stay legible. The embedded Desmos calculator switches to its own `invertedColors` setting in dark mode, so the graph never sits as a white slab on the night map.
+Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`). Rebuilt on 2026-10-14; before/after screenshots are in `research/screenshots/dark-mode/`.
+- **Ground and surfaces:** cool neutral charcoal, never pure black, in three steps: dark-water (page, sidebar, topbar), dark-card (sheets, choices, inputs) and dark-card-2 (headers, chips, inset boxes), with dark-hover above them.
+- **Text:** a soft off-white ink (dark-ink, 14.8:1 on the ground) and a muted gray Soft Ink (dark-ink-soft, at least 5.6:1 on every surface). Placeholders use Soft Ink, never the browser gray.
+- **Edges:** the 2px outline becomes a calm gray (`--edge-c`, dark-edge, 3.3:1 or better) instead of cream, so fills are not ringed in light. Hairlines are dark-line and dark-line-strong.
+- **Region colors:** sun, coral, sky and lilac are softened (less saturated, slightly lighter) and keep their meanings and the One Yellow Rule. Text on them is dark-on-color (6.9:1 or better). The round arrow chip stays a dark chip (`--chip`) with a light arrow in both themes.
+- **Verdicts:** lighter green-fill and red-fill with dark text on filled bubbles (`--on-fill`), dark washes with lighter verdict text. Chart bars mix toward the card for easy and medium difficulty instead of fading with opacity.
+- **Map and marks:** a deep green lobe (dark-land) with a gray edge, a brighter marker swipe (dark-swipe) and a mid-green brand disc (dark-mark). The pen is a light Pen Blue (dark-pen). Gem keeps its lilac body and dark face, with a gray outline.
+- **Focus:** a light blue ring (dark-accent-text), not yellow, so focus never reads as a second next step.
+- **Desmos:** the embedded calculator switches to its own `invertedColors`, so the graph never sits as a white slab.
 
 ### Named Rules
 **The One Yellow Rule.** Yellow means "the next step". One yellow action per view; never use it for decoration, status or a second option.
@@ -411,7 +430,7 @@ Tactile pill capsules with a confident ink outline.
 - **Primary:** Ink fill, Water Cream text, 600 weight, 8px 16px. Small is 5px 12px at 13px; big is 12px 22px at 17px.
 - **Next step:** Trail Yellow fill with ink text. Can carry a duration note after a 1.5px divider ("68 min") and the ink arrow chip.
 - **Ghost:** Paper fill, ink text and edge; hover goes to Hover Paper.
-- **Hover / Focus:** 120ms color transitions. The arrow chip slides 5px right on hover or focus-visible (260ms, cubic-bezier(0.16, 1, 0.3, 1)). Focus is a 3px ink outline at 3px offset (yellow in dark mode).
+- **Hover / Focus:** 120ms color transitions. The arrow chip slides 5px right on hover or focus-visible (260ms, cubic-bezier(0.16, 1, 0.3, 1)). Focus is a 3px ink outline at 3px offset (light blue in dark mode).
 - **Link:** ink text, 600 weight, 2px underline at 4px offset; the underline disappears on hover.
 
 ### Coast Capsules (signature)

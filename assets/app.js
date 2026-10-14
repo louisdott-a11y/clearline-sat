@@ -280,7 +280,7 @@
   function gemSays(text, mood = "smile") {
     const face = mood === "cheer" ? svg("path", { d: "M26 38q6 7 12 0z", fill: "var(--on-color)" }) : svg("path", { d: "M27 38q5 4 10 0", fill: "none", stroke: "var(--on-color)", "stroke-width": "2.4", "stroke-linecap": "round" });
     const body = svg("svg", { class: "gem-mascot" + (mood === "cheer" ? " cheer" : ""), viewBox: "0 0 64 64", width: "64", height: "64", "aria-hidden": "true" },
-      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--on-color)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
+      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--edge-c)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
       svg("path", { d: "M12 22h40M21 9l6 13 5-13 5 13 6-13", fill: "none", stroke: "var(--on-color)", "stroke-width": "1.6", "stroke-linejoin": "round" }),
       svg("circle", { cx: "26", cy: "30", r: "2.4", fill: "var(--on-color)" }), svg("circle", { cx: "38", cy: "30", r: "2.4", fill: "var(--on-color)" }),
       svg("circle", { cx: "21.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), svg("circle", { cx: "42.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), face);

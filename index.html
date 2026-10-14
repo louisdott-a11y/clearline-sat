@@ -45,40 +45,40 @@
   --f-ui: "Archivo", "Segoe UI", system-ui, sans-serif;
   --f-read: "Source Serif 4", Georgia, "Times New Roman", serif;
   --f-hand: "Caveat", "Comic Sans MS", cursive;
-  --edge-c: var(--ink); --chip: var(--ink); --chip-ink: var(--bg); --on-fill: #fff;
+  --mark: var(--land); --edge-c: var(--ink); --chip: var(--ink); --chip-ink: var(--bg); --on-fill: #fff;
   --r: 18px; --edge: 2px solid var(--edge-c);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14161b; --card: #1c1f25; --card-2: #24282f; --hover: #2b3038;
-    --ink: #ebe8e0; --ink-soft: #a6a8ae; --line: #30343c; --line-strong: #6a707d;
+    --bg: #14161b; --card: #1c1f25; --card-2: #272b33; --hover: #2b3038;
+    --ink: #ebe8e0; --ink-soft: #a6a8ae; --line: #3a3f48; --line-strong: #6a707d;
     --black: #ebe8e0; --on-black: #14161b;
     --accent: #6cb4ef; --accent-ink: #14161b; --accent-soft: #1b2b3e; --accent-text: #8ec8f7;
     --green: #8ccf7c; --green-fill: #5ba84b; --green-wash: #1b2a1f;
     --red: #ff9b8e; --red-fill: #e0685a; --red-wash: #331f1d;
     --amber: #f0c060; --amber-fill: #e3a94a; --grey-fill: #464b55;
-    --land: #2a3d30; --swipe: #3f6a38;
+    --land: #26392b; --swipe: #4a7f3f; --mark: #5ba84b;
     --sun: #e8d55a; --coral: #ef8778; --sky: #6cb4ef; --lilac: #c9aeea; --on-color: #191b20; --pen: #a9c0f7;
     --edge-c: #6a7080; --chip: #191b20; --chip-ink: #ebe8e0; --on-fill: #14161b;
     --shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 12px 26px -14px rgba(0, 0, 0, 0.75);
-    --focus: #e8d55a;
+    --focus: #8ec8f7;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #14161b; --card: #1c1f25; --card-2: #24282f; --hover: #2b3038;
-  --ink: #ebe8e0; --ink-soft: #a6a8ae; --line: #30343c; --line-strong: #6a707d;
+  --bg: #14161b; --card: #1c1f25; --card-2: #272b33; --hover: #2b3038;
+  --ink: #ebe8e0; --ink-soft: #a6a8ae; --line: #3a3f48; --line-strong: #6a707d;
   --black: #ebe8e0; --on-black: #14161b;
   --accent: #6cb4ef; --accent-ink: #14161b; --accent-soft: #1b2b3e; --accent-text: #8ec8f7;
   --green: #8ccf7c; --green-fill: #5ba84b; --green-wash: #1b2a1f;
   --red: #ff9b8e; --red-fill: #e0685a; --red-wash: #331f1d;
   --amber: #f0c060; --amber-fill: #e3a94a; --grey-fill: #464b55;
-  --land: #2a3d30; --swipe: #3f6a38;
+  --land: #26392b; --swipe: #4a7f3f; --mark: #5ba84b;
   --sun: #e8d55a; --coral: #ef8778; --sky: #6cb4ef; --lilac: #c9aeea; --on-color: #191b20; --pen: #a9c0f7;
   --edge-c: #6a7080; --chip: #191b20; --chip-ink: #ebe8e0; --on-fill: #14161b;
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 12px 26px -14px rgba(0, 0, 0, 0.75);
-  --focus: #e8d55a;
+  --focus: #8ec8f7;
   color-scheme: dark;
 }
 
@@ -95,7 +95,7 @@ button { cursor: pointer; }
 .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100%; }
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 22px; padding: 24px 16px; border-right: var(--edge); background: var(--bg); }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; text-decoration: none; color: var(--ink); font-weight: 800; font-size: 24px; letter-spacing: -0.04em; }
-.brand-mark { width: 30px; height: 30px; border-radius: 50%; background: var(--land); border: var(--edge); color: var(--on-color); display: grid; place-items: center; }
+.brand-mark { width: 30px; height: 30px; border-radius: 50%; background: var(--mark); border: var(--edge); color: var(--on-color); display: grid; place-items: center; }
 .menu { display: grid; gap: 2px; }
 .menu button { display: flex; align-items: center; gap: 11px; width: 100%; border: 0; background: none; padding: 10px 14px; border-radius: 999px; color: var(--ink); font-weight: 500; font-size: 15px; text-align: left; }
 .menu button:hover { background: var(--hover); color: var(--ink); }
@@ -134,6 +134,8 @@ button { cursor: pointer; }
 .btn.small { padding: 5px 12px; font-size: 13px; }
 .btn.big { padding: 12px 22px; font-size: 17px; }
 .btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+::placeholder { color: var(--ink-soft); opacity: 1; }
+html { scrollbar-color: var(--line-strong) var(--bg); accent-color: var(--accent); caret-color: var(--ink); }
 .link { border: 0; background: none; padding: 2px 0; color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; font-size: 13px; }
 .link:hover { text-decoration-color: transparent; }
 .first { --gut: 120px; position: relative; isolation: isolate; display: grid; grid-template-columns: var(--gut) minmax(0, 1fr); gap: 18px 22px; justify-items: start; align-content: center; min-height: min(580px, 74vh); padding: 112px 56px 112px clamp(32px, 10%, 130px); }
@@ -511,10 +513,12 @@ var { font-family: var(--f-read); font-style: italic; font-weight: inherit; padd
 /* ---------- Charts ---------- */
 .chart-wrap { overflow-x: auto; }
 /* Right/wrong bars: verdict fills, lighter for easier questions so harder ones read darker. */
-.chart .vb.ok, .sw.ok { fill: var(--green-fill); background: var(--green-fill); }
-.chart .vb.no, .sw.no { fill: var(--red-fill); background: var(--red-fill); }
-.chart .vb.f1, .sw.f1 { opacity: 0.4; } .chart .vb.f2, .sw.f2 { opacity: 0.7; }
-.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.chart .vb.ok, .sw.ok { --v: var(--green-fill); } .chart .vb.no, .sw.no { --v: var(--red-fill); }
+.chart .vb { fill: var(--v); } .sw { background: var(--v); }
+/* Mixed toward the card, not faded with opacity, so easy bars stay clean on the dark ground. */
+.chart .vb.f1, .sw.f1 { fill: color-mix(in srgb, var(--v) 42%, var(--card)); background: color-mix(in srgb, var(--v) 42%, var(--card)); }
+.chart .vb.f2, .sw.f2 { fill: color-mix(in srgb, var(--v) 70%, var(--card)); background: color-mix(in srgb, var(--v) 70%, var(--card)); }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
 
 .chart text { font-family: var(--f-ui); font-size: 11px; fill: var(--ink-soft); }
 .chart .grid line { stroke: var(--line); stroke-width: 1; }
