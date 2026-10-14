@@ -436,6 +436,8 @@ var { font-family: var(--f-read); font-style: italic; font-weight: inherit; padd
 /* ---------- Controls ---------- */
 .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 16px; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; background: var(--card-2); border: 1px solid var(--line); border-radius: 999px; width: fit-content; max-width: 100%; }
+/* A wrapped track keeps a sheet-like corner; a full capsule bulges into a blob over three rows. */
+@media (max-width: 600px) { .pills { border-radius: 20px; } }
 .pill { border: 0; background: transparent; color: var(--ink-soft); border-radius: 999px; padding: 6px 13px; font-weight: 500; font-size: 13.5px; }
 .pill:hover { color: var(--ink); }
 .pill[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
