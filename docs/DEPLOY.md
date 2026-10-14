@@ -1,7 +1,7 @@
 # Deploying Clearline to Cloudflare Pages
 
 Clearline is a static site: `index.html` plus `assets/`. No server, no database, no build tools.
-`build.sh` copies just those files (and `_headers`) into `dist/`, so `research/`, `tests/` and screenshots never go online.
+`build.sh` copies just those files (and `_headers`) into `dist/`, so `docs/`, `tests/` and the design notes never go online.
 
 ## Before the first deploy (10 minutes)
 
@@ -15,7 +15,7 @@ Clearline is a static site: `index.html` plus `assets/`. No server, no database,
 
 ## Option A: deploy from GitHub (updates itself on every push)
 
-1. Put the repo on GitHub (this repo has no remote yet):
+1. Put the repo on GitHub (already done: github.com/louisdott-a11y/clearline-sat):
    - Create an empty **private or public** repo on github.com named `clearline-sat` (no README).
    - In this folder run:
      ```

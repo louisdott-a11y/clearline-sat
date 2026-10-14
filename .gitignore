@@ -1,5 +1,12 @@
+# Private notes, research and local tool files: kept on my Mac, never published
+research/
+.claude/
+.impeccable/
 .playwright-mcp/
-.DS_Store
-.claude/settings.local.json
 .aider*
+
+# Build output (made by build.sh during deploy)
 dist/
+
+# macOS
+.DS_Store

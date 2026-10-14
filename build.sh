@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copies only the public site into dist/ for Cloudflare Pages (keeps research/, tests/ and screenshots off the web).
+# Copies only the public site into dist/ for Cloudflare Pages (keeps docs/, tests/ and notes off the web).
 set -e
 rm -rf dist && mkdir -p dist
 cp index.html _headers dist/

@@ -107,7 +107,7 @@
     vocab: "M7 4h12v14H7zM4 7v13h12",
     guides: "M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"
   };
-  // Set in assets/config.js (see DEPLOY.md to swap in your own key).
+  // Set in assets/config.js (see docs/DEPLOY.md to swap in your own key).
   const DESMOS_API_KEY = window.CL_CONFIG?.DESMOS_API_KEY || "";
   // Gem (the coach) and question flagging run on Claude's artifact runtime. On a normal website they're hidden.
   const IN_CLAUDE = Boolean(window.claude?.use);

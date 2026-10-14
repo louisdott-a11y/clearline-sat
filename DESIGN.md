@@ -348,7 +348,7 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 - **Right** (green-fill / green / green-wash), **Wrong** (red-fill / red / red-wash), **Flagged** (amber-fill / amber): only for answer verdicts, the timer warning, flags and the review list. **Selection Blue** (accent-soft / accent-text) tints selected choices and checked filters.
 
 ### Dark Mode
-Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`). Rebuilt on 2026-10-14; before/after screenshots are in `research/screenshots/dark-mode/`.
+Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`). Rebuilt on 2026-10-14.
 - **Ground and surfaces:** cool neutral charcoal, never pure black, in three steps: dark-water (page, sidebar, topbar), dark-card (sheets, choices, inputs) and dark-card-2 (headers, chips, inset boxes), with dark-hover above them.
 - **Text:** a soft off-white ink (dark-ink, 14.8:1 on the ground) and a muted gray Soft Ink (dark-ink-soft, at least 5.6:1 on every surface). Placeholders use Soft Ink, never the browser gray.
 - **Edges:** the 2px outline becomes a calm gray (`--edge-c`, dark-edge, 3.3:1 or better) instead of cream, so fills are not ringed in light. Hairlines are dark-line and dark-line-strong.

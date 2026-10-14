@@ -1,0 +1,11 @@
+{
+  "name": "clearline-sat",
+  "private": true,
+  "description": "Free SAT prep with every answer explained. Plain HTML, CSS and JavaScript; no dependencies.",
+  "license": "MIT",
+  "scripts": {
+    "test": "for f in tests/*.test.js; do node \"$f\" || exit 1; done",
+    "start": "python3 -m http.server 8000",
+    "build": "sh build.sh"
+  }
+}
