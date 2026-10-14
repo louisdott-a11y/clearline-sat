@@ -1101,7 +1101,8 @@
   }
 
   // ------------------------------------------------------------------ question rush: 3-minute speed rounds
-  const RUSH_SECS = 180;
+  const RUSH_SECS = { 10: 600, 20: 1200, 30: 1800 };
+  const RUSH_PACE = { relaxed: 1.5, normal: 1, fast: 0.75 };
   function pickRushQ(scope, exclude) {
     let q = null;
     for (let i = 0; i < 6; i++) {
