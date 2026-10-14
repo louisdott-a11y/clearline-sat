@@ -7,7 +7,7 @@
 No account, no paywall, no ads. Open the link and start practicing.
 
 <p align="center">
-  <img src="docs/screenshots/answer-and-explanation.gif" alt="A student picks a wrong answer, sees why it's wrong, and reads the step-by-step walkthrough" width="800">
+  <img src="docs/screenshots/desmos-walkthrough.gif" alt="A student opens Desmos way on a math question, steps through it with Gem in the live calculator, then answers and sees the solution" width="800">
 </p>
 
 ![Clearline home page on a laptop in light mode](docs/screenshots/desktop-light-home.png)
@@ -19,11 +19,20 @@ No account, no paywall, no ads. Open the link and start practicing.
 
 ## Features
 
+### Desmos, step by step
+- Every Math question has a "Desmos way" button that opens the live graphing calculator next to the question and walks through solving it one step at a time, with Gem, the mascot, saying what to type and why it works.
+- Each step adds its expression to the graph, moves to the part that matters and highlights the key point. The answer stays hidden until the student answers or asks for it.
+- "Why not Desmos?" questions show when solving by hand is faster. Every walkthrough's values are checked against real Desmos by the tests.
+
 ### Practice
 - Reading and Writing and Math questions, filtered by skill, difficulty, weak spots, missed questions or marked-for-review.
 - 90 hand-checked Reading and Writing questions and 13 classic Math questions, each with step-by-step solutions and a reason for every wrong choice.
 - 28 Math generators that build fresh questions, compute their own answers, and make wrong choices from real student mistakes.
 - Hints that underline the exact clue in the passage, and a "Remix" button for a new version of the same math problem.
+
+<p align="center">
+  <img src="docs/screenshots/answer-and-explanation.gif" alt="A student picks a wrong answer, sees why it's wrong, and reads the step-by-step walkthrough" width="720">
+</p>
 
 ### Mock tests
 - Full-length practice SAT modeled on the digital SAT (Bluebook): two modules per section, a break, a calculator and a reference sheet.

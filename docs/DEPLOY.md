@@ -1,7 +1,7 @@
 # Deploying Clearline to Cloudflare Pages
 
 Clearline is a static site: `index.html` plus `assets/`. No server, no database, no build tools.
-`build.sh` copies just those files (and `_headers`) into `dist/`, so `docs/`, `tests/` and the design notes never go online.
+`build.sh` copies just those files (and `_headers`) into `dist/`, so `docs/`, `tests/` and the design notes never go online. It also adds the commit hash to each script tag (`?v=…`), so a new deploy isn't hidden behind a cached copy.
 
 ## Before the first deploy (10 minutes)
 

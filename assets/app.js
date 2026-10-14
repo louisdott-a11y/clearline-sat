@@ -109,6 +109,9 @@
   };
   // Set in assets/config.js (see docs/DEPLOY.md to swap in your own key).
   const DESMOS_API_KEY = window.CL_CONFIG?.DESMOS_API_KEY || "";
+  // "Send feedback" opens an email to Clearline's maker.
+  const FEEDBACK_HREF = "mailto:astrrro999@gmail.com?subject=" + encodeURIComponent("Clearline feedback");
+  const feedbackLink = () => el("a", { class: "feedback-link", href: FEEDBACK_HREF }, "Send feedback");
   // Gem (the coach) and question flagging run on Claude's artifact runtime. On a normal website they're hidden.
   const IN_CLAUDE = Boolean(window.claude?.use);
 
@@ -1754,8 +1757,14 @@
   function setTheme(t) {
     try { if (t === "system") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, t); } catch {}
     if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+    syncStatusBar();
     if (desmosCalc) desmosCalc.updateSettings({ invertedColors: getComputedStyle(document.documentElement).colorScheme === "dark" });
     renderDock();
+  }
+  // The phone's status bar follows theme-color, which only knows the system scheme. A chosen theme overrides it.
+  function syncStatusBar() {
+    const t = getTheme(), color = { light: "#f5f1e4", dark: "#14161b" };
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => { m.content = t === "system" ? color[/dark/.test(m.media) ? "dark" : "light"] : color[t]; });
   }
   function gearIcon(size) {
     return svg("svg", { width: String(size), height: String(size), viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
@@ -1793,7 +1802,8 @@
           : el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: downloadBackup }, "Back up my progress"),
             el("button", { class: "btn small ghost", type: "button", onclick: () => document.getElementById("restore-file").click() }, "Restore from backup"),
             el("input", { type: "file", id: "restore-file", accept: ".json,application/json", hidden: true, onchange: (e) => readBackup(e.target.files[0]) })),
-        el("p", { class: "tiny", style: "margin:8px 0 0", text: "A backup is a small file. Keep it somewhere safe, or open it on another device to move your progress there." }))));
+        el("p", { class: "tiny", style: "margin:8px 0 0", text: "A backup is a small file. Keep it somewhere safe, or open it on another device to move your progress there." })),
+      el("p", { class: "tiny", style: "margin:14px 0 0" }, "Found a mistake or have an idea? ", feedbackLink())));
   }
   // ------------------------------------------------------------------ keeping progress safe: backup file, private-window note, iPhone Home Screen tip
   const BACKUP_APP = "clearline-sat";
@@ -2702,6 +2712,8 @@
 
   // ------------------------------------------------------------------ boot
   progress = loadLocal();
+  syncStatusBar();
+  document.querySelector(".side-foot")?.append(el("br"), feedbackLink());
   resetFocus("focus");
   { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) ui.view = h; }
   loadPracticeQuestion();

@@ -81,5 +81,5 @@ The screens are tested by hand on a laptop and a phone, in light and dark mode.
 
 1. I push to the `main` branch on GitHub.
 2. Cloudflare Pages notices the push and runs `sh build.sh`.
-3. `build.sh` copies only `index.html`, `_headers` and `assets/` into `dist/`. Docs and tests never go online.
+3. `build.sh` copies only `index.html`, `_headers` and `assets/` into `dist/`. Docs and tests never go online. It also tags each script with the commit (`assets/app.js?v=1a2b3c4`), so visitors get new code as soon as a deploy lands.
 4. Cloudflare publishes `dist/` to https://clearline-sat.pages.dev within about a minute. `_headers` adds security headers and keeps script caching short so fixes show up quickly.
