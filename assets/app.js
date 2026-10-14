@@ -1111,9 +1111,15 @@
     }
     return q && q.type !== "spr" ? q : pickQuestion({ section: "rw", exclude });
   }
+  function rushTimeLimit() {
+    const r = ui.rush;
+    if (!r) return null;
+    const base = RUSH_SECS[r.count] || RUSH_SECS[10];
+    return Math.round(base * RUSH_PACE[r.pace] || 1);
+  }
   function startRush() {
     const scope = ui.rushScope;
-    ui.rush = { scope, left: RUSH_SECS, score: 0, tries: 0, combo: 0, best: 0, misses: [], seen: new Set(), flash: null, done: false, q: null, shownAt: Date.now() };
+    ui.rush = { scope, count: 10, pace: "normal", left: rushTimeLimit(), score: 0, tries: 0, combo: 0, best: 0, stars: 0, misses: [], seen: new Set(), flash: null, done: false, q: null, shownAt: Date.now() };
     ui.rush.q = pickRushQ(scope, ui.rush.seen);
     render();
     document.getElementById("rush-0")?.focus();
@@ -1122,10 +1128,11 @@
     const r = ui.rush;
     if (!r || r.done || r.flash) return;
     const q = r.q, ok = isCorrect(q, i);
-    record(q, ok, i, "rush", (Date.now() - r.shownAt) / 1000);
+    const time = (Date.now() - r.shownAt) / 1000;
+    record(q, ok, i, "rush", time);
     r.tries++;
     r.seen.add(q.id);
-    if (ok) { r.score++; r.combo++; r.best = Math.max(r.best, r.combo); } else { r.combo = 0; if (!r.misses.includes(q.id)) r.misses.push(q.id); }
+    if (ok) { r.score++; r.combo++; r.best = Math.max(r.best, r.combo); if (time < 30) r.stars++; } else { r.combo = 0; if (!r.misses.includes(q.id)) r.misses.push(q.id); }
     r.flash = { i, ok };
     render();
     setTimeout(() => {
@@ -1144,6 +1151,9 @@
     save();
     render();
   }
+  function starIcon() {
+    return svg("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "gold", stroke: "currentColor", "stroke-width": "2", "aria-hidden": "true" }, svg("path", { d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" }));
+  }
   function rushScopeLabel(scope) { return scope === "all" ? "all skills" : scope.startsWith("dom:") ? DOMAINS[scope.slice(4)].name : scope; }
   function renderRush() {
     const r = ui.rush;
@@ -1151,8 +1161,11 @@
       const best = progress.rush[ui.rushScope];
       return sheet("", el("div", { class: "rush-start" },
         el("h2", { class: "h1" }, "Question ", el("mark", { class: "hl", text: "Rush" })),
-        el("p", { class: "sub", text: "Three minutes. Answer as many as you can. Every right answer in a row builds your combo, and explanations wait until the end." }),
+        el("p", { class: "sub", text: "Answer as many as you can. Every right answer in a row builds your combo, and explanations wait until the end." }),
         el("label", { class: "field" }, "Skill", skillSelect(ui.rushScope, (e) => { ui.rushScope = e.target.value; render(); }, "rush-skill")),
+        el("div", { class: "controls" },
+          el("label", { class: "field" }, "Questions", el("select", { class: "input", id: "rush-count", onchange: (e) => { ui.rushCount = Number(e.target.value); } }, [10, 20, 30].map((n) => el("option", { value: n, selected: ui.rushCount === n }, `${n} questions`)))),
+          el("label", { class: "field" }, "Pace", el("select", { class: "input", id: "rush-pace", onchange: (e) => { ui.rushPace = e.target.value; } }, ["relaxed", "normal", "fast"].map((p) => el("option", { value: p, selected: ui.rushPace === p }, p))))),
         el("p", { class: "pen", text: best ? `Your best on ${rushScopeLabel(ui.rushScope)}: ${best}. Beat it?` : `No score yet on ${rushScopeLabel(ui.rushScope)}. Set one!` }),
         el("button", { class: "btn big sun", type: "button", onclick: startRush }, "Start the clock")));
     }
