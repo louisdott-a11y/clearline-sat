@@ -140,10 +140,22 @@
     const out = { ...b, ...p, v: 3 };
     for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl", "qnotes", "cols", "games"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
+    // Inner shapes too: a damaged backup (or storage) must not leave every screen blank on each load.
+    const isObj = (x) => Boolean(x) && typeof x === "object" && !Array.isArray(x);
+    out.scores = out.scores.filter((s) => isObj(s) && typeof s.date === "string" && Number.isFinite(s.rw) && Number.isFinite(s.math));
+    out.mocks = out.mocks.filter((m) => isObj(m) && MOCK_SPEC[m.kind] && Array.isArray(m.items) && Array.isArray(m.modules) && m.items.every(isObj) && m.modules.every(isObj));
+    out.drills = out.drills.filter((d) => isObj(d) && typeof d.name === "string" && Array.isArray(d.skills));
+    for (const k of ["hl", "cols"]) for (const id of Object.keys(out[k])) if (!Array.isArray(out[k][id])) delete out[k][id];
+    for (const id of Object.keys(out.hl)) out.hl[id] = out.hl[id].filter(isObj);
+    for (const id of Object.keys(out.qnotes)) if (!isObj(out.qnotes[id]) || typeof out.qnotes[id].n !== "string") delete out.qnotes[id];
+    const am = out.activeMock;
+    if (am && !(isObj(am) && MOCK_SPEC[am.kind] && Array.isArray(am.modules) && Number.isInteger(am.stage) && isObj(am.modules[am.stage])
+      && am.modules.every((m) => isObj(m) && Array.isArray(m.ids) && m.ids.length && m.ids.every((id) => getQ(id)) && ["ans", "marked", "elim", "time"].every((f) => isObj(m[f]))))) out.activeMock = null;
     if (!out.rushRound || typeof out.rushRound !== "object" || !Array.isArray(out.rushRound.seen)) out.rushRound = null;
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
-    for (const [id, list] of Object.entries(out.attempts)) {
+    for (let [id, list] of Object.entries(out.attempts)) {
       if (!Array.isArray(list)) { delete out.attempts[id]; continue; }
+      out.attempts[id] = list = list.filter(isObj);
       const q = getQ(id);
       for (const a of list) if (q) { if (a.d == null) a.d = q.domain; if (a.f == null) a.f = q.diff; if (a.s == null) a.s = skillOf(q); }
     }
@@ -660,6 +672,8 @@
   // ------------------------------------------------------------------ shell
   function go(view) {
     ui.view = view; ui.armed = {};
+    // Keep #view in the address bar current so a refresh reopens this screen (replace, so Back still leaves the site as before).
+    if (location.hash.slice(1) !== view && (location.hash || view !== "home")) history.replaceState(null, "", "#" + view);
     if (view === "practice" && !ui.pr.q) loadPracticeQuestion();
     if (view === "vocab") ui.vocab.word = null;
     render();
@@ -2520,7 +2534,7 @@
       else if (e.key === "Enter" && tag !== "BUTTON" && tag !== "SUMMARY") { e.preventDefault(); ui.pr.checked ? nextPractice() : checkPractice(); }
     } else if (ui.view === "mock" && progress.activeMock && !progress.activeMock.onBreak) {
       const m = curModule(), q = m && !m.reviewing && getQ(m.ids[m.cur]);
-      if (q && q.type !== "spr" && idx >= 0) { m.ans[q.id] = idx; save(); render(); e.preventDefault(); }
+      if (q && q.type !== "spr" && idx >= 0) { m.ans[q.id] = idx; if (m.elim[q.id]) m.elim[q.id] = m.elim[q.id].filter((x) => x !== idx); save(); render(); e.preventDefault(); }
     }
   });
   addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(true); });
