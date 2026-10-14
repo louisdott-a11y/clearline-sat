@@ -6,13 +6,16 @@
 
 No account, no paywall, no ads. Open the link and start practicing.
 
-| Desktop, light | Desktop, dark |
-| --- | --- |
-| ![Clearline home page on a laptop in light mode](docs/screenshots/desktop-light-home.png) | ![A math practice question on a laptop in dark mode](docs/screenshots/desktop-dark-practice.png) |
+<p align="center">
+  <img src="docs/screenshots/answer-and-explanation.gif" alt="A student picks a wrong answer, sees why it's wrong, and reads the step-by-step walkthrough" width="800">
+</p>
 
-| Phone, light | Phone, dark |
-| --- | --- |
-| <img src="docs/screenshots/phone-light-home.png" alt="Clearline home page on a phone in light mode" width="300"> | <img src="docs/screenshots/phone-dark-practice.png" alt="A practice question on a phone in dark mode" width="300"> |
+![Clearline home page on a laptop in light mode](docs/screenshots/desktop-light-home.png)
+
+<p align="center">
+  <img src="docs/screenshots/phone-dark-practice.png" alt="A Reading and Writing practice question on a phone in dark mode" width="360">
+  <br><em>On a laptop in light mode, and on a phone in dark mode.</em>
+</p>
 
 ## Features
 
@@ -40,7 +43,8 @@ No account, no paywall, no ads. Open the link and start practicing.
 - A timed round of 10, 20 or 30 questions at a relaxed, normal or fast pace. Right answers in a row build a combo, fast ones earn a star, and explanations wait until the end.
 
 ### Vocab
-- Flashcards and a Learn mode for Words in Context, with original definitions and example sentences.
+- Three ways to study the same deck for Words in Context: spaced-repetition **Flashcards**, a timed **Match** game (pair 6 words with 6 definitions and beat your best time), and **Learn** mode (pick the word that fits the sentence).
+- Original definitions and example sentences.
 
 ### Mistakes notebook
 - Review every missed question, tag why you missed it, write notes, and group questions into collections. Miss-pattern bars show what keeps tripping you up.
