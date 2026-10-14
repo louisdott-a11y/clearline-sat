@@ -492,10 +492,17 @@ var { font-family: var(--f-read); font-style: italic; font-weight: inherit; padd
 /* Desmos walkthrough: a side panel next to the question (a bottom sheet on phones). */
 .dock.walk { top: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: min(480px, 40vw); max-height: none; overflow: hidden; }
 .dock.walk .sheet { height: 100%; display: flex; flex-direction: column; }
-.dock.walk .sheet > :last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.dock.walk .desmos { flex: 1; height: auto; min-height: 220px; }
+.dock.walk .wt-calc, .dock.walk .wt-calc > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.dock.walk .wt-calc { flex: 1 0 200px; } /* the graph keeps a usable height; the step text scrolls instead */
+.dock.walk .wt-calc { position: relative; overflow: hidden; }
+.dock.walk .desmos { flex: 1; height: auto; min-height: 0; }
+.dock.walk.flat .wt-calc { flex-basis: 140px; }
 body.walking .main { padding-right: calc(min(480px, 40vw) + 18px); }
-.wt { padding: 12px 14px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson calculator column is empty while the walkthrough has Desmos */
+.wt { flex: 0 1 auto; min-height: 64px; overflow: auto; padding: 12px 14px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.wt-why { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
+.wt-tip { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-soft); }
+.wt-foot { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--card); }
 .wt-top { gap: 8px; }
 .wt-top .link { margin-left: auto; }
 .wt .gem-say { max-width: none; align-items: flex-start; }
@@ -504,19 +511,22 @@ body.walking .main { padding-right: calc(min(480px, 40vw) + 18px); }
 .wt-keys code { font-size: 13.5px; padding: 4px 9px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); white-space: pre-wrap; }
 .wt-end { margin: 0; font-size: 14px; line-height: 1.45; }
 .wt-end code { font-size: 13.5px; }
-.wt-nav { gap: 8px; justify-content: flex-end; }
 @media (max-width: 900px) {
   .dock.walk { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: min(68dvh, 640px); }
+  @media (max-height: 600px) { .dock.walk { height: 94dvh; } }
   .dock.walk .sheet { border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
   body.walking .main { padding-right: 0; padding-bottom: min(68dvh, 640px); }
   .wt .gem-mascot { width: 36px; height: 36px; }
   .wt { padding: 10px 12px; gap: 8px; }
+  .dock.walk .wt-calc { flex-basis: 170px; }
+  .wt-foot { padding: 8px 12px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .wt.enter .gem-bubble, .wt.enter .wt-keys, .wt.enter .wt-end { animation: wt-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both; }
   .wt.enter .wt-keys { animation-delay: 40ms; }
   .wt.enter .wt-end { animation-delay: 80ms; }
-  .wt.enter .wt-keys code { animation: wt-flash 700ms 150ms ease-out both; }
+  .wt.enter .wt-keys code { animation: wt-flash 500ms 120ms ease-out both; }
+  .wt .gem-mascot.cheer { animation-iteration-count: 1; } /* one hop: students are on a timer */
   .dock.walk.opening { animation: wt-side 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
   @keyframes wt-in { from { opacity: 0; transform: translateY(4px); } }
   @keyframes wt-side { from { opacity: 0; transform: translateX(16px); } }

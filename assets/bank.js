@@ -464,53 +464,52 @@ window.CL_BANK = (() => {
   // pick is the right choice's text, so it survives the A–D reshuffle in app.js.
   const WALKS = {
     m1: [
-      { say: "Split the equation: y = left side, y = right side.", keys: ["y = 3x - 7", "y = 11"], view: [-2, 10, -10, 16] },
-      { say: "They cross at x = 6.", mark: [6, 11, "x = 6"] },
-      { say: "Now work out 6x − 4 with x = 6: 32.", keys: ["6(6) - 4"], pick: "32" }],
+      { say: "Split the equation: y = left side, y = right side.", why: "Where they cross, 3x − 7 equals 11.", keys: ["y = 3x - 7", "y = 11"], view: [-2, 10, -10, 16] },
+      { say: "Click the crossing.", why: "Its x-coordinate solves the equation.", mark: [6, 11, "x = 6"] },
+      { say: "6x − 4 = 6(6) − 4 = 32.", why: "The question asks for 6x − 4, not x.", keys: ["6(6) - 4"], shows: { "=": 32 }, pick: "32", ask: "Your turn: work out 6x − 4 with that x.", tip: "Faster: 6x is 2 × 3x = 2 × 18 = 36, so you never need x." }],
     m2: [
-      { say: "Each membership is a point (months, total cost). Put both in a table.", table: [[4, 10], [230, 440]], view: [-1, 12, -40, 480] },
-      { say: "Fit a line: m is the monthly fee, b is the sign-up fee.", keys: ["y1 ~ m x1 + b"] },
-      { say: "Desmos finds m = 35 and b = 90: the cost at 0 months.", mark: [0, 90, "b = 90"], pick: "$90" }],
+      { say: "Each membership is a point (months, total cost). Put both in a table.", why: "A monthly fee plus a one-time fee is a line.", table: [[4, 10], [230, 440]], view: [-1, 12, -40, 480] },
+      { say: "Fit a line through them.", why: "m is the monthly fee; b is the cost at 0 months, the sign-up fee.", keys: ["y1 ~ m x1 + b"], shows: { m: 35, b: 90 } },
+      { say: "b = 90, so the sign-up fee is $90.", why: "At 0 months you pay only the sign-up fee.", mark: [0, 90, "b = 90"], pick: "$90", ask: "Your turn: which number under the regression is the sign-up fee?" }],
     m3: [
-      { say: "Type both equations.", keys: ["2x + y = 11", "x - y = 1"], view: [-2, 8, -2, 12] },
-      { say: "Click the crossing.", mark: [4, 3, "(4, 3)"] },
-      { say: "x + y = 4 + 3 = 7.", mark: [4, 3, "4 + 3 = 7"], pick: "7" }],
+      { say: "Type both equations.", why: "Desmos graphs any form, so there's no need to solve for y.", keys: ["2x + y = 11", "x - y = 1"], view: [-2, 8, -2, 12] },
+      { say: "Click the crossing.", why: "The crossing is the one (x, y) that works in both.", mark: [4, 3, "(4, 3)"] },
+      { say: "x + y = 4 + 3 = 7.", why: "The question asks for the sum.", mark: [4, 3, "4 + 3 = 7"], pick: "7", ask: "Your turn: what is x + y at the crossing?" }],
     m4: [
-      { say: "Desmos works: graph both with a slider for k and drag until the lines run parallel.", keys: ["4x + k y = 9", "6x - 3y = 2", "k = -2"], view: [-4, 6, -6, 6] },
-      { say: "Faster by hand: parallel means the coefficients share a ratio, 4/6 = k/(−3).", hand: true },
-      { say: "So k = −2 (and 9/2 isn't 4/6, so the lines never meet).", hand: true, pick: "−2" }],
+      { say: "Desmos works: graph both with a slider for k.", why: "No solution means the lines are parallel.", keys: ["4x + k y = 9", "6x - 3y = 2", "k = 1"], view: [-4, 6, -6, 6] },
+      { say: "Faster by hand: parallel lines have proportional coefficients, 4/6 = k/(−3).", why: "The same ratio gives the same slope.", hand: true },
+      { say: "So k = −2, and 9/2 isn't 4/6, so the lines never meet.", why: "Different constants keep parallel lines apart.", hand: true, keys: ["k = -2"], pick: "−2", ask: "Your turn: solve 4/6 = k/(−3)." }],
     m5: [
-      { say: "Name the function f.", keys: ["f(x) = x^2 - 5x + 6"], view: [-3, 6, -2, 14] },
-      { say: "Ask for f(−1): 12.", keys: ["f(-1)"], mark: [-1, 12, "f(−1) = 12"], pick: "12" }],
+      { say: "Name the function f.", why: "Once f is defined, f(anything) evaluates it.", keys: ["f(x) = x^2 - 5x + 6"], view: [-3, 6, -2, 14] },
+      { say: "Type `f(-1)`: Desmos shows 12.", why: "Desmos handles the negative signs for you.", keys: ["f(-1)"], shows: { "=": 12 }, mark: [-1, 12, "f(−1) = 12"], pick: "12", ask: "Your turn: type f(-1) on the next line." }],
     m6: [
-      { say: "Graph the original expression.", keys: ["y = (x + 3)^2 - (x - 3)^2"], view: [-3, 3, -24, 24] },
-      { say: "Try 12x: it lands exactly on top.", keys: ["y = 12x"], mark: [1, 12, "same line"] },
-      { say: "So the expression is equivalent to 12x.", pick: "12x" }],
+      { say: "Graph the original expression.", why: "Equivalent expressions draw exactly the same graph.", keys: ["y = (x + 3)^2 - (x - 3)^2"], view: [-3, 3, -24, 24] },
+      { say: "Try a choice: `y = 2x^2 + 18` is a parabola, nowhere near it.", why: "A different graph means not equivalent.", keys: ["y = 2x^2 + 18"] },
+      { say: "y = 12x lands exactly on top.", why: "One line, so they're equal for every x.", keys: ["y = 12x"], mark: [1, 12, "same line"], pick: "12x", ask: "Your turn: type the other choices. Which lands on top?", tip: "Faster: a² − b² = (a − b)(a + b) = (6)(2x)." }],
     m7: [
-      { say: "Graph it with a slider for c.", keys: ["y = x^2 - 6x + c", "c = 3"], view: [-2, 8, -8, 10] },
-      { say: "One real solution means the parabola just touches the x-axis. Drag c up.", keys: ["c = 9"], mark: [3, 0, "touches at x = 3"] },
-      { say: "That happens at c = 9.", mark: [3, 0, "c = 9"], pick: "9" }],
+      { say: "Graph it with a slider for c.", why: "Solutions are where the parabola meets the x-axis.", keys: ["y = x^2 - 6x + c", "c = 3"], view: [-2, 8, -8, 10] },
+      { say: "Drag c up and watch the parabola rise.", why: "One solution means it just touches the x-axis.", keys: ["c = 6"] },
+      { say: "It just touches at c = 9.", why: "Then x² − 6x + 9 = (x − 3)², with one root.", keys: ["c = 9"], mark: [3, 0, "c = 9"], pick: "9", ask: "Your turn: drag c until it just touches. Which choice is it?", tip: "Faster: it's a perfect square when c = (6/2)² = 9." }],
     m8: [
-      { say: "Desmos is just a calculator here: cups per cookie times cookies.", keys: ["40 · 3/24"] },
-      { say: "That's 5 cups.", pick: "5" }],
+      { say: "Find the cups for one cookie.", why: "A unit rate scales to any number of cookies.", keys: ["3/24"], shows: { "=": 0.125 } },
+      { say: "Multiply by 40 cookies: 5 cups.", why: "Cups per cookie times cookies gives cups.", keys: ["40 · 3/24"], shows: { "=": 5 }, pick: "5", ask: "Your turn: multiply by the number of cookies." }],
     m9: [
-      { say: "Percent changes multiply: up 25% is × 1.25, down 20% is × 0.8.", keys: ["80 · 1.25 · 0.8"] },
-      { say: "The final price is $80; the changes cancel.", pick: "$80" }],
+      { say: "Percent changes multiply: up 25% is × 1.25, down 20% is × 0.8.", why: "Each change acts on the current price, not the original.", keys: ["1.25 · 0.8"], shows: { "=": 1 } },
+      { say: "The final price is $80: the changes cancel.", why: "1.25 × 0.8 = 1, so the price is back where it started.", keys: ["80 · 1.25 · 0.8"], shows: { "=": 80 }, pick: "$80", ask: "Your turn: multiply the price by both factors." }],
     m10: [
-      { say: "Put the old and new data in lists.", keys: ["L = [4, 7, 7, 9, 13]", "M = [4, 7, 7, 9, 30]"] },
-      { say: "Compare the means: 8 becomes 11.4.", keys: ["[mean(L), mean(M)]"] },
-      { say: "The medians are both 7, so only the mean increases.", keys: ["[median(L), median(M)]"], pick: "Only the mean increases." }],
+      { say: "Put the old and new data in lists.", why: "Named lists let you compare statistics side by side.", keys: ["L = [4, 7, 7, 9, 13]", "M = [4, 7, 7, 9, 30]"] },
+      { say: "Compare the means.", why: "The mean uses every value.", keys: ["[mean(L), mean(M)]"], shows: { "=": [8, 11.4] } },
+      { say: "The medians are both 7, so only the mean increases.", why: "The median depends only on the middle value.", keys: ["[median(L), median(M)]"], shows: { "=": [7, 7] }, pick: "Only the mean increases.", ask: "Your turn: compare the medians too. Which statement is true?" }],
     m11: [
-      { say: "Square the legs, add, take the square root.", keys: ["sqrt(9^2 + 12^2)"] },
-      { say: "The hypotenuse is 15.", pick: "15" }],
+      { say: "Square the legs and add.", why: "a² + b² = c² in a right triangle.", keys: ["9^2 + 12^2"], shows: { "=": 225 } },
+      { say: "Take the square root: 15.", why: "That sum is c², not c.", keys: ["sqrt(9^2 + 12^2)"], shows: { "=": 15 }, pick: "15", ask: "Your turn: take the square root.", tip: "Faster: 9-12-15 is the 3-4-5 triangle times 3." }],
     m12: [
-      { say: "Type the circle's equation.", keys: ["x^2 + y^2 - 6x + 4y = 12"], view: [-4, 10, -9, 5] },
-      { say: "Click the top and bottom grey dots: (3, 3) and (3, −7).", mark: [[3, 3, "(3, 3)"], [3, -7, "(3, −7)"]] },
-      { say: "The diameter is 10, so the radius is 5.", mark: [3, -2, "r = 5"], pick: "5" }],
+      { say: "Type the circle's equation.", why: "Desmos draws it without completing the square.", keys: ["x^2 + y^2 - 6x + 4y = 12"], view: [-4, 10, -9, 5] },
+      { say: "Click the top and bottom grey dots.", why: "They're the ends of a vertical diameter.", mark: [[3, 3, "(3, 3)"], [3, -7, "(3, −7)"]] },
+      { say: "The diameter is 3 − (−7) = 10, so the radius is 5.", why: "The radius is half the diameter.", mark: [3, -2, "r = 5"], pick: "5", ask: "Your turn: halve the distance between the two dots." }],
     m13: [
-      { say: "Let Desmos find angle A from its sine.", keys: ["A = arcsin(0.6)"] },
-      { say: "Then ask for its cosine: 0.8.", keys: ["cos(A)"] },
-      { say: "By hand it's a 3-4-5 triangle: cos A = 4/5 = 0.8.", pick: "0.8" }]
+      { say: "Let Desmos find angle A from its sine.", why: "arcsin undoes sin, so A is the angle with sin A = 0.6.", keys: ["A = arcsin(0.6)"] },
+      { say: "Ask for its cosine: 0.8.", why: "Desmos uses the same angle, so nothing is rounded.", keys: ["cos(A)"], shows: { "=": 0.8 }, pick: "0.8", ask: "Your turn: type cos(A) on the next line.", tip: "Faster: sin A = 0.6 = 3/5 means a 3-4-5 triangle, so cos A = 4/5." }]
   };
   for (const q of items) if (WALKS[q.id]) q.walk = WALKS[q.id];
   return { items };

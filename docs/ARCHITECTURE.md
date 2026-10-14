@@ -50,7 +50,7 @@ There are three sources, and they all share one question shape (prompt, choices,
 
 ## How Desmos walkthroughs work
 
-Every Math question carries a `walk`: a few pre-written steps (what Gem says, what to type, the view, the point to highlight, and the answer it ends on). "Desmos way" opens the live calculator beside the question and plays the steps one at a time, rebuilding the graph for each step so Back is exact. Generated questions build their walk from their own numbers. Nothing here is AI, so Gem appears on the normal website; the AI coach ("Ask Gem") still only appears inside Claude.
+Every Math question carries a `walk`: a few pre-written steps (what Gem says and why it works, what to type, the view, the point to highlight, what Desmos should show, and the answer it ends on). The answer stays hidden until the student answers or taps Show answer. "Desmos way" opens the live calculator beside the question and plays the steps one at a time, rebuilding the graph for each step so Back is exact. Generated questions build their walk from their own numbers. Nothing here is AI, so Gem appears on the normal website; the AI coach ("Ask Gem") still only appears inside Claude.
 
 ## How answer-checking works
 
@@ -71,9 +71,9 @@ A mock test follows the digital SAT: Reading and Writing, then Math, two modules
 - Desmos answers are recomputed from scratch, without trusting the stored key;
 - every hint clue appears in its question;
 - the teacher report escapes student text and contains no scripts;
-- every Desmos walkthrough ends on the question's correct answer.
+- every Desmos walkthrough ends on the question's correct answer, explains each step, and never states the answer early.
 
-`tests/e2e/walk.e2e.js` (Playwright, needs network) loads every walkthrough in real Desmos to catch typing errors, then clicks through Back/Next, Try it yourself, switching questions and refreshing, on a laptop and phone size, light and dark.
+`tests/e2e/walk.e2e.js` (Playwright, needs network) steps through every walkthrough in real Desmos, checking the values it shows at each step and that no highlighted point hides under the trial-key notice, then clicks through Back/Next, Try it yourself, switching questions and refreshing, on a laptop and phone size, light and dark.
 
 The screens are tested by hand on a laptop and a phone, in light and dark mode.
 

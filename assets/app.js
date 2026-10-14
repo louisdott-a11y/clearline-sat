@@ -1490,7 +1490,7 @@
         el("a", { class: "btn small", href: "https://www.desmos.com/calculator", target: "_blank", rel: "noopener" }, "Open Desmos in a new tab ↗"));
     }
     renderDesmos();
-    if (ui.dock === "walk") return el("div", { class: "lesson-calc empty-calc" }, el("p", { class: "tiny", style: "margin:0", text: "Desmos is open in the walkthrough. Close it to get the lesson example back." }));
+    if (ui.dock === "walk") return null; // Desmos is in the walkthrough panel; closing it brings the example back
     if (desmosShows !== L.n) fillDesmos(L);
     return el("div", { class: "lesson-calc", id: "lesson-calc" },
       el("div", { class: "row between" }, el("span", { class: "tiny", text: L.degree ? "Live Desmos · degree mode" : "Live Desmos · try the example" }),
@@ -2327,11 +2327,19 @@
   const walkQ = () => (ui.walk ? getQ(ui.walk.id) : null);
   function saveWalk() { try { if (ui.walk) sessionStorage.setItem("cl-walk", JSON.stringify(ui.walk)); else sessionStorage.removeItem("cl-walk"); } catch {} }
   function startWalk(q) { ui.walk = { id: q.id, i: 0 }; ui.dock = "walk"; saveWalk(); render(); }
+  // Nav buttons share a spot as the step changes, so a quick double-click must not land on the next step's button.
+  let navLock = 0;
+  const guarded = (fn) => () => { if (performance.now() < navLock) return; navLock = performance.now() + 400; fn(); };
   function walkTo(i, own = false) { ui.walk.i = i; ui.walk.own = own; saveWalk(); renderDock(); }
+  // The last step holds the answer. It stays hidden until the student has answered this question or taps Show answer.
+  const revealed = (q) => Boolean(ui.walk.shown) || (ui.pr.q?.id === q.id ? ui.pr.checked : true);
+  // Nothing to plot: hide the graph so the expression list gets the room. Desmos hides its fraction icon along with
+  // the graph, so walkthroughs that teach that icon keep it.
+  const plotless = (q) => q.walk.every((s) => !s.view && !s.mark && !s.table && !/fraction icon/.test(s.say));
   // What a student types in Desmos → the LaTeX its API reads (x1 → x_1, sqrt(…) → \sqrt{…}, |…| → \left|…\right|, …).
   function toLatex(src) {
     let s = src.replace(/([xy])(\d)(?!\d)/g, "$1_$2").replace(/<=/g, "\\le ").replace(/>=/g, "\\ge ").replace(/% of /g, "\\%\\operatorname{of}")
-      .replace(/·/g, "\\cdot ").replace(/\bpi\b/g, "\\pi ").replace(/\b(arcsin|sin|cos|tan)\(/g, "\\$1(").replace(/\b(mean|median|distance|midpoint|max|min)\(/g, "\\operatorname{$1}(");
+      .replace(/·/g, "\\cdot ").replace(/(?<![a-z])pi(?![a-z])/g, "\\pi ").replace(/\b(arcsin|sin|cos|tan)\(/g, "\\$1(").replace(/\b(mean|median|distance|midpoint|max|min)\(/g, "\\operatorname{$1}(");
     const close = (at) => { for (let j = at, d = 0; j < s.length; j++) { if (s[j] === "(") d++; else if (s[j] === ")" && --d === 0) return j; } return s.length; };
     for (let m; (m = /sqrt\(|cbrt\(|nthroot\(|\^\(/.exec(s)); ) {
       const open = m.index + m[0].length - 1, end = close(open), inner = s.slice(open + 1, end), c = inner.indexOf(",");
@@ -2347,10 +2355,13 @@
   function applyWalk(animate) {
     const q = walkQ();
     if (!desmosCalc || !q) return;
-    const { i, own } = ui.walk, steps = q.walk.slice(0, i + 1), from = desmosCalc.graphpaperBounds.mathCoordinates, token = ++walkToken;
+    const { i, own } = ui.walk, last = q.walk.length - 1, hide = i === last && !revealed(q);
+    const steps = q.walk.slice(0, hide ? i : i + 1), from = desmosCalc.graphpaperBounds.mathCoordinates, token = ++walkToken;
     desmosCalc.setBlank();
-    // On phones the keys are already in the panel, so fold Desmos's list away and give the graph the room.
-    desmosCalc.updateSettings({ degreeMode: steps.some((s) => s.deg), invertedColors: getComputedStyle(document.documentElement).colorScheme === "dark", expressionsCollapsed: matchMedia("(max-width: 900px)").matches });
+    // Pure computation gets the whole panel for the expression list; otherwise phones fold the list away (the keys are in the panel).
+    const flat = plotless(q);
+    desmosCalc.updateSettings({ degreeMode: steps.some((s) => s.deg), invertedColors: getComputedStyle(document.documentElement).colorScheme === "dark",
+      graphpaper: !flat, expressionsTopbar: !flat, expressionsCollapsed: !flat && matchMedia("(max-width: 900px)").matches });
     desmosShows = null;
     if (own) return;
     const fresh = [];
@@ -2358,57 +2369,84 @@
       if (s.table) desmosCalc.setExpression({ id: `t${n}`, type: "table", columns: [{ latex: "x_1", values: s.table[0].map(String) }, { latex: "y_1", values: s.table[1].map(String) }] });
       (s.keys || []).forEach((k, j) => {
         const slider = /^([a-z]) = -?[\d.]+$/.exec(k); // "k = 4" is a slider; later steps move it
-        const e = { id: slider ? "v-" + slider[1] : `w${n}-${j}`, latex: toLatex(k) };
+        const e = { id: slider ? "v-" + slider[1] : `w${n}-${j}`, latex: toLatex(k), ...(slider ? { hidden: true } : {}) }; // hidden: "r = 1" would also draw a polar circle
         desmosCalc.setExpression(e);
         if (n === i && !slider) fresh.push(e);
       });
     });
-    const mark = steps.map((s) => s.mark).filter(Boolean).pop();
-    marksOf(mark).forEach(([x, y, label], j) => desmosCalc.setExpression({ id: "mk" + j, latex: `(${coord(x)},${coord(y)})`, label, showLabel: true, color: window.Desmos.Colors.PURPLE, pointSize: 14, dragMode: window.Desmos.DragModes.NONE }));
+    const marks = marksOf(steps.map((s) => s.mark).filter(Boolean).pop());
+    marks.forEach(([x, y, label], j) => desmosCalc.setExpression({ id: "mk" + j, latex: `(${coord(x)},${coord(y)})`, label, showLabel: true, color: window.Desmos.Colors.PURPLE, pointSize: 14, dragMode: window.Desmos.DragModes.NONE }));
     const view = steps.map((s) => s.view).filter(Boolean).pop();
-    if (view) moveView(view, animate ? from : null);
+    const settle = () => clearBanner(marks.filter(([x, y]) => typeof x === "number" && typeof y === "number"));
+    if (view) moveView(view, animate ? from : null, settle); else settle();
     if (fresh.length) {
       fresh.forEach((e) => desmosCalc.setExpression({ ...e, lineWidth: 5 }));
       setTimeout(() => { if (token === walkToken) fresh.forEach((e) => desmosCalc.setExpression({ ...e, lineWidth: 2.5 })); }, 600);
     }
   }
   // Glide the graph to the part that matters (a quick ease-out; a jump with reduced motion).
-  function moveView([left, right, bottom, top], from) {
+  function moveView([left, right, bottom, top], from, done) {
     cancelAnimationFrame(viewAnim);
     const to = { left, right, bottom, top };
-    if (!from || reduceMotion.matches) { desmosCalc.setMathBounds(to); return; }
+    if (!from || reduceMotion.matches) { desmosCalc.setMathBounds(to); done(); return; }
     const t0 = performance.now();
     const tick = (now) => {
       const t = Math.min(1, (now - t0) / 240), e = 1 - (1 - t) ** 4;
       desmosCalc.setMathBounds(Object.fromEntries(Object.keys(to).map((k) => [k, from[k] + (to[k] - from[k]) * e])));
-      if (t < 1) viewAnim = requestAnimationFrame(tick);
+      if (t < 1) viewAnim = requestAnimationFrame(tick); else done();
     };
     viewAnim = requestAnimationFrame(tick);
   }
-  function walkEnd(q, pick) {
-    if (q.type !== "spr") return el("p", { class: "wt-end" }, el("b", { text: `That's choice ${LETTERS[q.choices.indexOf(pick)]}: ` }), math(pick, true));
-    const long = /\bor\b/.test(q.answerText || "") && /\./.test(q.answerText);
-    return el("p", { class: "wt-end" }, el("b", { text: "Type " }), el("code", { text: q.answerText || String(pick) }),
-      long ? " A long decimal must fill the box: 5 characters, 6 with a minus sign. Cut off or rounded, both count." : "");
+  // Desmos's trial-key notice sits over the bottom of the graph. If it would cover a highlighted point, nudge the view
+  // so the point rides above it. (No notice with a production key, so this does nothing then.)
+  function clearBanner(points) {
+    const note = desmosEl?.querySelector(".dcg-api-trial-notice");
+    if (!note || !points.length || !note.getClientRects().length) return;
+    const box = desmosEl.getBoundingClientRect(), r = note.getBoundingClientRect(), pad = 16;
+    const top = r.top - box.top - pad, l = r.left - box.left - pad, rt = r.right - box.left + pad;
+    let lift = 0;
+    for (const [x, y] of points) { const p = desmosCalc.mathToPixels({ x, y }); if (p.x > l && p.x < rt && p.y > top) lift = Math.max(lift, p.y - top); }
+    if (!lift) return;
+    const { mathCoordinates: m, pixelCoordinates: px } = desmosCalc.graphpaperBounds, dy = (lift * m.height) / px.height;
+    desmosCalc.setMathBounds({ left: m.left, right: m.right, bottom: m.bottom - dy, top: m.top - dy });
+  }
+  function walkEnd(q, s) {
+    const end = q.type !== "spr"
+      ? el("p", { class: "wt-end" }, el("b", { text: `That's choice ${LETTERS[q.choices.indexOf(s.pick)]}: ` }), math(s.pick, true))
+      : el("p", { class: "wt-end" }, el("b", { text: "Type " }), el("code", { text: q.answerText || String(s.pick) }),
+        /\bor\b/.test(q.answerText || "") && /\./.test(q.answerText) ? " A long decimal must fill the box: 5 characters, 6 with a minus sign. Cut off or rounded, both count." : "");
+    return [end, s.tip ? el("p", { class: "wt-tip" }, el("b", { text: "Faster: " }), typed(s.tip.replace(/^Faster: /, ""))) : null];
   }
   function walkPanel(q) {
     const { i, own } = ui.walk, s = q.walk[i], n = q.walk.length, last = i === n - 1, lesson = q.trick || lessonFor(q);
-    const key = `${q.id}:${i}:${own ? 1 : 0}`, enter = key !== walkPainted;
+    const hide = last && !own && !revealed(q);
+    const key = `${q.id}:${i}:${own ? 1 : 0}:${hide ? 0 : 1}`, enter = key !== walkPainted;
     walkPainted = key;
-    const keys = own ? [] : [...(s.table ? ["table  " + s.table[0].map((x, j) => `(${x}, ${s.table[1][j]})`).join("  ")] : []), ...(s.keys || [])];
+    const keys = own || hide ? [] : [...(s.table ? ["table  " + s.table[0].map((x, j) => `(${x}, ${s.table[1][j]})`).join("  ")] : []), ...(s.keys || [])];
+    const say = own ? "Your turn. The calculator is clear, so redo it from memory and check your answer."
+      : hide ? s.ask || (q.type === "spr" ? "Your turn: what goes in the answer box?" : "Your turn: which choice matches?") : typed(s.say);
+    const bubble = gemSays(say, last && !own && !hide ? "cheer" : "smile");
+    if (!own && !hide) bubble.querySelector(".gem-bubble").append(el("span", { class: "wt-why", text: s.why }));
     return el("div", { class: "wt" + (enter ? " enter" : "") },
       el("div", { class: "row between wt-top" },
         el("span", { class: "tiny", text: own ? "Your turn" : `Step ${i + 1} of ${n}` }),
         s.hand && !own ? el("span", { class: "chip", text: "By hand" }) : null,
         lesson ? el("button", { class: "link", type: "button", onclick: () => { ui.dock = null; openLesson(lesson); } }, `Trick ${lesson}: ${DESMOS.lessons[lesson - 1].short}`) : null),
-      gemSays(own ? "Your turn. The calculator is clear, so redo it from memory and check your answer." : typed(s.say), last && !own ? "cheer" : "smile"),
+      bubble,
       keys.length ? el("div", { class: "wt-keys", "aria-label": "Type this" }, keys.map((k) => el("code", { text: k }))) : null,
-      last && !own ? walkEnd(q, s.pick) : null,
-      el("div", { class: "row wt-nav" },
-        own ? null : el("button", { class: "btn small ghost", type: "button", disabled: i === 0, onclick: () => walkTo(i - 1) }, "Back"),
-        !last && !own ? el("button", { class: "btn small", type: "button", id: "walk-next", onclick: () => walkTo(i + 1) }, "Next") : null,
-        last && !own ? el("button", { class: "btn small", type: "button", onclick: () => walkTo(i, true) }, "Try it yourself") : null,
-        last || own ? el("button", { class: "btn small ghost", type: "button", onclick: () => walkTo(0) }, "Show me again") : null));
+      last && !own && !hide ? walkEnd(q, s) : null);
+  }
+  // Fixed footer: Back on the left, the main action always in the same right-hand spot.
+  function walkFoot(q) {
+    const { i, own } = ui.walk, last = i === q.walk.length - 1, hide = last && !own && !revealed(q);
+    const btn = (label, fn, primary, extra = {}) => el("button", { class: "btn small" + (primary ? "" : " ghost"), type: "button", onclick: guarded(fn), ...extra }, label);
+    return el("div", { class: "wt-foot" },
+      own ? el("span") : btn("Back", () => walkTo(i - 1), false, { disabled: i === 0 }),
+      el("div", { class: "row", style: "gap:8px" },
+        own ? btn("Show me again", () => walkTo(0), true)
+          : !last ? btn("Next", () => walkTo(i + 1), true, { id: "walk-next" })
+          : hide ? btn("Show answer", () => { ui.walk.shown = true; saveWalk(); renderDock(); }, true, { id: "walk-show" })
+          : [btn("Show me again", () => walkTo(0), false), btn("Try it yourself", () => walkTo(i, true), true)]));
   }
   function renderWalkDock(root) {
     const q = walkQ();
@@ -2417,15 +2455,17 @@
     const live = Boolean(window.Desmos);
     const before = walkPainted, painted = root.querySelector(".dock.walk"), panel = walkPanel(q), moved = before !== walkPainted;
     if (painted && painted.dataset.q === q.id && (!live || desmosEl?.isConnected && painted.contains(desmosEl))) {
-      painted.querySelector(".wt").replaceWith(panel); // same question: swap only the step, keep the calculator in place
+      // Same question: swap only the step and footer, keep the calculator in place.
+      painted.querySelector(".wt").replaceWith(panel);
+      painted.querySelector(".wt-foot").replaceWith(walkFoot(q));
       if (moved && live) applyWalk(true);
       return;
     }
     const fallback = el("p", { class: "notice", style: "margin:0" }, desmosState === "loading" ? "Loading Desmos… " : window.claude ? "Desmos loads when Clearline runs on its own website. Type the steps into Desmos in a new tab: " : "Desmos couldn't load. Type the steps into Desmos in a new tab: ",
       el("a", { href: "https://www.desmos.com/calculator", target: "_blank", rel: "noopener", style: "color:var(--accent-text);font-weight:600" }, "Open Desmos ↗"));
-    root.replaceChildren(el("div", { class: "dock wide walk" + (painted ? "" : " opening"), role: "dialog", "aria-label": "Desmos walkthrough", "data-q": q.id }, el("div", { class: "sheet" },
+    root.replaceChildren(el("div", { class: "dock wide walk" + (painted ? "" : " opening") + (plotless(q) ? " flat" : ""), role: "dialog", "aria-label": "Desmos walkthrough", "data-q": q.id }, el("div", { class: "sheet" },
       el("div", { class: "dock-head" }, el("span", { text: (q.trick || lessonFor(q)) === 18 ? "Why not Desmos?" : "Desmos, step by step" }), el("button", { type: "button", onclick: () => { ui.dock = null; renderDock(); } }, "Close")),
-      panel, live ? renderDesmos() : el("div", { class: "dock-body" }, fallback))));
+      panel, el("div", { class: "wt-calc" }, live ? renderDesmos() : el("div", { class: "dock-body" }, fallback)), walkFoot(q))));
     if (live) { desmosCalc.resize(); applyWalk(Boolean(painted)); }
   }
 
@@ -2436,7 +2476,7 @@
     document.body.classList.toggle("walking", ui.dock === "walk");
     if (ui.dock !== "walk" && ui.walk) {
       ui.walk = null; walkPainted = ""; saveWalk();
-      desmosCalc?.updateSettings({ expressionsCollapsed: false });
+      desmosCalc?.updateSettings({ expressionsCollapsed: false, graphpaper: true, expressionsTopbar: true });
       if (ui.view === "desmos" && ui.desmos.lesson) { desmosShows = null; render(); return; } // hand Desmos back to the lesson
     }
     if (ui.dock === "walk") { renderWalkDock(root); return; }
@@ -2666,7 +2706,7 @@
   { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) ui.view = h; }
   loadPracticeQuestion();
   // A refresh mid-walkthrough reopens the same question at the same step.
-  try { const w = JSON.parse(sessionStorage.getItem("cl-walk")), q = w && getQ(w.id); if (ui.view === "practice" && q?.walk && w.i < q.walk.length) { loadPracticeQuestion(q); ui.walk = { id: q.id, i: w.i | 0, own: Boolean(w.own) }; ui.dock = "walk"; } } catch {}
+  try { const w = JSON.parse(sessionStorage.getItem("cl-walk")), q = w && getQ(w.id); if (ui.view === "practice" && q?.walk && w.i < q.walk.length) { loadPracticeQuestion(q); ui.walk = { id: q.id, i: w.i | 0, own: Boolean(w.own), shown: Boolean(w.shown) }; ui.dock = "walk"; } } catch {}
   render();
   pickStoreTip();
 
