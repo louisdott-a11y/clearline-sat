@@ -230,6 +230,16 @@ button.tag.sun:hover { background: var(--lilac); opacity: 0.9; }
 .choice.is-right .bubble { background: var(--green-fill); border-color: var(--green-fill); color: #fff; }
 .choice.is-wrong { border-color: var(--red-fill); background: var(--red-wash); box-shadow: 0 0 0 1px var(--red-fill) inset; }
 .choice.is-wrong .bubble { background: var(--red-fill); border-color: var(--red-fill); color: #fff; }
+.gem-say { display: flex; align-items: center; gap: 10px; max-width: 520px; }
+.gem-mascot { flex: none; }
+.gem-bubble { position: relative; margin: 0; background: var(--card); color: var(--ink); border: var(--edge); border-radius: 16px; padding: 9px 14px; font-size: 14.5px; line-height: 1.4; box-shadow: var(--shadow); text-align: left; }
+.gem-bubble::before { content: ""; position: absolute; left: -8px; top: 50%; width: 12px; height: 12px; background: var(--card); border-left: var(--edge); border-bottom: var(--edge); transform: translateY(-50%) rotate(45deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .gem-mascot { animation: gem-bob 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+  .gem-mascot.cheer { animation: gem-hop 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2; }
+  @keyframes gem-bob { 50% { transform: translateY(-3px) rotate(-3deg); } }
+  @keyframes gem-hop { 40% { transform: translateY(-8px) rotate(6deg); } }
+}
 .match-grid { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 12px; margin-top: 14px; }
 .match-col { display: grid; gap: 8px; align-content: start; }
 .choice.match-cell { display: block; font-size: 15px; min-height: 48px; }

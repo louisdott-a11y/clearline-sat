@@ -273,6 +273,26 @@
     if (label) s.setAttribute("aria-label", label);
     return s;
   }
+  // Gem the mascot: a lilac cut gem (Gem is a tool, so it takes the tool region) with a face, plus one short speech bubble.
+  function gemSays(text, mood = "smile") {
+    const face = mood === "cheer" ? svg("path", { d: "M26 38q6 7 12 0z", fill: "var(--ink)" }) : svg("path", { d: "M27 38q5 4 10 0", fill: "none", stroke: "var(--ink)", "stroke-width": "2.4", "stroke-linecap": "round" });
+    const body = svg("svg", { class: "gem-mascot" + (mood === "cheer" ? " cheer" : ""), viewBox: "0 0 64 64", width: "64", height: "64", "aria-hidden": "true" },
+      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--ink)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
+      svg("path", { d: "M12 22h40M21 9l6 13 5-13 5 13 6-13", fill: "none", stroke: "var(--ink)", "stroke-width": "1.6", "stroke-linejoin": "round" }),
+      svg("circle", { cx: "26", cy: "30", r: "2.4", fill: "var(--ink)" }), svg("circle", { cx: "38", cy: "30", r: "2.4", fill: "var(--ink)" }),
+      svg("circle", { cx: "21.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), svg("circle", { cx: "42.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), face);
+    return el("div", { class: "gem-say" }, body, el("p", { class: "gem-bubble", role: "status" }, el("span", { class: "sr", text: "Gem says: " }), text));
+  }
+  function homeGemLine(days, setActive, todayDone, hasPractice) {
+    const st = streak(), h = new Date().getHours();
+    if (days === 0) return ["Test day! Light review, water, a good breakfast. You've got this.", "cheer"];
+    if (setActive) return ["You're partway through today's session. Let's finish it together.", "smile"];
+    if (todayDone) return ["Today's set is done. Anything more is a bonus.", "cheer"];
+    if (!hasPractice) return ["Hi, I'm Gem! One question is a perfectly good start.", "smile"];
+    if (st >= 3) return [`${st} days in a row. That habit is what moves scores.`, "cheer"];
+    if (days != null && days > 0 && days <= 14) return [`${days} day${days === 1 ? "" : "s"} to go. Short daily sessions beat one big cram.`, "smile"];
+    return [h < 12 ? "Morning! A short session now beats a long one later." : h < 18 ? "Afternoon check-in: ten questions and you're on the board." : "One set before bed? Sleep helps it stick.", "smile"];
+  }
   function confirmBtn(key, label, armedLabel, onConfirm, cls = "btn small ghost") {
     return el("button", { class: cls, type: "button", onclick: () => {
       if (ui.armed[key]) { ui.armed = {}; onConfirm(); } else { ui.armed = { [key]: true }; render(); }
@@ -701,7 +721,8 @@
       el("div", { class: "row" },
         plan ? el("button", { class: "btn sun", type: "button", onclick: runToday }, setActive ? `Continue today's session (${set.i}/${set.ids.length})` : today ? "Start another session" : "Start today's session") : null,
         el("button", { class: plan ? "btn ghost" : "btn", type: "button", onclick: () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); } }, "Practice questions"),
-        el("button", { class: "btn ghost", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume practice test" : "Take a practice test")));
+        el("button", { class: "btn ghost", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume practice test" : "Take a practice test")),
+      gemSays(...homeGemLine(days, setActive, today && !setActive, prac.length > 0)));
     const stats = el("div", { class: "stats" },
       stat("Score estimate", est, plan ? (imp ? "imported score + practice test" : "latest practice test") : mk ? "latest practice test" : imp ? "imported score" : "take a practice test"),
       stat("Questions answered", String(prac.length), `${flatAttempts().filter((a) => dayKey(new Date(a.at)) === dayKey()).length} today`),
@@ -743,12 +764,12 @@
           el("span", { class: "row", style: "gap:14px" }, el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question"), el("span", { class: "note", "aria-hidden": "true", text: "← not ready? start small" }))),
         el("p", { class: "tiny", style: "color:inherit" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."),
         el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"], ["var(--lilac)", "Tools"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
-      const quick = el("section", { class: "jump" }, el("h2", { class: "title", text: "Or wander off the path" }),
+      const quick = el("section", { class: "jump" }, gemSays(...homeGemLine(null, false, false, prac.length > 0)), el("h2", { class: "title", text: "Or wander off the path" }),
         el("div", { class: "coast" },
           [["rw", "Reading and Writing", () => { ui.pr.source = "rw"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
             ["math", "Math", () => { ui.pr.source = "math"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); }],
             ["tool", "Question bank", () => go("bank")],
-            ["rw", "Flashcards", () => go("vocab")],
+            ["rw", "Vocab", () => go("vocab")],
             ["tool", "Desmos tricks", () => { ui.desmos.lesson = null; go("desmos"); }],
             ["tool", "Question Rush", () => { ui.pr.source = "rush"; ui.rush = null; go("practice"); }]].map(([c, a, f]) => el("button", { class: "cap " + c, type: "button", onclick: f }, a, arrow()))));
       return el("div", { class: "stack" }, first, prac.length || imp ? stats : null, quick);
@@ -1311,6 +1332,15 @@
   function starIcon() {
     return svg("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "var(--lilac)", stroke: "currentColor", "stroke-width": "2", "aria-hidden": "true" }, svg("path", { d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" }));
   }
+  function rushGemLine(r) {
+    const rate = r.tries ? r.score / r.tries : 0;
+    if (!r.tries) return ["No answers this round. Whenever you're ready, I'll hold the clock.", "smile"];
+    if (r.newBest && rate >= 0.8) return ["Fast and right. That's exactly the Module 2 feeling.", "cheer"];
+    if (rate >= 0.8 && r.pace !== "fast") return ["That pace looks easy for you now. Try the fast setting?", "cheer"];
+    if (rate < 0.5) return ["Speed comes after accuracy. Go over the misses, then try a relaxed pace.", "smile"];
+    if (!r.stars) return ["Solid answers. Stars come once those answers get a little quicker.", "smile"];
+    return [`${r.stars} star${r.stars === 1 ? "" : "s"} this round. The misses are where your next points are.`, "smile"];
+  }
   function rushScopeLabel(scope) { return scope === "all" ? "all skills" : scope.startsWith("dom:") ? DOMAINS[scope.slice(4)].name : scope; }
   function renderRush() {
     const r = ui.rush;
@@ -1334,6 +1364,7 @@
           ...Array.from({ length: Math.min(r.stars, 30) }, () => starIcon()),
           el("span", { class: "tiny", text: r.stars ? ` ${r.stars} star${r.stars === 1 ? "" : "s"}: right in ${RUSH_PACE[r.pace]}s or less` : `No stars yet. Get one by answering right in ${RUSH_PACE[r.pace]}s or less.` })),
         el("p", { class: "pen", text: r.newBest ? "New personal best!" : progress.rush[r.scope] ? `Your best is still ${progress.rush[r.scope]}. Go get it.` : "Warm-up done. The next round counts!" }),
+        gemSays(...rushGemLine(r)),
         el("div", { class: "row" },
           r.misses.length ? el("button", { class: "btn sun", type: "button", onclick: () => { ui.rush = null; beginSet({ kind: "rush", label: "Rush misses", ids: r.misses.slice() }); } }, `Go over my ${r.misses.length} miss${r.misses.length === 1 ? "" : "es"}`) : null,
           el("button", { class: r.misses.length ? "btn ghost" : "btn sun", type: "button", onclick: startRush }, "Go again"),
@@ -1601,7 +1632,7 @@
       trailbar(am),
       el("h2", { class: "h1" }, "Halfway ", el("mark", { class: "hl", text: "there" }), "!"),
       el("p", { class: "sub", style: "margin:0 auto", text: "Reading and Writing is done. Math starts when the break ends or when you choose." }),
-      el("p", { class: "pen", text: "Stand up, grab some water, look at something far away." }),
+      gemSays("Halfway! Stand up, grab some water, look at something far away. Your Reading and Writing answers are saved.", "cheer"),
       el("span", { id: "test-clock", style: "font-weight:800;font-size:72px;line-height:1;font-variant-numeric:tabular-nums", text: clock(am.breakLeft) }),
       el("button", { class: "btn big sun", type: "button", onclick: () => { am.onBreak = false; save(true); render(); } }, "Start Math now")));
   }
