@@ -440,6 +440,9 @@ Sidebar items are 15px medium pills with 19px line icons. Hover shows Hover Pape
 ### Answer Choice
 Paper row, 1px Strong Hairline, 12px radius, serif text, with a 28px round letter bubble. Selected: blue border and inset ring, Selection Blue wash, filled bubble. Right and wrong use green or red ring, wash and filled bubble. A struck choice is 45% opacity with a line-through.
 
+### Highlighter and Notes (practice and mock tests)
+Bluebook-style annotate. Selecting text in a passage or prompt opens a small Paper popover (2px ink edge, 14px radius, Soft Lift) with "Highlight" and "Add a note". Highlights are Lilac (a tool) with ink text in both themes, 3px radius; a highlight with a note gets a 2px ink underline and its note in a tooltip and in screen-reader text. Clicking or pressing Enter on a highlight opens the note box with "Save note" and "Remove highlight". Escape or a click outside closes it. Highlights are saved per question.
+
 ### Pen (signature, practice and review)
 A tutor's blue pen that works on the student's page. Upright Caveat, never rotated, never on the shell sheets.
 - **Note:** a pen line under a heading or next to an action ("Beat it?", "Last stop. You've got this.").

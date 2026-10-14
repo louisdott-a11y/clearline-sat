@@ -110,7 +110,7 @@
   const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, timeMult: 1, plainNotes: false });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
   const ui = {
@@ -135,7 +135,7 @@
     const b = blankProgress();
     if (!p || typeof p !== "object") return b;
     const out = { ...b, ...p, v: 3 };
-    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
+    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (const [id, list] of Object.entries(out.attempts)) {
@@ -637,6 +637,7 @@
     render();
   }
   function render() {
+    closeHlPop();
     const am = progress.activeMock;
     document.body.classList.toggle("testing", Boolean(am && ui.view === "mock" && !am.onBreak));
     document.body.classList.toggle("plain-notes", Boolean(progress.plainNotes));
@@ -977,14 +978,15 @@
           : el("button", { class: "btn", id: "check-btn", type: "button", disabled: !canCheck, onclick: checkPractice }, "Check answer"),
         !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "Skip") : null,
         !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
-        q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check") : null),
+        q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check", "  ·  select text to highlight") : el("span", { class: "tiny", text: "Select text to highlight it or add a note." })),
       pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", math(q.steps[0], q.section === "math")), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
       pr.checked ? renderVerdict(q, q.type === "spr" ? pr.spr : pr.picked) : null];
     const body = two
       ? el("div", { class: "qgrid" }, el("section", { "aria-label": "Passage" }, chipsFor(q), stimulus(q)), el("section", { "aria-label": "Question" }, answerSec))
       : el("div", { class: "qgrid single" }, el("section", { "aria-label": "Question" }, chipsFor(q), answerSec));
     if (pr.hint || pr.checked) markClue(body, q);
-    return el("section", { class: "sheet qsheet" }, questionTop(q), body);
+    applyHighlights(body, q);
+    return el("section", { class: "sheet qsheet", "data-q": q.id }, questionTop(q), body);
   }
   // ------------------------------------------------------------------ pen: handwritten hints, walkthroughs, miss reasons
   const PEN = {
@@ -1011,6 +1013,80 @@
       }
     }
   }
+  // ------------------------------------------------------------------ highlighter + notes (Bluebook-style annotate)
+  // progress.hl[id] = [{ b, s, e, n }]: which .passage/.prompt box (in DOM order), text offsets in it, optional note.
+  // Offsets skip the pen "clue" note and screen-reader text so they stay put whether or not the clue is showing.
+  const hlNodes = (box) => { const out = [], w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); for (let n; (n = w.nextNode()); ) if (!n.parentElement.closest(".clue-note, .sr")) out.push(n); return out; };
+  function applyHighlights(root, q) {
+    const list = progress.hl[q.id];
+    if (!list || !list.length) return;
+    const boxes = root.querySelectorAll(".passage, .prompt");
+    list.forEach((h, k) => {
+      if (!boxes[h.b]) return;
+      let pos = 0, last = null;
+      for (const t of hlNodes(boxes[h.b])) {
+        const a = Math.max(h.s - pos, 0), z = Math.min(h.e - pos, t.data.length);
+        pos += t.data.length;
+        if (a >= z) continue;
+        const mid = t.splitText(a); mid.splitText(z - a);
+        last = el("mark", { class: "hlt" + (h.n ? " has-note" : ""), "data-k": k, title: h.n || "Highlighted. Click to add a note or remove it.", tabindex: "0",
+          onclick: (e) => { e.stopPropagation(); openHlPop(e.currentTarget, q.id, k); }, onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openHlPop(e.currentTarget, q.id, k); } } });
+        mid.replaceWith(last); last.append(mid);
+      }
+      if (last && h.n) last.after(el("span", { class: "sr", text: ` (your note: ${h.n})` }));
+    });
+  }
+  function closeHlPop() { document.getElementById("hl-pop")?.remove(); }
+  function placePop(pop, rect) {
+    document.body.append(pop);
+    pop.style.top = Math.min(rect.bottom + 8, innerHeight - pop.offsetHeight - 8) + "px";
+    pop.style.left = clamp(rect.left, 8, innerWidth - pop.offsetWidth - 8) + "px";
+  }
+  function addHighlight(id, h) { (progress.hl[id] = progress.hl[id] || []).push(h); save(); render(); return progress.hl[id].length - 1; }
+  // The selection must sit inside one .passage/.prompt box of a question sheet; returns what to store, or null.
+  function selectionHighlight() {
+    const sel = getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    const range = sel.getRangeAt(0), start = range.startContainer;
+    const box = (start.nodeType === 1 ? start : start.parentElement).closest(".passage, .prompt"), sheet = box?.closest("[data-q]");
+    if (!sheet) return null;
+    let pos = 0, s = null, e = null;
+    for (const t of hlNodes(box)) {
+      if (range.intersectsNode(t)) {
+        const a = t === range.startContainer ? range.startOffset : 0, z = t === range.endContainer ? range.endOffset : t.data.length;
+        if (s == null) s = pos + a;
+        e = pos + z;
+      }
+      pos += t.data.length;
+    }
+    return s != null && e > s ? { id: sheet.dataset.q, rect: range.getBoundingClientRect(), h: { b: [...sheet.querySelectorAll(".passage, .prompt")].indexOf(box), s, e } } : null;
+  }
+  function offerHighlight() {
+    if (document.getElementById("hl-pop")) return;
+    const got = selectionHighlight();
+    if (!got) return;
+    const pop = el("div", { class: "hl-pop", id: "hl-pop", role: "dialog", "aria-label": "Annotate" },
+      el("button", { class: "btn small", type: "button", onclick: () => { getSelection().removeAllRanges(); addHighlight(got.id, got.h); } }, "Highlight"),
+      el("button", { class: "btn small ghost", type: "button", onclick: () => { getSelection().removeAllRanges(); const k = addHighlight(got.id, got.h); const m = document.querySelector(`[data-q="${got.id}"] mark[data-k="${k}"]`); if (m) openHlPop(m, got.id, k); } }, "Add a note"));
+    placePop(pop, got.rect);
+  }
+  function openHlPop(mark, id, k) {
+    closeHlPop();
+    const h = progress.hl[id][k];
+    const note = el("textarea", { class: "input", id: "hl-note", rows: "3", maxlength: "500", placeholder: "Your note on this part", "aria-label": "Note", value: h.n || "" });
+    note.value = h.n || "";
+    const pop = el("div", { class: "hl-pop", id: "hl-pop", role: "dialog", "aria-label": "Note on highlighted text" }, note,
+      el("div", { class: "row" },
+        el("button", { class: "btn small", type: "button", onclick: () => { h.n = note.value.trim() || undefined; save(); render(); toast(h.n ? "Note saved" : "Note cleared"); } }, "Save note"),
+        el("button", { class: "btn small ghost", type: "button", onclick: () => { progress.hl[id].splice(k, 1); if (!progress.hl[id].length) delete progress.hl[id]; save(); render(); toast("Highlight removed"); } }, "Remove highlight")));
+    placePop(pop, mark.getBoundingClientRect());
+    note.focus();
+  }
+  let hlPtr = false, hlTimer = null;
+  const hlSoon = () => { clearTimeout(hlTimer); hlTimer = setTimeout(offerHighlight, 150); };
+  document.addEventListener("pointerdown", (e) => { hlPtr = true; if (!e.target.closest?.("#hl-pop")) closeHlPop(); });
+  document.addEventListener("pointerup", () => { hlPtr = false; hlSoon(); });
+  document.addEventListener("selectionchange", () => { if (!hlPtr) hlSoon(); }); // keyboard and touch selections
   const plainToggle = () => el("button", { class: "link", type: "button", onclick: () => { progress.plainNotes = !progress.plainNotes; save(); render(); } }, progress.plainNotes ? "Use handwriting" : "Switch to typed text");
   function walkthrough(q, heading = "Walkthrough") {
     const pick = q.type === "spr" ? "" : q.choices[q.answer];
@@ -1501,12 +1577,13 @@
     const two = q.section === "rw" && hasStim;
     const answerSec = el("section", { "aria-label": "Question" }, !two ? stimulus(q) : null, el("p", { class: "prompt" }, rich(q.prompt, q.section === "math")), answerArea);
     const body = el("div", { class: "qgrid" + (two ? "" : " single") }, two ? el("section", { "aria-label": "Passage" }, stimulus(q)) : null, answerSec);
+    applyHighlights(body, q);
     const foot = el("div", { class: "test-foot" },
       el("button", { class: "btn small ghost", type: "button", "aria-expanded": String(ui.navOpen), onclick: () => { ui.navOpen = !ui.navOpen; render(); } }, `question ${m.cur + 1} of ${m.ids.length} ${ui.navOpen ? "▾" : "▴"}`),
       el("div", { class: "row" },
         el("button", { class: "btn ghost", type: "button", disabled: m.cur === 0, onclick: () => { m.cur--; render(); } }, "Back"),
         el("button", { class: "btn", type: "button", onclick: () => { if (m.cur < m.ids.length - 1) m.cur++; else m.reviewing = true; ui.navOpen = false; save(); render(); } }, m.cur < m.ids.length - 1 ? "Next" : "Review module")));
-    return el("section", { class: sec, "aria-label": "Mock test" }, head, trailbar(am), qbar, body, ui.navOpen ? el("div", { style: "padding:16px 18px;border-top:2px dashed var(--line-strong)" }, navGrid(m)) : null, foot);
+    return el("section", { class: sec, "aria-label": "Mock test", "data-q": id }, head, trailbar(am), qbar, body, ui.navOpen ? el("div", { style: "padding:16px 18px;border-top:2px dashed var(--line-strong)" }, navGrid(m)) : null, foot);
   }
   function navGrid(m) {
     return el("div", { class: "stack", style: "gap:10px" },
@@ -1974,6 +2051,7 @@
   for (const ev of ["pointerdown", "keydown", "scroll"]) addEventListener(ev, () => { ui.lastActive = Date.now(); }, { passive: true });
   document.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "Escape" && document.getElementById("hl-pop")) { closeHlPop(); return; }
     if (e.key === "Escape") { if (ui.refOpen) { ui.refOpen = false; render(); } else if (ui.dock) { ui.dock = null; renderDock(); } return; }
     const tag = document.activeElement?.tagName;
     if (["TEXTAREA", "INPUT", "SELECT"].includes(tag)) return;
@@ -2009,6 +2087,7 @@
     for (const [k, v] of Object.entries(B.study)) out.study[k] = Math.max(out.study[k] || 0, v);
     for (const key of ["scores", "mocks", "drills"]) { const ids = new Set(out[key].map((x) => x.id)); out[key].push(...B[key].filter((x) => !ids.has(x.id))); }
     for (const [k, v] of Object.entries(B.saved)) if (!out.saved[k]) out.saved[k] = v;
+    for (const [k, v] of Object.entries(B.hl)) if (!out.hl[k]) out.hl[k] = v;
     for (const [k, v] of Object.entries(B.rush)) out.rush[k] = Math.max(out.rush[k] || 0, v);
     for (const [k, v] of Object.entries(B.vocab)) if (!out.vocab[k] || (v.due || 0) > (out.vocab[k].due || 0)) out.vocab[k] = v;
     if (!out.target.total && B.target.total) out.target = B.target;
