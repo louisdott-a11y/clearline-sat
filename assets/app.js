@@ -1841,6 +1841,11 @@
           catch { toast("That code isn't a valid backup."); render(); }
         }, "btn small"))),
         el("div", {}, confirmBtn("clear", "clear all progress", "click again to erase everything", () => { progress = blankProgress(); save(true); toast("Progress cleared"); render(); }))));
+    const share = sheet("", title("Share my progress", true),
+      el("p", { class: "sub", text: "Make a read-only report for a teacher or parent: time practiced, score estimate, accuracy by skill, weakest skills and the last two weeks. It downloads as one file they can open in any browser. Nothing is uploaded." }),
+      el("form", { class: "grid-form", onsubmit: (e) => { e.preventDefault(); downloadReport(document.getElementById("share-name").value); } },
+        el("label", { class: "field" }, "Your name on the report (optional)", el("input", { class: "input", id: "share-name", maxlength: "60", autocomplete: "name", placeholder: "Alex" })),
+        el("button", { class: "btn", type: "submit" }, "Download report")));
     const ring = (k) => {
       const st = domainStats(k);
       const pct = st.total ? Math.round(st.rate * 100) : null;
@@ -1873,7 +1878,38 @@
         el("div", { class: "stack" },
           sheet("", title("Import a score", true), el("p", { class: "sub", text: "Use the section scores from your College Board report or a Bluebook practice test. This is step 1 of your plan." }), importForm, err),
           sheet("", title("Target", true), el("p", { class: "sub", text: "Your goal total and test date size your daily plan." }), targetForm, tErr),
+          share,
           data)));
+  }
+  // Teacher report: a read-only HTML snapshot the student downloads and sends. No accounts, no server.
+  function reportData(name) {
+    const plan = computePlan(), mk = latestMock(), imp = latestImport();
+    const studied = (days) => { let n = 0; for (let i = 0; i < days; i++) { const d = new Date(); d.setDate(d.getDate() - i); n += progress.study[dayKey(d)] || 0; } return n; };
+    const all = Object.values(progress.study).reduce((a, b) => a + b, 0);
+    const estimate = plan ? { total: plan.sec.rw.level + plan.sec.math.level, rw: plan.sec.rw.level, math: plan.sec.math.level, basis: imp && mk ? "imported score and Clearline practice test" : mk ? "Clearline practice test" : "imported score" }
+      : mk ? { total: mk.total, rw: mk.rw, math: mk.math, basis: "Clearline practice test" } : imp ? { total: imp.rw + imp.math, rw: imp.rw, math: imp.math, basis: SCORE_KINDS[imp.kind]?.label || "imported score" } : null;
+    const skills = ALL_SKILLS.map((s) => { const st = skillStats(s.skill); return { skill: s.skill, area: DOMAINS[s.domain].name, rate: st.rate, total: st.total }; }).filter((r) => r.total);
+    const days = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i); const k = dayKey(d);
+      const st = statsWhere((a) => dayKey(new Date(a.at)) === k), secs = progress.study[k] || 0;
+      if (st.total || secs >= 60) days.push({ date: d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }), time: fmtMin(secs), questions: st.total, rate: st.rate });
+    }
+    return {
+      name: name.trim().slice(0, 60), generated: new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" }),
+      time: { total: fmtMin(all), last7: fmtMin(studied(7)), last30: fmtMin(studied(30)) }, answered: flatAttempts().length,
+      estimate, target: progress.target.total ? `${progress.target.total}${progress.target.date ? " by " + niceDate(progress.target.date) : ""}` : "",
+      scores: [...progress.scores.map((x) => ({ t: Date.parse(x.date), label: `${SCORE_KINDS[x.kind]?.label || "Score"} · ${niceDate(x.date)}`, rw: x.rw, math: x.math })),
+        ...progress.mocks.map((m) => ({ t: m.at, label: `Clearline ${MOCK_SPEC[m.kind].label.toLowerCase()} (estimate) · ${niceDate(m.at)}`, rw: m.rw, math: m.math }))].sort((a, b) => b.t - a.t).slice(0, 10),
+      skills, weakest: skills.filter((r) => r.total >= 3).sort((a, b) => a.rate - b.rate).slice(0, 5), days
+    };
+  }
+  function downloadReport(name) {
+    const blob = new Blob([window.CL_REPORT.html(reportData(name))], { type: "text/html" });
+    const a = el("a", { href: URL.createObjectURL(blob), download: `clearline-progress${name.trim() ? "-" + name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : ""}-${dayKey()}.html` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("Report downloaded. Send the file to your teacher.");
   }
   // Practice over a chosen range: tiles, the 5 lowest skills, and a right/wrong chart shaded by difficulty.
   function rangeAnalytics() {
