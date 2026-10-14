@@ -119,7 +119,7 @@
     rush: null, rushScope: "all", rushCount: 10, rushPace: "normal", desmos: { lesson: null, qi: 0 },
     bank: { section: "all", domain: "all", skill: "all", diff: "any", status: "all", limit: 40 },
     drill: { skills: [], diff: "any", count: 10, timed: false, name: "" },
-    stRange: 30, rv: { tab: "missed", sec: "all", status: "all", days: 0, col: null }, nbOpen: false,
+    stRange: 30, chSec: "mixed", rv: { tab: "missed", sec: "all", status: "all", days: 0, col: null }, nbOpen: false,
     guides: { rw: 40, math: 30 },
     qCount: 1,
     vocab: { flipped: false, word: null, mode: "due" },
@@ -853,7 +853,7 @@
     if (q.type === "spr" && !parseNum(resp)) { toast("Enter a number, a fraction like 3/4, or a decimal."); return; }
     pr.checked = true;
     const ok = isCorrect(q, resp);
-    record(q, ok, resp, pr.source === "set" && progress.set?.kind === "catchup" ? "catchup" : "practice", (Date.now() - pr.shownAt) / 1000);
+    record(q, ok, resp, pr.source === "set" && ["catchup", "challenge"].includes(progress.set?.kind) ? progress.set.kind : "practice", (Date.now() - pr.shownAt) / 1000);
     if (pr.source === "set" && progress.set) progress.set.results[progress.set.i] = ok ? 1 : 0;
     save();
     render();
@@ -881,17 +881,18 @@
   }
   function renderPractice() {
     const pr = ui.pr;
-    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["desmos", "Desmos"], ["weak", "Weak spots"], ["missed", "Missed"], ["saved", "Marked for review"], ["rush", "Question Rush"]];
+    const sources = [["mixed", "Mixed"], ["rw", "Reading and Writing"], ["math", "Math"], ["desmos", "Desmos"], ["weak", "Weak spots"], ["challenge", "Challenge"], ["missed", "Missed"], ["saved", "Marked for review"], ["rush", "Question Rush"]];
     if (progress.set) sources.unshift(["set", progress.set.label]);
     const parts = [el("div", { class: "controls on-desk" },
       el("div", { class: "pills", role: "group", "aria-label": "Question source" }, sources.map(([k, label]) =>
         el("button", { class: "pill", type: "button", "aria-pressed": String(pr.source === k || (k === "mixed" && pr.source === "domain")), onclick: () => { if (k === "desmos") { ui.desmos.lesson = null; go("desmos"); return; } pr.source = k; pr.skill = "all"; if (k !== "rush") ui.rush = null; loadPracticeQuestion(); render(); } }, label))),
-      !["set", "missed", "saved", "weak", "rush"].includes(pr.source) ? [
+      !["set", "missed", "saved", "weak", "rush", "challenge"].includes(pr.source) ? [
         el("label", { class: "field" }, "Skill", skillSelect(pr.skill, (e) => { pr.skill = e.target.value; pr.source = pr.skill === "all" ? "mixed" : "domain"; loadPracticeQuestion(); render(); }, "pr-skill")),
         el("label", { class: "field" }, "Difficulty", el("select", { class: "input", id: "pr-diff", onchange: (e) => { pr.diff = e.target.value; loadPracticeQuestion(); render(); } },
           [["any", "Any"], ["1", "Easy"], ["2", "Medium"], ["3", "Hard"]].map(([v, l]) => el("option", { value: v, selected: pr.diff === v }, l))))
       ] : null)];
     if (pr.source === "rush") { parts.push(renderRush()); return el("div", {}, parts); }
+    if (pr.source === "challenge") { parts.push(renderChallenge()); return el("div", {}, parts); }
     const set = progress.set;
     if (pr.source === "set" && set) {
       parts.push(el("div", { class: "setbar" }, el("span", { text: set.label }),
@@ -944,6 +945,7 @@
       el("span", { class: "chip" }, gem(levelOf(st.total >= 3 ? st.rate : null)), SECTION[q.section]),
       q.trick && progress.set?.kind === "desmos-challenge" && ui.pr.source === "set" ? null : el("span", { class: "chip", text: skillOf(q) }),
       el("span", { class: "chip", text: DIFF[q.diff] }),
+      progress.set?.kind === "challenge" && ui.pr.source === "set" ? el("span", { class: "chip", text: "Module 2 hard" }) : null,
       full ? el("span", { class: "chip", text: q.generated ? "computed answer" : q.trick ? "Desmos practice" : "hand-checked" }) : null,
       q.type === "spr" ? el("span", { class: "chip", text: "type your answer" }) : null);
   }
@@ -1231,6 +1233,30 @@
     } }, "flag a problem with this question");
     area.append(open);
     return area;
+  }
+
+  // ------------------------------------------------------------------ challenge: hardest questions, like a hard Module 2
+  // R&W draws from the hand-written hard questions (least recently seen first); Math makes fresh variants of the hard generators.
+  function challengeIds(sec, n = 10) {
+    const nm = sec === "rw" ? 0 : sec === "math" ? n : Math.floor(n / 2);
+    const rw = shuffle(BANK.filter((q) => q.section === "rw" && q.diff === 3)).sort((a, b) => lastAt(a.id) - lastAt(b.id)).slice(0, n - nm).map((q) => q.id);
+    const hard = MATH.GENS.filter((g) => g.diff === 3);
+    const math = Array.from({ length: nm }, (_, i) => MATH.make(hard[i % hard.length].id, Math.floor(Math.random() * 1e9)).id);
+    return shuffle([...rw, ...math]);
+  }
+  function renderChallenge() {
+    const done = flatAttempts().filter((a) => a.src === "challenge");
+    const st = statsWhere((a) => a.src === "challenge");
+    const byDom = DOM_KEYS.map((k) => ({ k, ...statsWhere((a) => a.src === "challenge" && a.d === k) })).filter((x) => x.total);
+    return sheet("", el("div", { class: "rush-start" },
+      el("h2", { class: "h1" }, "Challenge ", el("mark", { class: "hl", text: "set" })),
+      el("p", { class: "sub", text: "10 of the hardest questions, the kind a strong first module routes you to in Module 2. Built for students aiming at 1400 and up. Misses are normal here; the walkthrough is the point." }),
+      el("div", { class: "pills", role: "group", "aria-label": "Section" }, [["mixed", "Both sections"], ["rw", "Reading and Writing"], ["math", "Math"]].map(([k, l]) =>
+        el("button", { class: "pill", type: "button", "aria-pressed": String(ui.chSec === k), onclick: () => { ui.chSec = k; render(); } }, l))),
+      byDom.length ? el("div", { style: "width:100%;max-width:560px" }, el("p", { class: "label", style: "margin:16px 0 6px", text: `Your challenge accuracy: ${Math.round(st.rate * 100)}% of ${st.total}` }),
+        el("div", { class: "bars acc" }, byDom.map((x) => el("div", {}, el("span", { text: DOMAINS[x.k].name }), el("span", { class: "bar" }, el("i", { style: `width:${Math.round(x.rate * 100)}%` })), el("b", { text: Math.round(x.rate * 100) + "%" })))))
+        : el("p", { class: "pen", text: done.length ? "" : "No challenge tried yet. Start with one set." }),
+      el("button", { class: "btn big sun", type: "button", style: "margin-top:16px", onclick: () => beginSet({ kind: "challenge", label: "Challenge · Module 2 hard", ids: challengeIds(ui.chSec) }) }, "Start the challenge")));
   }
 
   // ------------------------------------------------------------------ question rush: 3-minute speed rounds

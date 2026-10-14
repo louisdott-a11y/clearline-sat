@@ -296,6 +296,8 @@ textarea.input { resize: vertical; min-height: 42px; flex: 1 1 240px; }
 .bars { display: grid; gap: 8px; margin: 4px 0 14px; }
 .bars > div { display: grid; grid-template-columns: minmax(120px, 210px) minmax(0, 1fr) 28px; gap: 12px; align-items: center; font-weight: 500; }
 .bars .bar { height: 14px; border: var(--edge); border-radius: 999px; background: var(--card); overflow: hidden; }
+.bars.acc > div { grid-template-columns: minmax(120px, 210px) minmax(0, 1fr) 44px; }
+.bars.acc .bar i { background: var(--green-fill); }
 .bars .bar i { display: block; height: 100%; background: var(--coral); }
 .bars b { font-variant-numeric: tabular-nums; text-align: right; }
 .tip { margin-bottom: 12px; max-width: 62ch; }

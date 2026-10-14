@@ -470,6 +470,9 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 - **Clock:** a Trail Yellow capsule with a 2px ink edge, 26px 800 tabular figures.
 - **Feedback:** a pen line in a polite live region ("Right! ×3 combo!", "Not quite, it was B."), 16ch minimum so the bar does not jump.
 
+### Challenge Set
+A Practice source with a Rush-style start card: a headline with one marker-swiped word, a section filter-pill group, challenge accuracy by content area as green-fill bars (the miss bars' shape, green because it is accuracy), and one yellow "Start the challenge". The set runs 10 hard questions (hand-written hard R&W, fresh hard Math variants), each with a "Module 2 hard" chip.
+
 ### Test Trail and Section Stripe
 - **Trail:** four stops (Reading and Writing 1 and 2, Math 1 and 2) joined by 2.5px dotted hairlines. Passed stops are Trail Yellow with an ink ring and an ink connector, the current stop is coral with an ink ring and a soft coral halo, stops ahead are hollow Paper. Shown on the test head, the module review, the break and the results header.
 - **Section stripe:** coral under the header in Reading and Writing, sky in Math.
