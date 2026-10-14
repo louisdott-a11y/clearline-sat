@@ -148,7 +148,7 @@ html { scrollbar-color: var(--line-strong) var(--bg); accent-color: var(--accent
 .trail path { fill: none; stroke-linecap: round; stroke-dasharray: 1 13; }
 .trail .edge { stroke: var(--edge-c); stroke-width: 10; }
 .trail .dash { stroke: var(--sun); stroke-width: 6; }
-.tall { display: none; }
+.first .tall { display: none; }
 .first .lobe { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; overflow: visible; }
 .lobe .landmass { fill: var(--land); stroke: var(--edge-c); stroke-width: 2; }
 .first .h1 { font-size: clamp(44px, 5.4vw, 72px); letter-spacing: -0.035em; word-spacing: 0.04em; max-width: 11ch; }
@@ -560,7 +560,7 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
   .settings-panel { top: 64px; right: 16px; left: 16px; width: auto; }
   .content { padding: 18px 16px 56px; }
   .first { --gut: 74px; gap: 16px 12px; padding: 56px 26px 60px 18px; min-height: 0; }
-  .wide { display: none; } .tall { display: inline; }
+  .first .wide { display: none; } .first .tall { display: inline; }
   .route { grid-row: 1 / 3; margin-right: 0; }
   .here { margin-right: 0; font-size: 10px; letter-spacing: 0.02em; }
   .first > .go, .first > .tiny { grid-column: 1 / -1; }
