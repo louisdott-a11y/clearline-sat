@@ -12,7 +12,7 @@
     const rng = (a) => () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     const L = "ABCD";
     for (const q of BANK) {
-      if (!Array.isArray(q.choices) || q.choices.length !== 4 || typeof q.answer !== "number") continue;
+      if (q.placed || !Array.isArray(q.choices) || q.choices.length !== 4 || typeof q.answer !== "number") continue;
       const h = seed(String(q.id)), r = rng(h);
       const others = [0, 1, 2, 3].filter((i) => i !== q.answer);
       for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
@@ -65,6 +65,7 @@
     if (!q) return "";
     if (q.trick) return "Desmos: " + DESMOS.lessons[q.trick - 1].short;
     if (q.gen) return GEN_SKILL[q.gen];
+    if (q.skill) return q.skill;
     if (ID_SKILL[q.id]) return ID_SKILL[q.id];
     const p = q.prompt;
     if (q.domain === "SEC") return "Form, Structure & Sense";
