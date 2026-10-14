@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Primary user:** teens studying for the SAT on their own. They mostly use a laptop, sometimes a phone.
-- **Secondary user (wanted, not built):** a teacher who checks a student's progress, hours studied and scores.
+- **Secondary user:** a teacher who checks a student's progress, hours studied and scores. Today this works through a report file the student downloads and sends (no accounts).
 
 ## Product Purpose
 
@@ -37,8 +37,8 @@ Success means the student studies regularly and their score estimate goes up.
 ## Capabilities and Constraints
 
 - A single static page (`index.html` + `assets/*.js`). Progress is saved in browser storage, with optional sync when the page is opened in Claude.
-- Gem, the coach, works only inside Claude using the student's own Claude account. Outside Claude it is unavailable.
-- **Open decision:** a teacher view of student progress (hours, scores). It is not built, and how it would work (sharing, accounts) is undecided.
+- Gem, the coach, works only inside Claude using the student's own Claude account. On the public website Ask Gem, the follow-up tutor and question flagging are hidden. Gem the mascot appears everywhere.
+- **Teacher view:** a read-only HTML report the student downloads from Analytics (Share my progress). Live class views would need accounts and a server; not built.
 
 ## Brand Commitments
 

@@ -473,6 +473,15 @@ After a wrong answer, a pen question ("Why do you think you missed it?") over a 
 ### Challenge Set
 A Practice source with a Rush-style start card: a headline with one marker-swiped word, a section filter-pill group, challenge accuracy by content area as green-fill bars (the miss bars' shape, green because it is accuracy), and one yellow "Start the challenge". The set runs 10 hard questions (hand-written hard R&W, fresh hard Math variants), each with a "Module 2 hard" chip.
 
+### Gem Mascot
+An original cut gem in Lilac (Gem is a tool) with a 2.5px ink outline, ink facet lines, dot eyes, coral cheeks and a smile (an open grin when cheering), 64px. Beside it sits a speech bubble: Paper, 2px ink edge, 16px radius, Soft Lift, a tail on the left, Archivo 14.5px (not Caveat, so it never counts against the One Note Rule). It appears on Home (both first-run and plan views), the test break and Question Rush results, with one short line that fits the moment. It bobs gently, and hops twice when cheering, behind `prefers-reduced-motion: no-preference`. Screen readers hear "Gem says:" before the line.
+
+### Vocab Games
+A filter-pill group (Flashcards, Match, Learn) heads the Vocab view. Match and Learn use the Rush start/end card (headline with one marker-swiped word, one pen line, one yellow start). Match is two columns (words in Archivo bold, definitions in serif) of answer-choice rows; the picked row takes the selected-choice look, a wrong pair flashes red for 700ms and adds 2 seconds, a matched pair turns right-green at 60% opacity. The clock is the Rush clock. Learn shows the deck's example sentence with a blank, four answer-choice rows and, after a pick, a walkthrough panel with the definition.
+
+### Share My Progress
+A sheet on Analytics with an optional name field and an ink "Download report" button. The report file is its own small page: the same cream, paper and 2px ink edge tokens (light and dark), tiles for time practiced, a score estimate labelled not official, and plain tables. No scripts.
+
 ### Test Trail and Section Stripe
 - **Trail:** four stops (Reading and Writing 1 and 2, Math 1 and 2) joined by 2.5px dotted hairlines. Passed stops are Trail Yellow with an ink ring and an ink connector, the current stop is coral with an ink ring and a soft coral halo, stops ahead are hollow Paper. Shown on the test head, the module review, the break and the results header.
 - **Section stripe:** coral under the header in Reading and Writing, sky in Math.
