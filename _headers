@@ -1,0 +1,10 @@
+# Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/)
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-Frame-Options: SAMEORIGIN
+
+# Script and data files have no hashes in their names, so keep caches short and updates show up within minutes.
+/assets/*.js
+  Cache-Control: public, max-age=300, must-revalidate

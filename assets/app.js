@@ -107,8 +107,10 @@
     vocab: "M7 4h12v14H7zM4 7v13h12",
     guides: "M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"
   };
-  // Desmos's public demo key, for development. Request your own free key at desmos.com/api before you launch publicly.
-  const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
+  // Set in assets/config.js (see DEPLOY.md to swap in your own key).
+  const DESMOS_API_KEY = window.CL_CONFIG?.DESMOS_API_KEY || "";
+  // Gem (the coach) and question flagging run on Claude's artifact runtime. On a normal website they're hidden.
+  const IN_CLAUDE = Boolean(window.claude?.use);
 
   // ------------------------------------------------------------------ state
   const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
@@ -695,7 +697,7 @@
       el("button", { class: "tag", type: "button", id: "focus-btn", "aria-label": "Focus timer, start or pause", onclick: () => { focus.running = !focus.running; renderFocus(); } }, el("span", { id: "focus-label", text: focus.phase === "focus" ? "Focus" : "Break" }), el("b", { id: "focus-clock", text: clock(focus.left) }), el("span", { id: "focus-state", text: focus.running ? "❚❚" : "▶" })),
       el("button", { class: "tag", type: "button", "aria-pressed": String(ui.dock === "calc"), onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, ico("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), "Calculator"),
       el("button", { class: "tag", type: "button", onclick: () => { ui.refOpen = true; render(); } }, ico("M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"), "Reference"),
-      el("button", { class: "tag sun", type: "button", "aria-pressed": String(ui.dock === "gem"), onclick: () => { ui.dock = ui.dock === "gem" ? null : "gem"; renderDock(); } }, ico("M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"), "Ask Gem"));
+      ...(IN_CLAUDE ? [el("button", { class: "tag sun", type: "button", "aria-pressed": String(ui.dock === "gem"), onclick: () => { ui.dock = ui.dock === "gem" ? null : "gem"; renderDock(); } }, ico("M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"), "Ask Gem")] : []));
   }
 
   // ------------------------------------------------------------------ home dashboard
@@ -1196,7 +1198,7 @@
       walkthrough(q, q.desmos ? "By hand" : "Walkthrough"),
       q.type !== "spr" ? [el("h4", { text: "Why the other choices are wrong" }),
         el("div", { class: "why" }, Object.entries(q.why).sort((a, b) => a[0] - b[0]).map(([i, t]) => el("div", {}, el("b", { text: LETTERS[i] }), el("span", {}, math(t, q.section === "math")))))] : null);
-    box.append(renderTutor(q, resp), renderReport(q));
+    if (IN_CLAUDE) box.append(renderTutor(q, resp), renderReport(q));
     return box;
   }
   function questionContext(q) {
