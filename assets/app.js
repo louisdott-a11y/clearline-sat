@@ -129,7 +129,7 @@
     dock: null,
     calc: { tab: "calc", expr: "", out: "", err: "", hist: [], deg: false, fns: ["x^2 - 4", "2x + 1", ""], range: 10 },
     gemTurns: [],
-    mockResult: null, pendingSubmit: false, navOpen: false, refOpen: false, settingsOpen: false, hideTimer: false, elimMode: false,
+    mockResult: null, pendingSubmit: false, pendingRestore: null, navOpen: false, refOpen: false, settingsOpen: false, hideTimer: false, elimMode: false,
     armed: {}, restoreText: "", lastActive: Date.now()
   };
   const getQ = (id) => BY_ID[id] || D_BY_ID[id] || MATH.fromId(id);
@@ -674,7 +674,7 @@
     const banner = document.getElementById("banner");
     banner.replaceChildren(am && ui.view !== "mock"
       ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "Resume test"))
-      : "");
+      : storeTip ? tipBanner() : "");
     document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
     document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
     const views = { home: renderHome, practice: renderPractice, desmos: renderDesmosView, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides };
@@ -1766,7 +1766,81 @@
       el("fieldset", { class: "seg" }, el("legend", { class: "label", text: "Appearance" }),
         el("div", { class: "pills" }, [["light", "Light"], ["dark", "Dark"], ["system", "Match my device"]].map(([v, l]) =>
           el("label", { class: "pill" }, el("input", { type: "radio", name: "theme", value: v, checked: cur === v, onchange: () => setTheme(v) }), l)))),
-      el("p", { class: "tiny", style: "margin:10px 0 0", text: "Saved on this device." })));
+      el("p", { class: "tiny", style: "margin:8px 0 0", text: "Saved on this device." }),
+      el("fieldset", { class: "seg", style: "margin-top:14px" }, el("legend", { class: "label", text: "Your progress" }),
+        ui.pendingRestore
+          ? el("div", { class: "stack", style: "gap:8px" },
+            el("p", { class: "tiny", style: "margin:0;color:var(--ink)", text: `Replace the progress on this device with the backup from ${niceDate(ui.pendingRestore.saved)}? This can't be undone.` }),
+            el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: applyRestore }, "Yes, restore"),
+              el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.pendingRestore = null; render(); } }, "Cancel")))
+          : el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: downloadBackup }, "Back up my progress"),
+            el("button", { class: "btn small ghost", type: "button", onclick: () => document.getElementById("restore-file").click() }, "Restore from backup"),
+            el("input", { type: "file", id: "restore-file", accept: ".json,application/json", hidden: true, onchange: (e) => readBackup(e.target.files[0]) })),
+        el("p", { class: "tiny", style: "margin:8px 0 0", text: "A backup is a small file. Keep it somewhere safe, or open it on another device to move your progress there." }))));
+  }
+  // ------------------------------------------------------------------ keeping progress safe: backup file, private-window note, iPhone Home Screen tip
+  const BACKUP_APP = "clearline-sat";
+  function downloadBackup() {
+    const blob = new Blob([JSON.stringify({ app: BACKUP_APP, version: 1, saved: new Date().toISOString(), progress })], { type: "application/json" });
+    const a = el("a", { href: URL.createObjectURL(blob), download: `clearline-backup-${dayKey()}.json` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("Backup downloaded");
+  }
+  // Parses a backup file; returns { saved, progress } or null. Only our own format is accepted (trust boundary: any file a student picks).
+  function parseBackup(text) {
+    try {
+      const d = JSON.parse(text);
+      if (!d || d.app !== BACKUP_APP || !d.progress || typeof d.progress !== "object" || Array.isArray(d.progress)) return null;
+      return { saved: Date.parse(d.saved) || Date.now(), progress: d.progress };
+    } catch { return null; }
+  }
+  function readBackup(file) {
+    if (!file) return;
+    if (file.size > 5e6) { toast("That file is too big to be a Clearline backup."); return; }
+    file.text().then((t) => {
+      const b = parseBackup(t);
+      if (!b) { toast("That file isn't a Clearline backup."); return; }
+      ui.pendingRestore = b; render();
+      document.querySelector("#settings-panel .btn.small")?.focus();
+    }, () => toast("Couldn't read that file."));
+  }
+  function applyRestore() {
+    progress = normalize(ui.pendingRestore.progress); ui.pendingRestore = null;
+    save(true); loadPracticeQuestion(); toast("Progress restored"); render();
+  }
+  const TIP_KEY = "clearline-tips-seen";
+  let storeTip = null; // "private" or "ios", decided once after load
+  const tipsSeen = () => { try { return (localStorage.getItem(TIP_KEY) || "").split(","); } catch { return []; } };
+  function dismissTip() {
+    try { localStorage.setItem(TIP_KEY, [...tipsSeen().filter(Boolean), storeTip].join(",")); } catch {}
+    storeTip = null; render();
+  }
+  function tipBanner() {
+    const text = storeTip === "private"
+      ? [el("b", { text: "Private window. " }), "Your progress won't be saved after you close it. To keep it, use a normal window, or download a backup in Settings first."]
+      : [el("b", { text: "Tip for iPhone: " }), "tap Share, then “Add to Home Screen”. Clearline opens like an app, and your saved progress lasts much longer than in a Safari tab."];
+    return el("div", { class: "banner", role: "note" }, el("span", {}, text), el("button", { class: "btn small ghost", type: "button", onclick: dismissTip }, "Got it"));
+  }
+  // shortcut: browsers don't say when a window is private, so this reads two known signs (Chromium shrinks the storage quota;
+  // Safari and Firefox refuse the private file system). Re-check if a browser update makes the note show in normal windows.
+  async function looksPrivate() {
+    if (performance.memory && navigator.storage?.estimate) {
+      try { const { quota } = await navigator.storage.estimate(); return quota < performance.memory.jsHeapSizeLimit * 2; } catch { return false; }
+    }
+    if (!navigator.storage?.getDirectory) return false;
+    try { await navigator.storage.getDirectory(); return false; } catch { return true; }
+  }
+  async function pickStoreTip() {
+    if (window.claude) return;
+    const seen = tipsSeen();
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const homeScreen = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+    if (!seen.includes("private") && await looksPrivate()) storeTip = "private";
+    else if (ios && !homeScreen && !seen.includes("ios")) storeTip = "ios";
+    if (storeTip) render();
+    // Ask the browser not to evict saved progress. Firefox shows a permission prompt for this, so it's skipped there.
+    if (navigator.storage?.persist && !/Firefox\//.test(navigator.userAgent)) navigator.storage.persist().catch(() => {});
   }
   function renderReference() {
     const f = [["Circle", "A = πr²,  C = 2πr"], ["Rectangle", "A = ℓw"], ["Triangle", "A = ½bh"], ["Pythagorean theorem", "c² = a² + b²"], ["Special right triangles", "30-60-90: x, x√3, 2x · 45-45-90: s, s, s√2"],
@@ -2458,6 +2532,7 @@
   { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) ui.view = h; }
   loadPracticeQuestion();
   render();
+  pickStoreTip();
 
   function merge(a, b) {
     const out = normalize(JSON.parse(JSON.stringify(a)));

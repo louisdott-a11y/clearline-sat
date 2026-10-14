@@ -61,7 +61,12 @@ Then update the three share-tag URLs in `index.html` to the new domain and deplo
 
 ## Good to know
 
-- Student progress is saved in each student's own browser (localStorage). Clearing browser data erases it;
-  the backup code on **Analytics & scores** moves it between devices.
+- Student progress is saved in each student's own browser (localStorage). Clearing browser data erases it.
+  **Settings → Back up my progress** downloads a small file, and **Restore from backup** loads it on any device
+  (the older backup code on **Analytics & scores** still works too).
+- In a private window the site shows a one-time note that progress won't survive closing the window.
+  On iPhone it shows a one-time tip to Add to Home Screen (Safari can clear a website's storage after
+  about a week without a visit; Home Screen apps are exempt). `assets/manifest.webmanifest` gives the
+  Home Screen app its name, icon and colors.
 - The teacher report is a file the student downloads and sends. Nothing is uploaded anywhere.
 - `_headers` sets basic security headers and keeps script caching to 5 minutes, so fixes show up quickly.

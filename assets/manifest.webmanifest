@@ -1,0 +1,14 @@
+{
+  "name": "Clearline SAT",
+  "short_name": "Clearline",
+  "description": "Free SAT prep: practice tests, a daily plan and every wrong choice explained.",
+  "start_url": "../",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#f5f1e4",
+  "theme_color": "#f5f1e4",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
