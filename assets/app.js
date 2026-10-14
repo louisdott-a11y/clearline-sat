@@ -119,7 +119,7 @@
     rush: null, rushScope: "all", rushCount: 10, rushPace: "normal", desmos: { lesson: null, qi: 0 },
     bank: { section: "all", domain: "all", skill: "all", diff: "any", status: "all", limit: 40 },
     drill: { skills: [], diff: "any", count: 10, timed: false, name: "" },
-    rv: { tab: "missed", sec: "all", status: "all", days: 0, col: null }, nbOpen: false,
+    stRange: 30, rv: { tab: "missed", sec: "all", status: "all", days: 0, col: null }, nbOpen: false,
     guides: { rw: 40, math: 30 },
     qCount: 1,
     vocab: { flipped: false, word: null, mode: "due" },
@@ -1782,6 +1782,7 @@
       el("div", { class: "heat", role: "img", "aria-label": `Questions answered per day over 16 weeks. ${activeDays} active days.` }, heatDays.map((d) => el("i", { class: "l" + lvl(perDay[dayKey(d)] || 0), title: `${d.toLocaleDateString()}: ${perDay[dayKey(d)] || 0} questions` }))),
       el("div", { class: "legend", style: "margin-top:8px" }, el("span", {}, "Less"), [0, 1, 2, 3, 4].map((n) => el("i", { style: `display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);background:${n ? `color-mix(in srgb, var(--accent) ${n * 25}%, var(--card))` : "var(--card-2)"}` })), el("span", {}, "More")));
     return el("div", { class: "stack" },
+      rangeAnalytics(),
       rings,
       el("div", { class: "cols" }, heat, time),
       history,
@@ -1790,6 +1791,60 @@
           sheet("", title("Import a score", true), el("p", { class: "sub", text: "Use the section scores from your College Board report or a Bluebook practice test. This is step 1 of your plan." }), importForm, err),
           sheet("", title("Target", true), el("p", { class: "sub", text: "Your goal total and test date size your daily plan." }), targetForm, tErr),
           data)));
+  }
+  // Practice over a chosen range: tiles, the 5 lowest skills, and a right/wrong chart shaded by difficulty.
+  function rangeAnalytics() {
+    const days = ui.stRange, since = days ? Date.now() - days * 864e5 : 0;
+    const list = flatAttempts().filter((a) => a.at >= since);
+    const st = statsWhere((a) => a.at >= since);
+    const range = el("div", { class: "pills", role: "group", "aria-label": "Time range" }, [[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]].map(([v, l]) =>
+      el("button", { class: "pill", type: "button", "aria-pressed": String(days === v), onclick: () => { ui.stRange = v; render(); } }, l)));
+    const tiles = el("div", { class: "stats" },
+      stat("Questions", String(st.total), days ? `in the last ${days} days` : "all time"),
+      stat("Accuracy", st.total ? Math.round(st.rate * 100) + "%" : "—", st.total ? `${st.right} right` : "nothing answered yet"),
+      stat("Avg time", st.avgT ? Math.round(st.avgT) + "s" : "—", "per question"),
+      stat("Streak", `${streak()} day${streak() === 1 ? "" : "s"}`, "days in a row"));
+    const low = ALL_SKILLS.map((s) => ({ ...s, st: statsWhere((a) => a.s === s.skill && a.at >= since) })).filter((r) => r.st.total >= 3).sort((a, b) => a.st.rate - b.st.rate).slice(0, 5);
+    const lowest = el("div", {}, title("Lowest skills", true),
+      low.length ? el("div", { class: "tour" }, low.map((r, i) => el("div", {}, el("span", { class: "k", text: i + 1 }),
+        el("span", {}, el("b", { text: r.skill }), el("br"), el("small", { text: `${Math.round(r.st.rate * 100)}% of ${r.st.total} · ${DOMAINS[r.domain].name}` })),
+        el("button", { type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = r.skill; loadPracticeQuestion(); go("practice"); } }, "Practise"))))
+        : el("p", { class: "sub", text: "Answer at least 3 questions on a skill in this range to rank it here." }));
+    return sheet("", el("div", { class: "row between", style: "margin-bottom:14px" }, title("Your practice"), range), tiles,
+      el("div", { class: "cols", style: "margin-top:16px" }, el("div", {}, title("Right and wrong, by difficulty", true), el("div", { class: "chart-wrap" }, verdictChart(list, days)),
+        el("div", { class: "legend", style: "margin-top:8px" }, el("span", {}, "Right:"), [1, 2, 3].map((f) => el("span", {}, el("i", { class: `sw ok f${f}` }), DIFF[f])), el("span", {}, " Wrong:"), [1, 2, 3].map((f) => el("span", {}, el("i", { class: `sw no f${f}` }), DIFF[f])))), lowest));
+  }
+  // Daily bars for 7/30 days, weekly bars beyond that (up to 52 weeks).
+  function verdictChart(list, days) {
+    const weekly = !days || days > 30, span = weekly ? 7 : 1;
+    const first = list.length ? Math.min(...list.map((a) => a.at)) : Date.now();
+    const n = weekly ? clamp(Math.ceil((days || (Date.now() - first) / 864e5 + 1) / 7), 4, 52) : days;
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const buckets = Array.from({ length: n }, (_, i) => { const d = new Date(end); d.setDate(d.getDate() - (n - i) * span + 1); d.setHours(0, 0, 0, 0); return { d, ok: [0, 0, 0, 0], no: [0, 0, 0, 0] }; });
+    for (const a of list) { const i = n - 1 - Math.floor((end - a.at) / (span * 864e5)); if (i >= 0) buckets[i][a.c ? "ok" : "no"][a.f || 2]++; }
+    const total = (b) => b.ok[1] + b.ok[2] + b.ok[3] + b.no[1] + b.no[2] + b.no[3];
+    const max = 2 * Math.ceil(Math.max(4, ...buckets.map(total)) / 2); // even, so the middle gridline is a whole number
+    const Wd = 640, H = 180, L = 30, B = 22, T = 10, bw = (Wd - L - 10) / n;
+    const s = svg("svg", { viewBox: `0 0 ${Wd} ${H}`, class: "chart", role: "img", style: "width:100%;min-width:420px;height:auto",
+      "aria-label": `Questions answered per ${weekly ? "week" : "day"}: ${list.filter((a) => a.c).length} right and ${list.filter((a) => !a.c).length} wrong.` });
+    const g = svg("g", { class: "grid" });
+    for (const v of [0, Math.round(max / 2), max]) { const yy = T + (1 - v / max) * (H - T - B); g.append(svg("line", { x1: L, x2: Wd - 10, y1: yy, y2: yy })); s.append(svg("text", { x: L - 6, y: yy + 4, "text-anchor": "end" }, String(v))); }
+    s.append(g);
+    const lab = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    buckets.forEach((b, i) => {
+      let y = H - B;
+      const col = svg("g", {}, svg("title", {}, `${weekly ? "Week of " : ""}${lab(b.d)}: ${b.ok[1] + b.ok[2] + b.ok[3]} right, ${b.no[1] + b.no[2] + b.no[3]} wrong`));
+      for (const [k, f] of [["ok", 1], ["ok", 2], ["ok", 3], ["no", 1], ["no", 2], ["no", 3]]) {
+        const h = (b[k][f] / max) * (H - T - B);
+        if (!h) continue;
+        y -= h;
+        col.append(svg("rect", { class: `vb ${k} f${f}`, x: L + i * bw + Math.min(3, bw * 0.15), y, width: Math.max(1, bw - Math.min(6, bw * 0.3)), height: h }));
+      }
+      s.append(col);
+      const every = Math.ceil(n / 8);
+      if ((n - 1 - i) % every === 0) s.append(svg("text", { x: L + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, lab(b.d)));
+    });
+    return s;
   }
   function scoreChart(entries) {
     const Wd = 640, H = 220, L = 44, R = 18, T = 18, B = 30;

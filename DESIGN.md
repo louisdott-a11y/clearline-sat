@@ -443,6 +443,9 @@ Paper row, 1px Strong Hairline, 12px radius, serif text, with a 28px round lette
 ### Highlighter and Notes (practice and mock tests)
 Bluebook-style annotate. Selecting text in a passage or prompt opens a small Paper popover (2px ink edge, 14px radius, Soft Lift) with "Highlight" and "Add a note". Highlights are Lilac (a tool) with ink text in both themes, 3px radius; a highlight with a note gets a 2px ink underline and its note in a tooltip and in screen-reader text. Clicking or pressing Enter on a highlight opens the note box with "Save note" and "Remove highlight". Escape or a click outside closes it. Highlights are saved per question.
 
+### Practice Analytics (top of Analytics)
+One sheet with a filter-pill range picker (7, 30, 90 days, all time), four stat tiles (questions, accuracy, average time, streak), a stacked bar chart of right (green-fill) and wrong (red-fill) answers per day (per week past 30 days) where easy is 40%, medium 70% and hard full strength, and a "Lowest skills" list of the five weakest skills (3+ answers in range) with Practise buttons.
+
 ### Mistakes Notebook (Review)
 Four filter-pill tabs (Mistakes, Marked for review, Notes, Collections) over a row of labelled selects (collection, section, status "never corrected / corrected since", 7 or 30 days), then the miss patterns sheet and one list sheet with an ink "Practise all n" button. Rows are the standard ink-edged list; a student note shows as an italic small line in ink. On a practice question, the "Note" ghost button opens a Shaded Paper strip under the question header with a note field, collection tags (pressed = in that collection) and "Save note".
 
