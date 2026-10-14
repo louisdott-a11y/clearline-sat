@@ -6,7 +6,7 @@ Clearline is a static site: `index.html` plus `assets/`. No server, no database,
 ## Before the first deploy (10 minutes)
 
 1. **Get your own Desmos key.** The key in the code is Desmos's public demo key.
-   - Go to https://www.desmos.com/api and fill in the API key request form (it's free for education sites). Desmos emails you a key.
+   - Go to https://www.desmos.com/api and request an API key (Desmos reviews requests and emails you a key; their console also points to www.desmos.com/my-api).
    - Open `assets/config.js` and paste your key between the quotes on the `DESMOS_API_KEY` line.
    - Commit: `git commit -am "Use my Desmos API key"`
 2. **Check the site address in the share tags.** `index.html` assumes the site will live at `https://clearline-sat.pages.dev/`.
