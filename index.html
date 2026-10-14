@@ -489,6 +489,47 @@ var { font-family: var(--f-read); font-style: italic; font-weight: inherit; padd
 .dock-head button { border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: 2px 11px; font-weight: 600; font-size: 12.5px; }
 .dock-body { padding: 12px 14px 14px; display: grid; gap: 10px; }
 .desmos { width: 100%; height: 520px; }
+/* Desmos walkthrough: a side panel next to the question (a bottom sheet on phones). */
+.dock.walk { top: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: min(480px, 40vw); max-height: none; overflow: hidden; }
+.dock.walk .sheet { height: 100%; display: flex; flex-direction: column; }
+.dock.walk .sheet > :last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.dock.walk .desmos { flex: 1; height: auto; min-height: 220px; }
+body.walking .main { padding-right: calc(min(480px, 40vw) + 18px); }
+.wt { padding: 12px 14px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.wt-top { gap: 8px; }
+.wt-top .link { margin-left: auto; }
+.wt .gem-say { max-width: none; align-items: flex-start; }
+.wt .gem-mascot { width: 44px; height: 44px; }
+.wt-keys { display: flex; flex-wrap: wrap; gap: 6px; }
+.wt-keys code { font-size: 13.5px; padding: 4px 9px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); white-space: pre-wrap; }
+.wt-end { margin: 0; font-size: 14px; line-height: 1.45; }
+.wt-end code { font-size: 13.5px; }
+.wt-nav { gap: 8px; justify-content: flex-end; }
+@media (max-width: 900px) {
+  .dock.walk { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: min(68dvh, 640px); }
+  .dock.walk .sheet { border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body.walking .main { padding-right: 0; padding-bottom: min(68dvh, 640px); }
+  .wt .gem-mascot { width: 36px; height: 36px; }
+  .wt { padding: 10px 12px; gap: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wt.enter .gem-bubble, .wt.enter .wt-keys, .wt.enter .wt-end { animation: wt-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .wt.enter .wt-keys { animation-delay: 40ms; }
+  .wt.enter .wt-end { animation-delay: 80ms; }
+  .wt.enter .wt-keys code { animation: wt-flash 700ms 150ms ease-out both; }
+  .dock.walk.opening { animation: wt-side 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+  @keyframes wt-in { from { opacity: 0; transform: translateY(4px); } }
+  @keyframes wt-side { from { opacity: 0; transform: translateX(16px); } }
+  @keyframes wt-flash { from { background: color-mix(in srgb, var(--sun) 65%, var(--accent-soft)); } }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 900px) {
+  .dock.walk.opening { animation: wt-up 280ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+  @keyframes wt-up { from { transform: translateY(100%); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wt.enter .gem-bubble, .wt.enter .wt-keys, .wt.enter .wt-end { animation: wt-fade 120ms ease both; }
+  @keyframes wt-fade { from { opacity: 0; } }
+}
 .calc-out { font-weight: 800; font-size: 24px; text-align: right; font-variant-numeric: tabular-nums; min-height: 32px; word-break: break-all; }
 .calc-hist { display: grid; gap: 2px; max-height: 120px; overflow: auto; font-size: 13px; }
 .calc-hist button { border: 0; background: none; text-align: right; color: var(--ink-soft); padding: 2px 4px; border-radius: 6px; }

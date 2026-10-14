@@ -48,6 +48,10 @@ There are three sources, and they all share one question shape (prompt, choices,
 2. **Math generators** (`mathgen.js`): 28 templates. Each takes a number called a *seed*, uses it to pick random-looking values, then **computes the correct answer itself**. Wrong choices come from real mistakes (for example, using area instead of arc length), and each says why it's wrong. The same seed always gives the same question, so a question's ID like `g-arc-1234` is enough to rebuild it later.
 3. **Desmos lessons** (`desmos.js`): 75 practice questions tied to calculator lessons.
 
+## How Desmos walkthroughs work
+
+Every Math question carries a `walk`: a few pre-written steps (what Gem says, what to type, the view, the point to highlight, and the answer it ends on). "Desmos way" opens the live calculator beside the question and plays the steps one at a time, rebuilding the graph for each step so Back is exact. Generated questions build their walk from their own numbers. Nothing here is AI, so Gem appears on the normal website; the AI coach ("Ask Gem") still only appears inside Claude.
+
 ## How answer-checking works
 
 `isCorrect(question, response)` in `app.js`:
@@ -66,7 +70,10 @@ A mock test follows the digital SAT: Reading and Writing, then Math, two modules
 - every question has 4 different choices, a valid answer, and a reason for each wrong choice;
 - Desmos answers are recomputed from scratch, without trusting the stored key;
 - every hint clue appears in its question;
-- the teacher report escapes student text and contains no scripts.
+- the teacher report escapes student text and contains no scripts;
+- every Desmos walkthrough ends on the question's correct answer.
+
+`tests/e2e/walk.e2e.js` (Playwright, needs network) loads every walkthrough in real Desmos to catch typing errors, then clicks through Back/Next, Try it yourself, switching questions and refreshing, on a laptop and phone size, light and dark.
 
 The screens are tested by hand on a laptop and a phone, in light and dark mode.
 

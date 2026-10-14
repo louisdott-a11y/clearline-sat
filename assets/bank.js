@@ -460,5 +460,58 @@ window.CL_BANK = (() => {
       ["sin A = opposite/hypotenuse = 0.6 = 3/5, so use a 3-4-5 triangle.", "The side adjacent to A is 4.", "cos A = adjacent/hypotenuse = 4/5 = 0.8."],
       ["sin A and cos A don't add to 1. Their squares do.", "0.6 is cos B (the other acute angle), not cos A.", "", "1.25 is 1/0.8, which is 1/cos A, not cos A."])
   ];
+  // Desmos walkthroughs for the classic Math questions (step format: see the WALKS note in desmos.js).
+  // pick is the right choice's text, so it survives the A–D reshuffle in app.js.
+  const WALKS = {
+    m1: [
+      { say: "Split the equation: y = left side, y = right side.", keys: ["y = 3x - 7", "y = 11"], view: [-2, 10, -10, 16] },
+      { say: "They cross at x = 6.", mark: [6, 11, "x = 6"] },
+      { say: "Now work out 6x − 4 with x = 6: 32.", keys: ["6(6) - 4"], pick: "32" }],
+    m2: [
+      { say: "Each membership is a point (months, total cost). Put both in a table.", table: [[4, 10], [230, 440]], view: [-1, 12, -40, 480] },
+      { say: "Fit a line: m is the monthly fee, b is the sign-up fee.", keys: ["y1 ~ m x1 + b"] },
+      { say: "Desmos finds m = 35 and b = 90: the cost at 0 months.", mark: [0, 90, "b = 90"], pick: "$90" }],
+    m3: [
+      { say: "Type both equations.", keys: ["2x + y = 11", "x - y = 1"], view: [-2, 8, -2, 12] },
+      { say: "Click the crossing.", mark: [4, 3, "(4, 3)"] },
+      { say: "x + y = 4 + 3 = 7.", mark: [4, 3, "4 + 3 = 7"], pick: "7" }],
+    m4: [
+      { say: "Desmos works: graph both with a slider for k and drag until the lines run parallel.", keys: ["4x + k y = 9", "6x - 3y = 2", "k = -2"], view: [-4, 6, -6, 6] },
+      { say: "Faster by hand: parallel means the coefficients share a ratio, 4/6 = k/(−3).", hand: true },
+      { say: "So k = −2 (and 9/2 isn't 4/6, so the lines never meet).", hand: true, pick: "−2" }],
+    m5: [
+      { say: "Name the function f.", keys: ["f(x) = x^2 - 5x + 6"], view: [-3, 6, -2, 14] },
+      { say: "Ask for f(−1): 12.", keys: ["f(-1)"], mark: [-1, 12, "f(−1) = 12"], pick: "12" }],
+    m6: [
+      { say: "Graph the original expression.", keys: ["y = (x + 3)^2 - (x - 3)^2"], view: [-3, 3, -24, 24] },
+      { say: "Try 12x: it lands exactly on top.", keys: ["y = 12x"], mark: [1, 12, "same line"] },
+      { say: "So the expression is equivalent to 12x.", pick: "12x" }],
+    m7: [
+      { say: "Graph it with a slider for c.", keys: ["y = x^2 - 6x + c", "c = 3"], view: [-2, 8, -8, 10] },
+      { say: "One real solution means the parabola just touches the x-axis. Drag c up.", keys: ["c = 9"], mark: [3, 0, "touches at x = 3"] },
+      { say: "That happens at c = 9.", mark: [3, 0, "c = 9"], pick: "9" }],
+    m8: [
+      { say: "Desmos is just a calculator here: cups per cookie times cookies.", keys: ["40 · 3/24"] },
+      { say: "That's 5 cups.", pick: "5" }],
+    m9: [
+      { say: "Percent changes multiply: up 25% is × 1.25, down 20% is × 0.8.", keys: ["80 · 1.25 · 0.8"] },
+      { say: "The final price is $80; the changes cancel.", pick: "$80" }],
+    m10: [
+      { say: "Put the old and new data in lists.", keys: ["L = [4, 7, 7, 9, 13]", "M = [4, 7, 7, 9, 30]"] },
+      { say: "Compare the means: 8 becomes 11.4.", keys: ["[mean(L), mean(M)]"] },
+      { say: "The medians are both 7, so only the mean increases.", keys: ["[median(L), median(M)]"], pick: "Only the mean increases." }],
+    m11: [
+      { say: "Square the legs, add, take the square root.", keys: ["sqrt(9^2 + 12^2)"] },
+      { say: "The hypotenuse is 15.", pick: "15" }],
+    m12: [
+      { say: "Type the circle's equation.", keys: ["x^2 + y^2 - 6x + 4y = 12"], view: [-4, 10, -9, 5] },
+      { say: "Click the top and bottom grey dots: (3, 3) and (3, −7).", mark: [[3, 3, "(3, 3)"], [3, -7, "(3, −7)"]] },
+      { say: "The diameter is 10, so the radius is 5.", mark: [3, -2, "r = 5"], pick: "5" }],
+    m13: [
+      { say: "Let Desmos find angle A from its sine.", keys: ["A = arcsin(0.6)"] },
+      { say: "Then ask for its cosine: 0.8.", keys: ["cos(A)"] },
+      { say: "By hand it's a 3-4-5 triangle: cos A = 4/5 = 0.8.", pick: "0.8" }]
+  };
+  for (const q of items) if (WALKS[q.id]) q.walk = WALKS[q.id];
   return { items };
 })();

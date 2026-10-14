@@ -494,5 +494,300 @@ window.CL_DESMOS = (() => {
       steps: ["a/3 = 4/2 = 10/b.", "a = 6 and b = 5, so a + b = 11."] })
   ].map((q) => ({ section: "math", passage: [], ...q }));
 
+  // Step-by-step walkthroughs Gem plays in the live calculator. Each step:
+  //   say: one sentence (`backticks` = typed) · keys: what to type, added to the graph · table: [[x…], [y…]]
+  //   view: [left, right, bottom, top] · mark: [x, y, label] or a list of them (x/y may be expressions in a slider)
+  //   hand: a by-hand step · deg: degree mode · pick (last step): the right choice's text, or the typed value.
+  // tests/walk.test.js checks every pick against the answer key.
+  const WALKS = {
+    "d1-1": [
+      { say: "Graph the line exactly as it's written.", keys: ["y = 3x + 8"], view: [-6, 4, -6, 12] },
+      { say: "a is where the line crosses the x-axis, so click that grey dot.", mark: [-8 / 3, 0, "(−2.667, 0)"], view: [-5, 1, -3, 3] },
+      { say: "a = −2.666…, a repeating decimal, so it has to fill the answer box.", mark: [-8 / 3, 0, "a = −2.667"], pick: -8 / 3 }],
+    "d1-2": [
+      { say: "0.4545… is 5/11. Type it to see the decimal Desmos shows.", keys: ["5/11"] },
+      { say: "A positive answer gets 5 characters, so keep typing digits until the box is full: `.4545`. Stopping at .45 is marked wrong.", pick: ".4545" }],
+    "d1-3": [
+      { say: "Slope −3/7 and y-intercept 5 make this line.", keys: ["y = -(3/7)x + 5"], view: [-3, 16, -3, 8] },
+      { say: "Click where it crosses the x-axis.", mark: [35 / 3, 0, "(11.667, 0)"], view: [8, 15, -2, 3] },
+      { say: "The x-intercept is 11.666…, so fill all 5 spaces.", mark: [35 / 3, 0, "x = 11.667"], pick: 35 / 3 }],
+    "d1-4": [
+      { say: "Type the function with parentheses around the top and the bottom.", keys: ["y = (2x + 1)/(x - 3)"], view: [-6, 8, -6, 8] },
+      { say: "Click where the curve crosses the y-axis.", mark: [0, -1 / 3, "(0, −0.333)"], view: [-3, 3, -2, 2] },
+      { say: "The y-coordinate is −0.333…, and a negative answer gets 6 characters.", mark: [0, -1 / 3, "y = −0.333"], pick: -1 / 3 }],
+    "d2-1": [
+      { say: "Name the function g so you can ask for any value.", keys: ["g(x) = 2x^2 - 3x + 4"], view: [-5, 4, -2, 26] },
+      { say: "Type g(−2) on the next line and Desmos shows 18.", keys: ["g(-2)"] },
+      { say: "That's the point (−2, 18) on the curve.", mark: [-2, 18, "g(−2) = 18"], pick: "18" }],
+    "d2-2": [
+      { say: "Type it as written; no need to expand.", keys: ["y = (x - 4)(x + 3) - 2"], view: [-7, 9, -18, 8] },
+      { say: "Click the curve, then the grey dot on the y-axis.", mark: [0, -14, "(0, −14)"], pick: -14 }],
+    "d2-3": [
+      { say: "Graph h.", keys: ["h(x) = x^2 - 10x + 21"], view: [-1, 11, -6, 12] },
+      { say: "Click the lowest point, the vertex.", mark: [5, -4, "vertex (5, −4)"] },
+      { say: "The minimum happens at x = 5. The −4 is the minimum value, not the x.", mark: [5, -4, "x = 5"], pick: "5" }],
+    "d2-4": [
+      { say: "Define f first.", keys: ["f(x) = 3x - 7"], view: [-2, 8, -6, 24] },
+      { say: "Then define g using f; Desmos handles the shift.", keys: ["g(x) = f(x + 2) + 4"] },
+      { say: "Ask for g(5): it's 18.", keys: ["g(5)"], mark: [5, 18, "g(5) = 18"], pick: 18 }],
+    "d2-5": [
+      { say: "Graph the cubic.", keys: ["y = x^3 - 4x^2 - 11x + 30"], view: [-5, 7, -40, 45] },
+      { say: "Click the curve: grey dots appear at the three x-intercepts.", mark: [[-3, 0, "−3"], [2, 0, "2"], [5, 0, "5"]] },
+      { say: "Add them: −3 + 2 + 5 = 4.", mark: [[-3, 0, "−3"], [2, 0, "2"], [5, 0, "5"]], pick: 4 }],
+    "d3-1": [
+      { say: "Type `table` and enter the two points.", table: [[1, 4], [7, 16]], view: [-2, 7, -2, 20] },
+      { say: "Run a line regression on the table's columns.", keys: ["y1 ~ m x1 + b"] },
+      { say: "Desmos finds m = 3 and b = 4: the line crosses the y-axis at 4.", mark: [0, 4, "b = 4"], pick: "y = 3x + 4" }],
+    "d3-2": [
+      { say: "Each ride is a point (miles, cost). Put both in a table.", table: [[3, 8], [10.2, 19.2]], view: [-1, 10, -2, 24] },
+      { say: "Fit a line: m is the per-mile rate, b is the fixed fee.", keys: ["y1 ~ m x1 + b"] },
+      { say: "b = 4.8: the cost at 0 miles is the fixed fee.", mark: [0, 4.8, "b = 4.8"], pick: 4.8 }],
+    "d3-3": [
+      { say: "Enter the three points in a table.", table: [[0, 1, 2], [3, 6, 13]], view: [-2, 5, -2, 30] },
+      { say: "Three points fit a parabola.", keys: ["y1 ~ a x1^2 + b x1 + c"] },
+      { say: "Build f from the numbers Desmos found, then ask for f(3).", keys: ["f(x) = a x^2 + b x + c", "f(3)"], mark: [3, 24, "f(3) = 24"], pick: 24 }],
+    "d3-4": [
+      { say: "Put the table's three points in a Desmos table.", table: [[-1, 1, 3], [9, 1, 9]], view: [-3, 5, -1, 12] },
+      { say: "Fit a parabola: Desmos gives a = 2, b = −4, c = 3.", keys: ["y1 ~ a x1^2 + b x1 + c"], mark: [1, 1, "vertex (1, 1)"] },
+      { say: "Match a, b and c to the choices.", pick: "f(x) = 2x² − 4x + 3" }],
+    "d4-1": [
+      { say: "Type both equations as they are.", keys: ["5x - 2y = 4", "3x + 2y = 12"], view: [-2, 6, -2, 7] },
+      { say: "Click where the lines cross.", mark: [2, 3, "(2, 3)"] },
+      { say: "x = 2 and y = 3, so x + y = 5.", mark: [2, 3, "2 + 3 = 5"], pick: 5 }],
+    "d4-2": [
+      { say: "Graph the parabola and the line.", keys: ["y = x^2 - 4x + 1", "y = 2x - 8"], view: [-2, 8, -6, 8] },
+      { say: "Zoom in: the line only touches the parabola once.", mark: [3, -2, "(3, −2)"], view: [1, 5, -4, 0] },
+      { say: "One meeting point means one solution.", mark: [3, -2, "one point"], pick: "Exactly one" }],
+    "d4-3": [
+      { say: "Type both equations.", keys: ["6x - 4y = 10", "9x - 6y = 15"], view: [-5, 6, -6, 6] },
+      { say: "Only one line shows: the second sits right on top of the first.", mark: [1, -1, "same line"] },
+      { say: "Every point on that line solves both, so there are infinitely many solutions.", pick: "Infinitely many" }],
+    "d4-4": [
+      { say: "Graph both equations.", keys: ["y = x^2 + 2x - 3", "y = 3x + 3"], view: [-5, 6, -6, 16] },
+      { say: "Click the two crossings.", mark: [[-2, -3, "(−2, −3)"], [3, 12, "(3, 12)"]] },
+      { say: "Add the y-values: −3 + 12 = 9.", mark: [[-2, -3, "y₁ = −3"], [3, 12, "y₂ = 12"]], pick: 9 }],
+    "d5-1": [
+      { say: "Graph the parabola and y = c, then click \"add slider\" for c.", keys: ["y = x^2 - 8x + 20", "y = c", "c = 10"], view: [-2, 10, -2, 14] },
+      { say: "At c = 10 the flat line cuts the parabola twice. Drag c down.", keys: ["c = 4"], mark: [4, 4, "touches once"] },
+      { say: "At c = 4 it just touches the vertex: exactly one point.", mark: [4, 4, "c = 4"], pick: 4 }],
+    "d5-2": [
+      { say: "Graph it as y = …, with a slider for k.", keys: ["y = x^2 + k x + 25", "k = 4"], view: [-12, 4, -5, 30] },
+      { say: "Exactly one solution means the parabola just touches the x-axis. Drag k up.", keys: ["k = 10"], mark: [-5, 0, "touches at (−5, 0)"] },
+      { say: "That happens at k = 10.", mark: [-5, 0, "k = 10"], pick: 10 }],
+    "d5-3": [
+      { say: "Graph both, with a slider for k.", keys: ["y = -x^2 + 4x + 3", "y = 2x + k", "k = 0"], view: [-3, 5, -4, 10] },
+      { say: "Drag k until the line just grazes the parabola.", keys: ["k = 4"], mark: [1, 6, "one point (1, 6)"] },
+      { say: "That's k = 4.", mark: [1, 6, "k = 4"], pick: "4" }],
+    "d5-4": [
+      { say: "Graph both, with a slider for b.", keys: ["y = 3x + 2", "y = x^2 + b x + 6", "b = 0"], view: [-6, 5, -8, 14] },
+      { say: "At b = −1 they touch once, but b has to be positive.", keys: ["b = -1"], mark: [2, 8, "b = −1"] },
+      { say: "Keep dragging: at b = 7 they touch again. That's the answer.", keys: ["b = 7"], mark: [-2, -4, "b = 7"], pick: 7 }],
+    "d6-1": [
+      { say: "Split the equation: y = left side, y = right side.", keys: ["y = 4(x - 3) + 7", "y = 2x + 9"], view: [-1, 10, -2, 30] },
+      { say: "Click the crossing.", mark: [7, 23, "(7, 23)"] },
+      { say: "The solution is the x-coordinate: 7.", mark: [7, 23, "x = 7"], pick: 7 }],
+    "d6-2": [
+      { say: "Graph each side as its own y = ….", keys: ["y = x^2 - 5", "y = |x|"], view: [-5, 5, -6, 8] },
+      { say: "Count the crossings.", mark: [[-(1 + Math.sqrt(21)) / 2, (1 + Math.sqrt(21)) / 2, "x ≈ −2.79"], [(1 + Math.sqrt(21)) / 2, (1 + Math.sqrt(21)) / 2, "x ≈ 2.79"]] },
+      { say: "Two crossings, so two real solutions.", mark: [[-(1 + Math.sqrt(21)) / 2, (1 + Math.sqrt(21)) / 2, "1"], [(1 + Math.sqrt(21)) / 2, (1 + Math.sqrt(21)) / 2, "2"]], pick: "Two" }],
+    "d6-3": [
+      { say: "y = left side, y = right side.", keys: ["y = 3/(x - 1)", "y = x + 1"], view: [-4, 5, -5, 7] },
+      { say: "There are two crossings. The question wants the positive x.", mark: [[-2, -1, "(−2, −1)"], [2, 3, "(2, 3)"]] },
+      { say: "The right-hand crossing is at x = 2.", mark: [2, 3, "x = 2"], pick: 2 }],
+    "d6-4": [
+      { say: "Graph each side.", keys: ["y = x^2 + 3x", "y = 11"], view: [-8, 5, -4, 16] },
+      { say: "Click the crossing on the right.", mark: [(-3 + Math.sqrt(53)) / 2, 11, "x = 2.140055…"] },
+      { say: "x = 2.140055…, so type digits until the box is full.", mark: [(-3 + Math.sqrt(53)) / 2, 11, "x ≈ 2.140"], pick: (-3 + Math.sqrt(53)) / 2 }],
+    "d7-1": [
+      { say: "Graph both sides, with a slider for k.", keys: ["y = 3(x + 2k)", "y = x + 10k", "k = 2"], view: [-2, 10, -2, 45] },
+      { say: "Type a choice as a vertical line. x = 2k runs through the crossing.", keys: ["x = 2k"], mark: ["2k", "12k", "crossing"] },
+      { say: "Change k: the crossing moves, and x = 2k still goes through it.", keys: ["k = 3"], mark: ["2k", "12k", "x = 2k"], pick: "2k" }],
+    "d7-2": [
+      { say: "Graph it with a slider for k (k > 0).", keys: ["y = x^2 - 6k x + 8k^2", "k = 2"], view: [-2, 10, -6, 10] },
+      { say: "Type each choice as a vertical line. x = 4k hits an x-intercept.", keys: ["x = 4k"], mark: ["4k", 0, "x = 4k"] },
+      { say: "Change k: x = 4k still lands on a zero.", keys: ["k = 1"], mark: ["4k", 0, "zero at 4k"], pick: "4k" }],
+    "d7-3": [
+      { say: "Graph both sides, with a slider for k.", keys: ["y = (x + k)/3", "y = (2x - k)/5", "k = 1"], view: [-2, 20, -2, 10] },
+      { say: "Try the choices as vertical lines. x = 8k goes through the crossing.", keys: ["x = 8k"], mark: ["8k", "3k", "crossing"] },
+      { say: "Drag k to 2: x = 8k still runs through it.", keys: ["k = 2"], mark: ["8k", "3k", "x = 8k"], pick: "8k" }],
+    "d7-4": [
+      { say: "Graph both sides, with a slider for k.", keys: ["y = sqrt(x + k)", "y = 2k", "k = 1"], view: [-3, 18, -1, 6] },
+      { say: "Type the choice as a vertical line: it hits the crossing.", keys: ["x = 4k^2 - k"], mark: ["4k^2-k", "2k", "crossing"] },
+      { say: "Change k to 2: still a hit. The other choices miss.", keys: ["k = 2"], mark: ["4k^2-k", "2k", "x = 4k² − k"], pick: "4k² − k" }],
+    "d8-1": [
+      { say: "Type both equations: they draw one line.", keys: ["y = 3x - 4", "6x - 2y = 8"], view: [-4, 6, -8, 10] },
+      { say: "Type choice A as a point, with a slider for r.", keys: ["r = 1", "(r, 3r - 4)"], mark: ["r", "3r-4", "(r, 3r − 4)"] },
+      { say: "Drag r: the point slides along the line, so it works for every r.", keys: ["r = 3"], mark: ["r", "3r-4", "still on the line"], pick: "(r, 3r − 4)" }],
+    "d8-2": [
+      { say: "Type both equations: they're the same line.", keys: ["x + 2y = 8", "3x + 6y = 24"], view: [-2, 10, -2, 7] },
+      { say: "Type choice B as a point, with a slider for r.", keys: ["r = 1", "(8 - 2r, r)"], mark: ["8-2r", "r", "(8 − 2r, r)"] },
+      { say: "Drag r: it stays on the line. The other choices wander off.", keys: ["r = 3"], mark: ["8-2r", "r", "still on the line"], pick: "(8 − 2r, r)" }],
+    "d8-3": [
+      { say: "Type both equations: one line.", keys: ["4x - 6y = 18", "2x - 3y = 9"], view: [-4, 10, -6, 4] },
+      { say: "Type choice C as a point, with a slider for r.", keys: ["r = 1", "(3r + 3, 2r - 1)"], mark: ["3r+3", "2r-1", "(3r + 3, 2r − 1)"] },
+      { say: "Drag r: it slides along the line for every r.", keys: ["r = -1"], mark: ["3r+3", "2r-1", "still on the line"], pick: "(3r + 3, 2r − 1)" }],
+    "d8-4": [
+      { say: "Type both equations: one line.", keys: ["5x + 2y = 10", "15x + 6y = 30"], view: [-4, 5, -2, 12] },
+      { say: "Type choice D as a point, with a slider for r.", keys: ["r = 1", "(2r, 5 - 5r)"], mark: ["2r", "5-5r", "(2r, 5 − 5r)"] },
+      { say: "Drag r: it never leaves the line.", keys: ["r = -1"], mark: ["2r", "5-5r", "still on the line"], pick: "(2r, 5 − 5r)" }],
+    "d9-1": [
+      { say: "Type both inequalities; the overlap is the solution region.", keys: ["y > 3x - 2", "y < -x + 6"], view: [-3, 5, -3, 10] },
+      { say: "Type each choice as a point. (3, 4) lands outside.", keys: ["(3, 4)"] },
+      { say: "(0, 0) sits in the double-shaded region.", keys: ["(0, 0)"], mark: [0, 0, "(0, 0) ✓"], pick: "(0, 0)" }],
+    "d9-2": [
+      { say: "Type all four inequalities (type < then = for ≤).", keys: ["x + y <= 10", "y >= 2x - 2", "x >= 0", "y >= 0"], view: [-2, 12, -2, 12] },
+      { say: "Click the corners of the overlap.", mark: [[0, 0, "(0, 0)"], [1, 0, "(1, 0)"], [4, 6, "(4, 6)"], [0, 10, "(0, 10)"]] },
+      { say: "The corner farthest right is (4, 6), so the greatest x is 4.", mark: [4, 6, "max x = 4"], pick: 4 }],
+    "d9-3": [
+      { say: "Type the three inequalities.", keys: ["y <= -2x + 12", "y >= x", "x >= 0"], view: [-2, 8, -2, 14] },
+      { say: "Click the corners of the overlap.", mark: [[0, 0, "(0, 0)"], [4, 4, "(4, 4)"], [0, 12, "(0, 12)"]] },
+      { say: "The highest corner is (0, 12).", mark: [0, 12, "max y = 12"], pick: "12" }],
+    "d9-4": [
+      { say: "Type both inequalities.", keys: ["y >= x^2 - 4", "y <= 2x + 4"], view: [-4, 6, -6, 14] },
+      { say: "The overlap is the cup between the parabola and the line. Its lowest point is the vertex.", mark: [0, -4, "(0, −4)"] },
+      { say: "So the minimum y is −4.", mark: [0, -4, "min y = −4"], pick: -4 }],
+    "d10-1": [
+      { say: "Graph the original expression.", keys: ["y = 3(x - 4) - 2(x + 1)"], view: [-5, 20, -20, 6] },
+      { say: "Try a choice: x − 10 runs beside it, not on it.", keys: ["y = x - 10"] },
+      { say: "x − 14 lands exactly on top: one line.", keys: ["y = x - 14"], mark: [0, -14, "same line"], pick: "x − 14" }],
+    "d10-2": [
+      { say: "Graph the original expression.", keys: ["y = (x + 5)(x - 2) - 3x"], view: [-6, 6, -12, 10] },
+      { say: "Try choice B: it sits exactly on top.", keys: ["y = x^2 - 10"], mark: [0, -10, "same curve"] },
+      { say: "So x² − 10 is equivalent.", pick: "x² − 10" }],
+    "d10-3": [
+      { say: "Graph the original.", keys: ["y = (x^2 - 9)/(x + 3)"], view: [-8, 6, -10, 5] },
+      { say: "Try x − 3: it lies right on top, with a hole at x = −3.", keys: ["y = x - 3"], mark: [-3, -6, "hole at x = −3"] },
+      { say: "So x − 3 is equivalent wherever x ≠ −3.", pick: "x − 3" }],
+    "d10-4": [
+      { say: "Two letters: rename y as a slider b, then graph it.", keys: ["y = (4x^3 b - 8x^2 b^2)/(2x^2 b)", "b = 2"], view: [-6, 6, -14, 10] },
+      { say: "Type the choice with b for y: it sits on top.", keys: ["y = 2x - 4b"], mark: [2, "4-4b", "on top"] },
+      { say: "Change b: it still sits on top, so 2x − 4y is equivalent.", keys: ["b = -1"], mark: [2, "4-4b", "still on top"], pick: "2x − 4y" }],
+    "d11-1": [
+      { say: "Change x to x1 on both sides and use ~.", keys: ["(3x1 - 2)(x1 + 5) ~ a x1^2 + b x1 + c"] },
+      { say: "Give x1 five test values. Desmos finds a = 3, b = 13, c = −10.", keys: ["x1 = [1...5]"] },
+      { say: "Add them: 3 + 13 − 10 = 6.", keys: ["a + b + c"], pick: 6 }],
+    "d11-2": [
+      { say: "Put the two points in a table.", table: [[4, 7], [6, 2]], view: [-2, 12, -4, 10] },
+      { say: "Type the form with ~: Desmos finds a = 9 and b = 2.5.", keys: ["y1 ~ a/(x1 - b)"], mark: [[4, 6, "(4, 6)"], [7, 2, "(7, 2)"]] },
+      { say: "a + b = 11.5.", keys: ["a + b"], pick: 11.5 }],
+    "d11-3": [
+      { say: "Zeros are points with y = 0. Put them in a table.", table: [[-2, 1, 4], [0, 0, 0]], view: [-4, 6, -15, 15] },
+      { say: "Fit the cubic form with ~.", keys: ["y1 ~ x1^3 + b x1^2 + c x1 + d"] },
+      { say: "d = 8 is where the curve crosses the y-axis.", mark: [0, 8, "d = 8"], pick: 8 }],
+    "d11-4": [
+      { say: "Change x to x1 and use ~.", keys: ["(x1 + 4)^2 - 3(x1 + 4) ~ x1^2 + p x1 + q"] },
+      { say: "Add the test values. Desmos finds p = 5 and q = 4.", keys: ["x1 = [1...5]"], pick: "4" }],
+    "d12-1": [
+      { say: "Write the expression ~ x1 to the power n.", keys: ["sqrt(x1) · cbrt(x1) ~ x1^n"] },
+      { say: "Give x1 values bigger than 1. Desmos finds n = 0.8333…", keys: ["x1 = [2...5]"] },
+      { say: "That's 5/6, a repeating decimal.", pick: 5 / 6 }],
+    "d12-2": [
+      { say: "Graph the original.", keys: ["y = (x^6)^(1/3) / x^(1/2)"], view: [-1, 6, -1, 12] },
+      { say: "Try choice A, x√x: it lands right on top.", keys: ["y = x sqrt(x)"], mark: [4, 8, "same curve"] },
+      { say: "So x√x is equivalent.", pick: "x√x" }],
+    "d12-3": [
+      { say: "Type nthroot, then 5 in the small box. Set it ~ x1 to the power a.", keys: ["nthroot(5, x1^4) · x1^(-1/10) ~ x1^a"] },
+      { say: "Add test values bigger than 1. Desmos finds a = 0.7.", keys: ["x1 = [2...5]"], pick: 0.7 }],
+    "d12-4": [
+      { say: "Graph each side.", keys: ["y = 8^(2x)", "y = 2^(x + 10)"], view: [-1, 3, -500, 6000] },
+      { say: "These grow fast, so zoom out to find the crossing.", mark: [2, 4096, "(2, 4096)"] },
+      { say: "The solution is the x-coordinate: 2.", mark: [2, 4096, "x = 2"], pick: 2 }],
+    "d13-1": [
+      { say: "Put the known point in a table.", table: [[1], [-4]], view: [-4, 5, -32, 8] },
+      { say: "Build the vertex into the form so Desmos only finds a.", keys: ["y1 ~ a(x1 + 1)^2 + 4"] },
+      { say: "a = −2. Define f with it and ask for f(3).", keys: ["f(x) = a(x + 1)^2 + 4", "f(3)"], mark: [3, -28, "f(3) = −28"], pick: -28 }],
+    "d13-2": [
+      { say: "Put (1, 3) in a table and build in the vertex. Desmos finds a = 2.", table: [[1], [3]], keys: ["y1 ~ a(x1 - 3)^2 - 5"], view: [-1, 7, -7, 5] },
+      { say: "Now rewrite it in standard form with a second list.", keys: ["a(x2 - 3)^2 - 5 ~ m x2^2 + b x2 + c", "x2 = [1...5]"], mark: [3, -5, "vertex (3, −5)"] },
+      { say: "Desmos finds b = −12.", pick: -12 }],
+    "d13-3": [
+      { say: "A regression shows only one answer.", keys: ["x1^2 ~ 49"] },
+      { say: "Graph both sides instead.", keys: ["y = x^2", "y = 49"], view: [-10, 10, -5, 60] },
+      { say: "Two crossings: x = −7 and x = 7. The regression hid −7.", mark: [[-7, 49, "x = −7"], [7, 49, "x = 7"]], pick: "x² = 49 also has the solution −7, which the regression doesn't show." }],
+    "d13-4": [
+      { say: "Graph each side to see every solution.", keys: ["y = |x - 2|", "y = 5"], view: [-6, 10, -1, 8] },
+      { say: "Two crossings: x = −3 and x = 7.", mark: [[-3, 5, "x = −3"], [7, 5, "x = 7"]] },
+      { say: "Add them: −3 + 7 = 4.", pick: "4" }],
+    "d14-1": [
+      { say: "Give y a value (7) and let n stand for x.", keys: ["7 ~ (3n - 5)/2"] },
+      { say: "Desmos finds n = 6.333. Test each choice with y = 7.", keys: ["(2(7) + 5)/3"] },
+      { say: "(2y + 5)/3 also gives 6.333, so it matches.", pick: "x = (2y + 5)/3" }],
+    "d14-2": [
+      { say: "Pick F = 77 and solve for the Celsius value c.", keys: ["F = 77", "F ~ (9/5)c + 32"] },
+      { say: "Desmos finds c = 25. Test the choices with F = 77.", keys: ["5(F - 32)/9"] },
+      { say: "5(F − 32)/9 also gives 25.", pick: "C = 5(F − 32)/9" }],
+    "d14-3": [
+      { say: "Give a and t values (a > t), and let n stand for b.", keys: ["a = 6", "t = 4", "1/t ~ 1/a + 1/n"] },
+      { say: "Desmos finds n = 12. Test a choice.", keys: ["a t/(a - t)"] },
+      { say: "at/(a − t) also gives 12.", pick: "b = at/(a − t)" }],
+    "d14-4": [
+      { say: "x is squared, so graph both sides with a slider for k.", keys: ["y = x^2", "y = 9k^2", "k = 1"], view: [-8, 8, -2, 40] },
+      { say: "Two crossings, at x = −3 and x = 3.", mark: [["-3k", "9k^2", "−3k"], ["3k", "9k^2", "3k"]] },
+      { say: "Change k: the crossings stay at −3k and 3k.", keys: ["k = 2"], mark: [["-3k", "9k^2", "x = −3k"], ["3k", "9k^2", "x = 3k"]], pick: "x = 3k or x = −3k" }],
+    "d15-1": [
+      { say: "Turn each sentence into one equation inside the brackets (typing % adds \"of\").", keys: ["[p, q] ~ [q + 30% of q, 150 - 20% of 150]"] },
+      { say: "Desmos finds q = 120 and p = 156.", pick: 156 }],
+    "d15-2": [
+      { say: "Put both facts in one list regression.", keys: ["[m + n, m n] ~ [11, 28]"] },
+      { say: "Desmos finds 7 and 4. m is the bigger one, so m − n = 3.", pick: 3 }],
+    "d15-3": [
+      { say: "March is m, January is j. One bracket item per sentence.", keys: ["[m, 60] ~ [j + 25% of j, m - 20% of m]"] },
+      { say: "Desmos finds m = 75 and j = 60.", pick: "$60" }],
+    "d15-4": [
+      { say: "One bracket item per sentence, with t = 50 typed in.", keys: ["[r, s] ~ [s + 150% of s, 50 - 60% of 50]"] },
+      { say: "Desmos finds s = 20 and r = 50.", pick: 50 }],
+    "d16-1": [
+      { say: "Put the data in a list.", keys: ["L = [12, 15, 9, 20, 14, 8]"] },
+      { say: "Range is max minus min: 12.", keys: ["max(L) - min(L)"], pick: 12 }],
+    "d16-2": [
+      { say: "Add the unknown score as x1 and set the mean to 85.", keys: ["mean([78, 85, 92, 81, x1]) ~ 85"] },
+      { say: "Desmos finds x1 = 89.", pick: 89 }],
+    "d16-3": [
+      { say: "Put the data in a list.", keys: ["L = [3, 7, 7, 10, 18]"] },
+      { say: "Median minus mean: 7 − 9 = −2.", keys: ["median(L) - mean(L)"], pick: "−2" }],
+    "d16-4": [
+      { say: "Any six numbers with mean 14 work, so use six 14s.", keys: ["mean([14, 14, 14, 14, 14, 14, x1]) ~ 15"] },
+      { say: "Desmos finds x1 = 21.", pick: 21 }],
+    "d17-1": [
+      { say: "Switch to degrees first (wrench → Degrees).", deg: true },
+      { say: "Opposite = hypotenuse × sin A.", keys: ["20 sin(35)"] },
+      { say: "Desmos shows 11.47…, which rounds to 11.5.", pick: 11.5 }],
+    "d17-2": [
+      { say: "Type the circle's equation.", keys: ["x^2 + y^2 + 10x - 4y = 7"], view: [-13, 3, -6, 10] },
+      { say: "Click the top and bottom grey dots: the ends of a diameter.", mark: [[-5, 8, "(−5, 8)"], [-5, -4, "(−5, −4)"]] },
+      { say: "The diameter is 12, so the radius is 6.", mark: [-5, 2, "r = 6"], pick: 6 }],
+    "d17-3": [
+      { say: "Type the circle's equation.", keys: ["(x - 1)^2 + y^2 + 6y = 16"], view: [-7, 9, -10, 4] },
+      { say: "Click the top and bottom dots.", mark: [[1, 2, "(1, 2)"], [1, -8, "(1, −8)"]] },
+      { say: "The center is halfway between them: (1, −3).", mark: [1, -3, "center (1, −3)"], pick: "(1, −3)" }],
+    "d17-4": [
+      { say: "Plot both points to see them.", keys: ["(-2, 5)", "(4, -3)"], view: [-4, 6, -5, 7] },
+      { say: "Ask for the distance: 10.", keys: ["distance((-2, 5), (4, -3))"], pick: 10 }],
+    "d17-5": [
+      { say: "Type midpoint with both endpoints.", keys: ["midpoint((-3, 7), (9, -1))"], view: [-5, 11, -3, 9] },
+      { say: "Desmos plots it at (3, 3).", mark: [3, 3, "(3, 3)"], pick: "(3, 3)" }],
+    "d18-1": [
+      { say: "Desmos works: graph both with a slider for k and drag until the lines are parallel.", keys: ["k x + 6y = 4", "2x + 3y = 9", "k = 4"], view: [-4, 8, -2, 6] },
+      { say: "Faster by hand: no solution means the x and y coefficients share a ratio. k/2 = 6/3.", hand: true },
+      { say: "So k = 4 (and 4/9 isn't 2, so the lines don't overlap).", hand: true, pick: 4 }],
+    "d18-2": [
+      { say: "Skip Desmos: the answer is an equation, so there's nothing to graph.", hand: true },
+      { say: "$30 per hour is 30h; the $45 is charged once.", hand: true },
+      { say: "C = 30h + 45.", hand: true, pick: "C = 30h + 45" }],
+    "d18-3": [
+      { say: "You could graph it with a slider and watch the parabola leave the x-axis.", keys: ["y = x^2 - 6x + c", "c = 12"], view: [-2, 8, -2, 14], mark: [3, 3, "no x-intercepts"] },
+      { say: "Faster by hand: no real solutions means b² − 4ac < 0, so 36 − 4c < 0.", hand: true },
+      { say: "c > 9, and only 12 is bigger than 9.", hand: true, pick: "12" }],
+    "d18-4": [
+      { say: "Skip Desmos: this is about spread, not calculation.", hand: true },
+      { say: "Both means are 10. A never varies; B is spread out.", hand: true },
+      { say: "So B has the larger standard deviation.", hand: true, pick: "They have the same mean, and B has the larger standard deviation." }],
+    "d18-5": [
+      { say: "Two unknown constants means two sliders: slow. Use the rule instead.", hand: true },
+      { say: "Infinitely many: a/3 = 4/2 = 10/b, so a = 6 and b = 5.", hand: true },
+      { say: "Check: with those values the lines are the same line. a + b = 11.", keys: ["6x + 4y = 10", "3x + 2y = 5"], view: [-3, 5, -4, 6], pick: 11 }]
+  };
+  for (const q of questions) q.walk = WALKS[q.id];
+
   return { lessons, questions };
 })();
