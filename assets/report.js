@@ -18,11 +18,11 @@ window.CL_REPORT = (() => {
 <title>${who} SAT progress · Clearline</title>
 <style>
 :root{--bg:#f5f1e4;--card:#fffcf2;--ink:#2c2e2a;--soft:#5c5e55;--line:#d9d1b8;--coral:#ff705d;--sky:#2ba0ff;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#141813;--card:#1c211a;--ink:#f5f1e4;--soft:#b9b5a6;--line:#343c30;color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root{--bg:#14161b;--card:#1c1f25;--ink:#ebe8e0;--soft:#a6a8ae;--line:#30343c;--edge:#6a7080;--coral:#ef8778;--sky:#6cb4ef;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
 main{max-width:860px;margin:0 auto;padding:28px 16px 48px}h1{font-size:30px;line-height:1.1;margin:0 0 4px;letter-spacing:-.02em}h2{font-size:18px;margin:0 0 10px}
 .soft{color:var(--soft);margin:4px 0 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin:18px 0}
-section,.tile{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:16px 18px}section{margin-top:14px}
+section,.tile{background:var(--card);border:2px solid var(--edge,var(--ink));border-radius:16px;padding:16px 18px}section{margin-top:14px}
 .tile small{display:block;color:var(--soft);font-size:12.5px}.tile b,.big{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}th{font-size:12.5px;color:var(--soft);font-weight:600}.n{text-align:right}
 .note{font-size:12.5px;color:var(--soft);margin-top:22px}@media print{body{background:#fff}section,.tile{break-inside:avoid}}

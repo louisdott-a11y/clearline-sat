@@ -278,11 +278,11 @@
   }
   // Gem the mascot: a lilac cut gem (Gem is a tool, so it takes the tool region) with a face, plus one short speech bubble.
   function gemSays(text, mood = "smile") {
-    const face = mood === "cheer" ? svg("path", { d: "M26 38q6 7 12 0z", fill: "var(--ink)" }) : svg("path", { d: "M27 38q5 4 10 0", fill: "none", stroke: "var(--ink)", "stroke-width": "2.4", "stroke-linecap": "round" });
+    const face = mood === "cheer" ? svg("path", { d: "M26 38q6 7 12 0z", fill: "var(--on-color)" }) : svg("path", { d: "M27 38q5 4 10 0", fill: "none", stroke: "var(--on-color)", "stroke-width": "2.4", "stroke-linecap": "round" });
     const body = svg("svg", { class: "gem-mascot" + (mood === "cheer" ? " cheer" : ""), viewBox: "0 0 64 64", width: "64", height: "64", "aria-hidden": "true" },
-      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--ink)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
-      svg("path", { d: "M12 22h40M21 9l6 13 5-13 5 13 6-13", fill: "none", stroke: "var(--ink)", "stroke-width": "1.6", "stroke-linejoin": "round" }),
-      svg("circle", { cx: "26", cy: "30", r: "2.4", fill: "var(--ink)" }), svg("circle", { cx: "38", cy: "30", r: "2.4", fill: "var(--ink)" }),
+      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--on-color)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
+      svg("path", { d: "M12 22h40M21 9l6 13 5-13 5 13 6-13", fill: "none", stroke: "var(--on-color)", "stroke-width": "1.6", "stroke-linejoin": "round" }),
+      svg("circle", { cx: "26", cy: "30", r: "2.4", fill: "var(--on-color)" }), svg("circle", { cx: "38", cy: "30", r: "2.4", fill: "var(--on-color)" }),
       svg("circle", { cx: "21.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), svg("circle", { cx: "42.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), face);
     return el("div", { class: "gem-say" }, body, el("p", { class: "gem-bubble", role: "status" }, el("span", { class: "sr", text: "Gem says: " }), text));
   }
@@ -2305,7 +2305,7 @@
     const c = ui.calc, ctx = cv.getContext("2d");
     const Wd = cv.width, H = cv.height, R = c.range, yR = (R * H) / Wd;
     const css = getComputedStyle(document.documentElement);
-    const ink = css.getPropertyValue("--ink").trim() || "#141414", rule = css.getPropertyValue("--rule").trim() || "#cfcdc0", paper = css.getPropertyValue("--paper").trim() || "#f2f1ea";
+    const ink = css.getPropertyValue("--ink").trim() || "#141414", rule = css.getPropertyValue("--line").trim() || "#cfcdc0", paper = css.getPropertyValue("--card").trim() || "#f2f1ea";
     const X = (x) => ((x + R) / (2 * R)) * Wd, Y = (y) => H - ((y + yR) / (2 * yR)) * H;
     ctx.fillStyle = paper; ctx.fillRect(0, 0, Wd, H);
     const step = Math.pow(10, Math.floor(Math.log10(R))) / (R / Math.pow(10, Math.floor(Math.log10(R))) > 5 ? 0.5 : 1);
