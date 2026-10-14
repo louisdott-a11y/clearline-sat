@@ -230,6 +230,12 @@ button.tag.sun:hover { background: var(--lilac); opacity: 0.9; }
 .choice.is-right .bubble { background: var(--green-fill); border-color: var(--green-fill); color: #fff; }
 .choice.is-wrong { border-color: var(--red-fill); background: var(--red-wash); box-shadow: 0 0 0 1px var(--red-fill) inset; }
 .choice.is-wrong .bubble { background: var(--red-fill); border-color: var(--red-fill); color: #fff; }
+.match-grid { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 12px; margin-top: 14px; }
+.match-col { display: grid; gap: 8px; align-content: start; }
+.choice.match-cell { display: block; font-size: 15px; min-height: 48px; }
+.match-col:first-child .match-cell { font-family: var(--f-ui); }
+.choice.match-cell[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; background: var(--accent-soft); }
+.choice.match-cell.is-right { opacity: 0.6; }
 .choice.struck > span:last-child { text-decoration: line-through; opacity: 0.45; }
 .choice.struck .bubble { opacity: 0.45; }
 .strike { border: 1px solid var(--line-strong); background: var(--card); border-radius: 8px; padding: 4px 9px; font-size: 12px; font-weight: 600; }

@@ -95,7 +95,7 @@
     psat89: { label: "PSAT 8/9", min: 120, max: 720 },
     other: { label: "Other practice test", min: 200, max: 800 }
   };
-  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["desmos", "Desmos"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Flashcards"], ["guides", "Guides"]];
+  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["desmos", "Desmos"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Vocab"], ["guides", "Guides"]];
   const ICONS = {
     home: "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10",
     practice: "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4",
@@ -111,7 +111,7 @@
   const DESMOS_API_KEY = "dcb31709b452b1cf9dc26972add0fda6";
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, timeMult: 1, plainNotes: false });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
   const ui = {
@@ -136,7 +136,7 @@
     const b = blankProgress();
     if (!p || typeof p !== "object") return b;
     const out = { ...b, ...p, v: 3 };
-    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl", "qnotes", "cols"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
+    for (const k of ["attempts", "study", "timer", "target", "saved", "vocab", "rush", "hl", "qnotes", "cols", "games"]) if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = b[k];
     for (const k of ["scores", "mocks", "drills"]) if (!Array.isArray(out[k])) out[k] = [];
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (const [id, list] of Object.entries(out.attempts)) {
@@ -1962,7 +1962,108 @@
     const now = Date.now();
     return VOCAB.filter((v) => { const s = progress.vocab[v.w]; return !s || s.due <= now; });
   }
+  // Three ways to study the same deck: flashcards (spaced), Match (6 words to 6 definitions, timed) and Learn (pick the word for the sentence).
   function renderVocab() {
+    const vs = ui.vocab;
+    const games = el("div", { class: "pills", role: "group", "aria-label": "Vocab mode", style: "margin-bottom:14px" }, [["cards", "Flashcards"], ["match", "Match"], ["learn", "Learn"]].map(([k, l]) =>
+      el("button", { class: "pill", type: "button", "aria-pressed": String((vs.game || "cards") === k), onclick: () => { vs.game = k; render(); } }, l)));
+    return el("div", {}, games, vs.game === "match" ? renderMatch() : vs.game === "learn" ? renderLearn() : renderFlashcards());
+  }
+  function startMatch() {
+    const words = shuffle(VOCAB.slice()).slice(0, 6);
+    ui.vocab.match = { words: words.map((v) => v.w), defs: shuffle(words.map((v) => v.w)), sel: null, got: [], misses: 0, wrong: null, start: Date.now(), end: null };
+    render();
+    document.querySelector(".match-col button")?.focus();
+  }
+  function matchPick(side, w) {
+    const m = ui.vocab.match;
+    if (!m || m.end || m.wrong || m.got.includes(w)) return;
+    if (!m.sel || m.sel.side === side) { m.sel = m.sel && m.sel.side === side && m.sel.w === w ? null : { side, w }; render(); return; }
+    if (m.sel.w === w) {
+      m.got.push(w); m.sel = null;
+      if (m.got.length === m.words.length) {
+        m.end = Date.now();
+        const secs = matchTime(m), best = progress.games.match;
+        m.newBest = !best || secs < best;
+        if (m.newBest) { progress.games.match = secs; save(); }
+      }
+      render();
+    } else {
+      m.misses++; m.wrong = side === "d" ? { w: m.sel.w, d: w } : { w, d: m.sel.w }; m.sel = null; render();
+      setTimeout(() => { if (ui.vocab.match === m) { m.wrong = null; render(); } }, 700);
+    }
+  }
+  // Each wrong pair adds 2 seconds, so guessing doesn't pay.
+  const matchTime = (m) => Math.round(((m.end || Date.now()) - m.start) / 100) / 10 + m.misses * 2;
+  function renderMatch() {
+    const m = ui.vocab.match, best = progress.games.match;
+    if (!m) return sheet("", el("div", { class: "rush-start" },
+      el("h2", { class: "h1" }, "Vocab ", el("mark", { class: "hl", text: "Match" })),
+      el("p", { class: "sub", text: "Six words, six definitions. Tap a word, then its meaning. The clock runs until all six are paired, and each wrong pair adds 2 seconds." }),
+      el("p", { class: "pen", text: best ? `Your best: ${best.toFixed(1)}s. Beat it?` : "No time yet. Set one!" }),
+      el("button", { class: "btn big sun", type: "button", onclick: startMatch }, "Start matching")));
+    if (m.end) return sheet("", el("div", { class: "rush-start" },
+      el("h2", { class: "h1" }, "All six in ", el("mark", { class: "hl", text: `${matchTime(m).toFixed(1)}s` })),
+      el("p", { class: "sub", text: m.misses ? `${m.misses} wrong pair${m.misses === 1 ? "" : "s"} (+${m.misses * 2}s)` : "No wrong pairs. Clean round." }),
+      el("p", { class: "pen", text: m.newBest ? "New personal best!" : `Your best is still ${best.toFixed(1)}s. Go get it.` }),
+      el("div", { class: "row" }, el("button", { class: "btn sun", type: "button", onclick: startMatch }, "Play again"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.vocab.match = null; render(); } }, "Done"))));
+    const byW = Object.fromEntries(VOCAB.map((v) => [v.w, v]));
+    const cell = (side, w, label) => {
+      const got = m.got.includes(w), sel = m.sel && m.sel.side === side && m.sel.w === w;
+      const wrong = m.wrong && m.wrong[side] === w;
+      return el("button", { class: "choice match-cell" + (got ? " is-right" : wrong ? " is-wrong" : sel ? " is-picked" : ""), type: "button", disabled: got, "aria-pressed": String(Boolean(sel)), onclick: () => matchPick(side, w) }, label);
+    };
+    return sheet("", el("div", { class: "rushbar" },
+        el("span", { class: "rush-clock", id: "match-clock", "aria-label": "Time", text: clock(matchTime(m)) }),
+        el("span", {}, el("b", { text: m.got.length }), " of 6 paired"),
+        el("span", { class: "pen combo", "aria-live": "polite", text: m.wrong ? "Not a pair. +2s" : "" }),
+        el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.vocab.match = null; render(); } }, "Quit")),
+      el("div", { class: "match-grid" },
+        el("div", { class: "match-col", role: "group", "aria-label": "Words" }, m.words.map((w) => cell("w", w, el("b", { text: w })))),
+        el("div", { class: "match-col", role: "group", "aria-label": "Definitions" }, m.defs.map((w) => cell("d", w, byW[w].def)))));
+  }
+  // Learn: the deck's own example sentence with the word blanked. Six examples use the past tense (conceded),
+  // so every choice is shown in that same form to keep the grammar from giving the answer away.
+  function learnItem(v) {
+    const stem = v.w.slice(0, Math.max(4, v.w.length - 2)).toLowerCase();
+    const tok = v.ex.split(/\s+/).map((t) => t.replace(/[^A-Za-z]/g, "")).find((t) => t.toLowerCase().startsWith(stem)) || v.w;
+    const past = tok.toLowerCase() !== v.w && /ed$/.test(tok);
+    const form = (w) => past ? w + (w.endsWith("e") ? "d" : "ed") : w;
+    const same = VOCAB.filter((x) => x.w !== v.w && x.pos === v.pos);
+    const others = shuffle(same.length >= 3 ? same : VOCAB.filter((x) => x.w !== v.w)).slice(0, 3);
+    return { w: v.w, sentence: v.ex.replace(tok, "_____"), choices: shuffle([v, ...others]).map((x) => ({ w: x.w, label: form(x.w) })), picked: null };
+  }
+  function startLearn() {
+    const order = shuffle(VOCAB.slice()).slice(0, 10);
+    ui.vocab.learn = { order: order.map((v) => v.w), i: 0, right: 0, missed: [], item: learnItem(order[0]) };
+    render();
+    document.getElementById("learn-0")?.focus();
+  }
+  function renderLearn() {
+    const L = ui.vocab.learn;
+    if (!L) return sheet("", el("div", { class: "rush-start" },
+      el("h2", { class: "h1" }, "Learn in ", el("mark", { class: "hl", text: "context" })),
+      el("p", { class: "sub", text: "Ten sentences, each missing one word from the deck. Pick the word that fits, then see its meaning. This is the same move as a Words in Context question." }),
+      el("button", { class: "btn big sun", type: "button", onclick: startLearn }, "Start learning")));
+    if (L.i >= L.order.length) return sheet("", el("div", { class: "rush-start" },
+      el("h2", { class: "h1" }, "Round done: ", el("mark", { class: "hl", text: `${L.right} of ${L.order.length}` })),
+      L.missed.length ? el("p", { class: "sub", text: "Words to look at again: " + L.missed.join(", ") }) : el("p", { class: "sub", text: "Every word right." }),
+      el("p", { class: "pen", text: L.right >= 8 ? "That's Words in Context form. Nice." : "Each miss is a word you now know better." }),
+      el("div", { class: "row" }, el("button", { class: "btn sun", type: "button", onclick: startLearn }, "Another round"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.vocab.game = "cards"; ui.vocab.learn = null; render(); } }, "Back to flashcards"))));
+    const it = L.item, v = VOCAB.find((x) => x.w === it.w), done = it.picked !== null;
+    const pick = (c) => { if (done) return; it.picked = c.w; if (c.w === it.w) L.right++; else L.missed.push(it.w); render(); document.getElementById("learn-next")?.focus(); };
+    const next = () => { L.i++; if (L.i < L.order.length) L.item = learnItem(VOCAB.find((x) => x.w === L.order[L.i])); render(); document.getElementById("learn-0")?.focus(); };
+    return sheet("", el("p", { class: "label", text: `Sentence ${L.i + 1} of ${L.order.length} · ${L.right} right` }),
+      el("p", { class: "prompt", style: "font-family:var(--f-read);font-size:19px;line-height:1.6;margin:8px 0 14px" }, it.sentence),
+      el("div", { class: "choices", role: "group", "aria-label": "Word choices" }, it.choices.map((c, i) => el("button", {
+        class: "choice" + (done && c.w === it.w ? " is-right" : done && c.w === it.picked ? " is-wrong" : ""), type: "button", id: "learn-" + i, disabled: done, onclick: () => pick(c)
+      }, el("span", { class: "bubble", text: LETTERS[i] }), el("span", { text: c.label })))),
+      done ? el("div", { class: "walk", style: "margin-top:14px", "aria-live": "polite" },
+        el("p", { class: "pen", text: it.picked === it.w ? "Right!" : `Not quite: it's “${it.choices.find((c) => c.w === it.w).label}.”` }),
+        el("p", {}, el("b", { text: v.w }), ` (${v.pos}) ${v.def}`),
+        el("button", { class: "btn", type: "button", id: "learn-next", style: "margin-top:10px", onclick: next }, L.i + 1 < L.order.length ? "Next sentence" : "See my round")) : null);
+  }
+  function renderFlashcards() {
     const due = vocabDue();
     const learned = VOCAB.filter((v) => (progress.vocab[v.w]?.box || 0) >= 4).length;
     const vs = ui.vocab;
@@ -2162,6 +2263,8 @@
       if (sc) sc.textContent = clock(set.timeLeft);
       if (set.timeLeft === 0) { toast("Time's up for this drill. Finish at your own pace."); set.timeLeft = null; save(); }
     }
+    const mc = document.getElementById("match-clock");
+    if (mc && ui.vocab.match && !ui.vocab.match.end) mc.textContent = clock(matchTime(ui.vocab.match));
     const r = ui.rush;
     if (r && !r.done && ui.view === "practice" && ui.pr.source === "rush" && visible) {
       r.left--;
@@ -2234,6 +2337,7 @@
     for (const [k, v] of Object.entries(B.qnotes)) if (!out.qnotes[k] || v.at > out.qnotes[k].at) out.qnotes[k] = v;
     for (const [k, v] of Object.entries(B.cols)) out.cols[k] = [...new Set([...(out.cols[k] || []), ...v])];
     for (const [k, v] of Object.entries(B.rush)) out.rush[k] = Math.max(out.rush[k] || 0, v);
+    if (B.games.match && !(out.games.match <= B.games.match)) out.games.match = B.games.match;
     for (const [k, v] of Object.entries(B.vocab)) if (!out.vocab[k] || (v.due || 0) > (out.vocab[k].due || 0)) out.vocab[k] = v;
     if (!out.target.total && B.target.total) out.target = B.target;
     if (!out.activeMock || (B.activeMock && B.activeMock.startedAt > out.activeMock.startedAt)) out.activeMock = B.activeMock || out.activeMock;
