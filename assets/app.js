@@ -741,7 +741,7 @@
         el("span", { class: "tiny", text: days === 0 ? "is test day. Light review, then rest." : `day${days === 1 ? "" : "s"} until your SAT · ${niceDate(progress.target.date)}${progress.target.total ? ` · target ${progress.target.total}` : ""}` }));
     const hero = el("div", { class: "hero" },
       el("div", { class: "row", style: "gap:18px;align-items:flex-end" }, el("div", {}, el("h2", { class: "h1", text: greeting() }),
-        el("p", { class: "sub", style: "margin:6px 0 0", text: "Pick up the trail where you left it." })), plan ? countdown : null),
+        el("p", { class: "sub", style: "margin:6px 0 0", text: "Pick up the trail where you left it." })), countdown),
       el("div", { class: "row" },
         plan ? el("button", { class: "btn sun", type: "button", onclick: runToday }, setActive ? `Continue today's session (${set.i}/${set.ids.length})` : today ? "Start another session" : "Start today's session") : null,
         el("button", { class: plan ? "btn ghost" : "btn", type: "button", onclick: () => { ui.pr.source = "mixed"; ui.pr.skill = "all"; loadPracticeQuestion(); go("practice"); } }, "Practice questions"),
@@ -787,6 +787,7 @@
           el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : (mockMins("quick") ? mockMins("quick") + " min" : "untimed") }), arrow()),
           el("span", { class: "row", style: "gap:14px" }, el("button", { class: "link scribble", type: "button", onclick: practiceOne }, "or just try one question"), el("span", { class: "note", "aria-hidden": "true", text: "← not ready? start small" }))),
         el("p", { class: "tiny", style: "color:inherit" }, "Got a real SAT or PSAT score? ", el("button", { class: "link", type: "button", onclick: toScores("imp-rw") }, "Add it"), " to sharpen the estimate. Optional."),
+        countdown,
         el("div", { class: "map-key", "aria-hidden": "true" }, [["var(--sun)", "Next step"], ["var(--coral)", "Reading and Writing"], ["var(--sky)", "Math"], ["var(--lilac)", "Tools"]].map(([c, t]) => el("span", {}, el("i", { style: "background:" + c }), t))));
       const quick = el("section", { class: "jump" }, gemSays(...homeGemLine(null, false, false, prac.length > 0)), el("h2", { class: "title", text: "Or wander off the path" }),
         el("div", { class: "coast" },
@@ -1935,8 +1936,9 @@
     const tErr = el("p", { class: "err", role: "alert" });
     const targetForm = el("form", { class: "grid-form", novalidate: true, onsubmit: (e) => {
       e.preventDefault();
-      const total = Number(document.getElementById("tgt-total").value), date = document.getElementById("tgt-date").value;
-      if (!Number.isInteger(total) || total < 400 || total > 1600 || total % 10) { tErr.textContent = "Target scores are multiples of 10 from 400 to 1600."; return; }
+      const raw = document.getElementById("tgt-total").value, total = raw === "" ? null : Number(raw), date = document.getElementById("tgt-date").value;
+      if (!total && !date) { tErr.textContent = "Add a target score, a test date, or both."; return; }
+      if (total !== null && (!Number.isInteger(total) || total < 400 || total > 1600 || total % 10)) { tErr.textContent = "Target scores are multiples of 10 from 400 to 1600."; return; }
       progress.target = { total, date }; save(); toast("Target saved"); render();
     } },
       el("label", { class: "field" }, "Target total", el("input", { class: "input", type: "number", id: "tgt-total", step: "10", value: progress.target.total ?? "", placeholder: "1400" })),
