@@ -1914,11 +1914,11 @@
   const midTest = () => Boolean(progress.activeMock && !progress.activeMock.onBreak);
   function cloudSync() {
     // A timed test keeps its place in this browser and syncs at the break or the end, so nothing shifts mid-module.
-    if (midTest()) return cloudBusy;
+    if (midTest()) return cloudBusy.then(() => false);
     return (cloudBusy = cloudBusy.then(async () => {
       try {
         const r = await fetch("/api/progress", { cache: "no-store" });
-        if (r.status === 401) { cloud = null; setSync("Progress is saved in this browser. Sign in again to sync it."); return; }
+        if (r.status === 401) { cloud = null; setSync("Progress is saved in this browser. Sign in again to sync it."); return false; }
         if (!r.ok) throw 0;
         const { progress: server } = await r.json();
         if (server) progress = merge(server, progress);
@@ -1926,7 +1926,8 @@
         const put = await fetch("/api/progress", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(progress) });
         if (!put.ok) throw 0;
         setSync("Progress is saved to your account and this browser.");
-      } catch { setSync("Progress is saved in this browser. Your account couldn't be reached; it will sync next time."); }
+        return true;
+      } catch { setSync("Progress is saved in this browser. Your account couldn't be reached; it will sync next time."); return false; }
     }));
   }
   async function cloudBoot() {
@@ -1941,8 +1942,16 @@
     } catch { cloud = null; }
   }
   // Auth.js sign-in and sign-out are form posts carrying its anti-forgery token.
-  async function authPost(action) {
-    save(true);
+  // Signing out clears this browser's copy, so on a shared computer the next student starts fresh and nothing mixes
+  // between accounts; it first makes sure the latest progress reached the account, and stops if it couldn't.
+  async function authPost(action, { clearLocal = false } = {}) {
+    if (clearLocal) {
+      if (midTest()) { toast("Finish your practice test or take the break before signing out."); return; }
+      clearTimeout(saveTimer);
+      if (!(await cloudSync())) { toast("Couldn't reach your account, so you're still signed in and nothing was lost. Try again in a minute."); return; }
+      cloud = null; progress = blankProgress();
+      try { localStorage.removeItem(LOCAL_KEY); sessionStorage.removeItem("cl-walk"); } catch {}
+    } else save(true);
     try {
       const { csrfToken } = await (await fetch("/api/auth/csrf", { cache: "no-store" })).json();
       const f = el("form", { method: "POST", action: "/api/auth/" + action, hidden: true },
@@ -1954,6 +1963,7 @@
     try {
       const r = await fetch("/api/account", { method: "DELETE" });
       if (!r.ok) throw 0;
+      // The account is gone, so there is nothing to sync; this browser's copy stays (see the privacy page).
       cloud = null; sessionStorage.setItem("cl-deleted", "1");
       authPost("signout");
     } catch { toast("Couldn't delete right now. Try again in a minute."); }
@@ -1970,8 +1980,9 @@
               el("p", { class: "tiny", style: "margin:0;color:var(--ink)", text: "Delete your account and the progress saved to it? Progress saved in this browser stays. This can't be undone." }),
               el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: deleteAccount }, "Yes, delete my account"),
                 el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.confirmDelete = false; render(); } }, "Cancel")))
-            : el("div", { class: "row" }, el("button", { class: "btn small ghost", type: "button", onclick: () => authPost("signout") }, "Sign out"),
+            : el("div", { class: "row" }, el("button", { class: "btn small ghost", type: "button", onclick: () => authPost("signout", { clearLocal: true }) }, "Sign out"),
               el("button", { class: "link", type: "button", onclick: () => { ui.confirmDelete = true; render(); } }, "Delete my account and data")),
+          el("p", { class: "tiny", style: "margin:0", text: "Signing out also clears this browser's copy, so a shared computer stays private. It comes back when you sign in." }),
           privacy)
         : el("div", { class: "stack", style: "gap:8px" },
           el("button", { class: "btn small", type: "button", onclick: () => authPost("signin/google") }, "Sign in with Google to sync"),
