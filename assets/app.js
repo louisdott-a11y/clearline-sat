@@ -114,6 +114,7 @@
   const feedbackLink = () => el("a", { class: "feedback-link", href: FEEDBACK_HREF }, "Send feedback");
   // Gem (the coach) and question flagging run on Claude's artifact runtime. On a normal website they're hidden.
   const IN_CLAUDE = Boolean(window.claude?.use);
+  const COACH = window.CL_COACH;
 
   // ------------------------------------------------------------------ state
   const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
@@ -689,6 +690,7 @@
     document.body.classList.toggle("plain-notes", Boolean(progress.plainNotes));
     renderMenu();
     renderTools();
+    if (matchMedia("(max-width: 900px)").matches) document.querySelector('.menu [aria-current="page"]')?.scrollIntoView({ inline: "center", block: "nearest" });
     const banner = document.getElementById("banner");
     banner.replaceChildren(am && ui.view !== "mock"
       ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "Resume test"))
@@ -781,7 +783,7 @@
         el("span", { class: "here" }, svg("svg", { width: "26", height: "32", viewBox: "0 0 26 32" }, svg("path", { d: "M13 30C6 21 2 16 2 11a11 11 0 0 1 22 0c0 5-4 10-11 19z" }), svg("circle", { cx: "13", cy: "11", r: "4" })), el("span", { text: "You are here: the start" })),
         svg("svg", { class: "trail", viewBox: "0 0 100 100", preserveAspectRatio: "none" }, trail("wide", "M50 0C28 22 72 42 46 62C32 74 36 88 100 88"), trail("tall", "M50 0C28 30 72 55 46 78C38 88 46 95 50 100")));
       const first = el("div", { class: "first" }, lobe, route,
-        el("h2", { class: "h1" }, "Let's find your ", el("mark", { class: "hl", text: "score" }), "."),
+        el("h2", { class: "h1" }, "Let's find your ", "score", "."),
         el("p", { class: "sub", text: "One adaptive practice test, Reading and Writing plus Math, shows where you stand and builds your daily plan. The timer pauses whenever you leave." }),
         el("div", { class: "row go" },
           el("button", { class: "btn big sun", type: "button", onclick: () => go("mock") }, progress.activeMock ? "Resume your diagnostic" : "Start your diagnostic", el("span", { class: "btn-note", text: progress.activeMock ? "in progress" : (mockMins("quick") ? mockMins("quick") + " min" : "untimed") }), arrow()),
@@ -889,7 +891,7 @@
       else if (pr.skill !== "all") q = pickBySkill(pr.skill, diff, ex);
       else q = pickQuestion({ section: pr.source === "rw" || pr.source === "math" ? pr.source : null, diff, exclude: ex });
     }
-    if (q?.id !== pr.q?.id) ui.nbOpen = false;
+    if (q?.id !== pr.q?.id) { ui.nbOpen = false; ui.coach = null; }
     if (ui.walk && q?.id !== ui.walk.id) { ui.walk = q?.walk ? { id: q.id, i: 0 } : null; if (!ui.walk && ui.dock === "walk") ui.dock = null; saveWalk(); }
     Object.assign(pr, { q, picked: null, spr: "", checked: false, shownAt: Date.now(), hint: false, trickPick: "" });
   }
@@ -1041,6 +1043,7 @@
         const missed = pr.checked && i === pr.picked && i !== q.answer;
         if (pr.checked && i === q.answer) cls += " is-right";
         else if (missed) cls += " is-wrong";
+        else if (!pr.checked && ui.coach?.id === q.id && ui.coach.out.includes(i)) cls += " coach-out";
         return [el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(pr.picked === i), disabled: pr.checked,
           onclick: () => { if (!pr.checked) { pr.picked = i; render(); document.getElementById("check-btn")?.focus(); } } },
           el("span", { class: "bubble", text: LETTERS[i] }), el("span", { class: missed ? "pen-struck" : "" }, q.plain ? c : math(c, q.section === "math"), missed ? penMark("scratch") : null), pr.checked && i === q.answer ? penMark("ring") : null),
@@ -1062,9 +1065,11 @@
         pr.checked ? el("button", { class: twin ? "btn ghost" : "btn", id: "next-btn", type: "button", onclick: nextPractice }, "Next")
           : el("button", { class: "btn", id: "check-btn", type: "button", disabled: !canCheck, onclick: checkPractice }, "Check answer"),
         !pr.checked ? el("button", { class: "btn small ghost", type: "button", onclick: nextPractice }, "Skip") : null,
+        !pr.checked && ui.coach?.id !== q.id ? el("button", { class: "btn small ghost", id: "coach-btn", type: "button", onclick: () => startCoach(q) }, "Walk me through it") : null,
         !pr.checked ? el("button", { class: "link pen-link", type: "button", "aria-expanded": String(pr.hint), onclick: () => { pr.hint = !pr.hint; render(); } }, pr.hint ? "hide the hint" : "How should I think about this?") : null,
-        q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next" : " check", "  ·  select text to highlight") : el("span", { class: "tiny", text: "Select text to highlight it or add a note." })),
+        q.type !== "spr" ? el("span", { class: "tiny" }, el("span", { class: "kbd", text: "A–D" }), " choose  ", el("span", { class: "kbd", text: "enter" }), pr.checked ? " next. " : " check. ", "Select text to highlight.") : el("span", { class: "tiny", text: "Select text to highlight it or add a note." })),
       pr.hint && !pr.checked ? el("div", { class: "walk hint", "aria-live": "polite" }, el("p", { class: "pen" }, "Think first: ", math(q.steps[0], q.section === "math")), CLUES[q.id] ? el("p", { class: "tiny", text: "The clue is underlined in the text." }) : null) : null,
+      !pr.checked && ui.coach?.id === q.id ? renderCoach(q) : null,
       pr.checked ? renderVerdict(q, q.type === "spr" ? pr.spr : pr.picked) : null];
     const body = two
       ? el("div", { class: "qgrid" }, el("section", { "aria-label": "Passage" }, chipsFor(q), stimulus(q)), el("section", { "aria-label": "Question" }, answerSec))
@@ -1072,6 +1077,92 @@
     if (pr.hint || pr.checked) markClue(body, q);
     applyHighlights(body, q);
     return el("section", { class: "sheet qsheet", "data-q": q.id }, questionTop(q), ui.nbOpen ? notebookPanel(q) : null, body);
+  }
+
+  // ------------------------------------------------------------------ Coach: "Walk me through it"
+  // A step-by-step tutor built only from the question's answer key (assets/coach.js), so it never contradicts it.
+  // It shows one step, asks the student to rule out a choice, explains each ruled-out choice with its real reason,
+  // and only shows the full solution when asked. State lives in ui.coach and is not saved.
+  function startCoach(q) {
+    ui.coach = { id: q.id, plan: COACH.plan(q), log: [], out: [], at: 0, done: false, full: false, typing: false, spr: "" };
+    render();
+    coachSay(q, coachNext(q));
+    document.getElementById("coach")?.scrollIntoView({ block: "nearest", behavior: reduceMotion.matches ? "auto" : "smooth" });
+  }
+  // The next step (if any is left) plus the question Coach asks about it.
+  function coachNext(q) {
+    const c = ui.coach, p = c.plan, lines = [];
+    if (p.desmos && !c.log.length && (q.trick || lessonFor(q)) !== 18) lines.push({ kind: "step", text: "This one goes fastest in Desmos. Open the Calculator to follow along, or use Show me in Desmos at the bottom." });
+    if (c.at < p.hints.length) lines.push({ kind: "step", text: p.hints[c.at++] });
+    else if (!c.log.length) lines.push({ kind: "step", text: "Start with what the question asks, then check each choice against the text." });
+    if (q.type === "spr") lines.push({ kind: "ask", text: c.at < p.hints.length ? "Try that step on paper, then show the next one." : "Now work out the answer and type it here." });
+    else lines.push({ kind: "ask", text: c.out.length === p.wrong.length ? "Which answer is left?" : c.out.length ? "Good. Rule out one more." : "Which choice can you rule out now?" });
+    return lines;
+  }
+  // Coach lines appear one at a time after a short typing pause (none with reduced motion).
+  async function coachSay(q, lines) {
+    const c = ui.coach;
+    for (const line of lines) {
+      if (ui.coach !== c) return;
+      if (line.kind !== "me" && !reduceMotion.matches) { c.typing = true; paintCoach(q); await new Promise((r) => setTimeout(r, 380)); if (ui.coach !== c) return; }
+      c.typing = false; c.log.push(line); paintCoach(q);
+    }
+  }
+  function paintCoach(q) { const n = document.getElementById("coach"); if (n) n.replaceWith(renderCoach(q)); }
+  function coachPick(q, i) {
+    const c = ui.coach, p = c.plan, label = `${LETTERS[i]}, ${q.choices[i]}`;
+    if (i === p.answer && c.out.length === p.wrong.length) {
+      c.done = true; ui.pr.picked = i; render();
+      coachSay(q, [{ kind: "me", text: label }, { kind: "ok", text: `That's it. Check your answer, then read the full solution.` }]);
+    } else if (i === p.answer) {
+      coachSay(q, [{ kind: "me", text: label }, { kind: "hint", text: "Careful, that one still fits. Look at the step again and find a choice that clashes with it." }]);
+    } else {
+      c.out.push(i); render();
+      coachSay(q, [{ kind: "me", text: label }, { kind: "why", text: p.wrong.find((w) => w.i === i).why }, ...coachNext(q)]);
+    }
+  }
+  function coachSpr(q) {
+    const c = ui.coach, v = c.spr.trim();
+    if (!v) return;
+    if (!parseNum(v)) { toast("Enter a number, a fraction like 3/4, or a decimal."); return; }
+    if (isCorrect(q, v)) { c.done = true; ui.pr.spr = v; render(); coachSay(q, [{ kind: "me", text: v }, { kind: "ok", text: "That's it. Check your answer, then read the full solution." }]); }
+    else coachSay(q, [{ kind: "me", text: v }, { kind: "hint", text: c.at < c.plan.hints.length ? "Not yet. Show the next step and try again." : "Not yet. Go back over the last step, or open the full solution." }]);
+  }
+  function coachSolution(q) {
+    const c = ui.coach, p = c.plan;
+    c.full = c.done = true;
+    coachSay(q, [{ kind: "solution", text: p.solution, why: p.wrong.filter((w) => !c.out.includes(w.i)) }]);
+  }
+  function renderCoach(q) {
+    const c = ui.coach, p = c.plan, isMath = q.section === "math";
+    const total = q.type === "spr" ? p.hints.length + 1 : p.wrong.length + 1;
+    const doneN = (q.type === "spr" ? c.at : c.out.length) + (c.done ? 1 : 0);
+    const newest = c.log.findLast((m) => m.kind === "step");
+    const line = (m) => m.kind === "me" ? el("p", { class: "coach-me", text: m.text })
+      : m.kind === "solution" ? el("div", { class: "coach-solution" }, el("p", { class: "coach-who", text: "Full solution" }),
+        el("ol", {}, m.text.map((t) => el("li", {}, math(t, isMath)))),
+        m.why.map((w) => el("p", { class: "coach-why" }, el("b", { text: `Why not ${LETTERS[w.i]}: ` }), math(w.why, isMath))))
+      : el("p", { class: "coach-" + m.kind + (m === newest ? " now" : "") }, m.kind === "why" ? el("b", { text: "Ruled out. " }) : null, math(m.text, isMath));
+    const left = q.type === "spr" ? [] : q.choices.map((_, i) => i).filter((i) => !c.out.includes(i));
+    const controls = c.done || c.typing ? null
+      : q.type === "spr"
+        ? el("form", { class: "row coach-controls", onsubmit: (e) => { e.preventDefault(); coachSpr(q); } },
+          c.at < p.hints.length ? el("button", { class: "btn small ghost", type: "button", onclick: () => coachSay(q, coachNext(q)) }, "Show the next step") : null,
+          el("input", { class: "input", inputmode: "decimal", autocomplete: "off", "aria-label": "Your answer for Coach", value: c.spr, placeholder: "Your answer", oninput: (e) => { c.spr = e.target.value; } }),
+          el("button", { class: "btn small", type: "submit" }, "Check with Coach"))
+        : el("div", { class: "row coach-controls", role: "group", "aria-label": "Choices you can rule out" },
+          left.map((i) => el("button", { class: "btn small ghost", type: "button", onclick: () => coachPick(q, i) }, el("b", { text: LETTERS[i] }), " ", q.plain ? q.choices[i] : math(q.choices[i], isMath))));
+    return el("section", { class: "coach", id: "coach", "aria-label": "Coach" },
+      el("div", { class: "coach-head" }, el("b", { text: "Walk me through it" }),
+        el("div", { class: "coach-trail", role: "img", "aria-label": `Step ${Math.min(doneN + 1, total)} of ${total}` },
+          Array.from({ length: total }, (_, k) => [k ? el("i", { class: "coach-path" + (k <= doneN ? " done" : "") }) : null, el("i", { class: "coach-dot" + (k < doneN ? " done" : k === doneN ? " now" : "") + (k === doneN - 1 ? " last" : "") })]),
+          el("small", { "aria-hidden": "true", text: c.done ? "Done" : `Step ${Math.min(doneN + 1, total)} of ${total}` })),
+        el("button", { class: "link", type: "button", onclick: () => { ui.coach = null; render(); document.getElementById("coach-btn")?.focus(); } }, "Close")),
+      el("div", { class: "coach-feed", "aria-live": "polite" }, c.log.map(line), c.typing ? el("p", { class: "coach-typing", "aria-label": "Coach is typing" }, el("i"), el("i"), el("i")) : null),
+      controls,
+      el("div", { class: "coach-foot" },
+        !c.full ? el("button", { class: "link", type: "button", onclick: () => coachSolution(q) }, "Show full solution") : el("span"),
+        p.desmos ? el("button", { class: "link", type: "button", onclick: () => startWalk(q) }, "Show me in Desmos") : null));
   }
   // ------------------------------------------------------------------ pen: handwritten hints, walkthroughs, miss reasons
   const PEN = {
@@ -1297,7 +1388,7 @@
     const st = statsWhere((a) => a.src === "challenge");
     const byDom = DOM_KEYS.map((k) => ({ k, ...statsWhere((a) => a.src === "challenge" && a.d === k) })).filter((x) => x.total);
     return sheet("", el("div", { class: "rush-start" },
-      el("h2", { class: "h1" }, "Challenge ", el("mark", { class: "hl", text: "set" })),
+      el("h2", { class: "h1" }, "Challenge ", "set"),
       el("p", { class: "sub", text: "10 of the hardest questions, the kind a strong first module routes you to in Module 2. Built for students aiming at 1400 and up. Misses are normal here; the walkthrough is the point." }),
       el("div", { class: "pills", role: "group", "aria-label": "Section" }, [["mixed", "Both sections"], ["rw", "Reading and Writing"], ["math", "Math"]].map(([k, l]) =>
         el("button", { class: "pill", type: "button", "aria-pressed": String(ui.chSec === k), onclick: () => { ui.chSec = k; render(); } }, l))),
@@ -1393,7 +1484,7 @@
     if (!r) {
       const best = progress.rush[ui.rushScope], saved = progress.rushRound;
       return sheet("", el("div", { class: "rush-start" },
-        el("h2", { class: "h1" }, "Question ", el("mark", { class: "hl", text: "Rush" })),
+        el("h2", { class: "h1" }, "Question ", "Rush"),
         el("p", { class: "sub", text: `${ui.rushCount} questions in ${clock(rushTimeLimit(ui.rushCount, ui.rushPace))}. Every right answer in a row builds your combo, fast right answers earn a star, and explanations wait until the end.` }),
         el("label", { class: "field" }, "Skill", skillSelect(ui.rushScope, (e) => { ui.rushScope = e.target.value; render(); }, "rush-skill")),
         el("div", { class: "controls" },
@@ -1408,7 +1499,7 @@
     }
     if (r.done) {
       return sheet("", el("div", { class: "rush-start" },
-        el("h2", { class: "h1" }, r.left > 0 ? "Round over: " : "Time's up: ", el("mark", { class: "hl", text: `${r.score} right` }), "!"),
+        el("h2", { class: "h1" }, r.left > 0 ? "Round over: " : "Time's up: ", `${r.score} right`, "!"),
         el("p", { class: "sub", text: `${r.score} out of ${r.tries} on ${rushScopeLabel(r.scope)}${r.best >= 2 ? ` · best combo ×${r.best}` : ""}` }),
         el("p", { class: "rush-stars", "aria-label": `${r.stars} star${r.stars === 1 ? "" : "s"} for fast right answers` },
           ...Array.from({ length: Math.min(r.stars, 30) }, () => starIcon()),
@@ -1507,7 +1598,7 @@
     const next = DESMOS.lessons.find((L, i) => st[i].state !== "mastered") || DESMOS.lessons[0];
     return el("div", { class: "stack" },
       el("div", { class: "dhero" },
-        el("h2", { class: "h1" }, "Let Desmos do the ", el("mark", { class: "hl", text: "math" }), "."),
+        el("h2", { class: "h1" }, "Let Desmos do the ", "math", "."),
         el("p", { class: "sub", text: "18 short lessons on the Desmos tricks that turn long SAT algebra into a few keystrokes. Each one has the exact keys to type, a live calculator, and original practice." }),
         el("div", { class: "row go" },
           el("button", { class: "btn big sun", type: "button", onclick: () => openLesson(next.n) }, done ? `Continue: trick ${next.n}` : "Start with trick 1"),
@@ -1550,7 +1641,7 @@
           el("div", { class: "row" }, prev ? el("button", { class: "btn small ghost", type: "button", onclick: () => openLesson(prev.n) }, `← Trick ${prev.n}`) : null,
             nextL ? el("button", { class: "btn small ghost", type: "button", onclick: () => openLesson(nextL.n) }, `Trick ${nextL.n} →`) : null)),
         pills,
-        lessonDone ? sheet("", el("div", { class: "rush-start" }, el("h3", { class: "h1", style: "font-size:30px" }, "Trick ", el("mark", { class: "hl", text: "done" }), "!"),
+        lessonDone ? sheet("", el("div", { class: "rush-start" }, el("h3", { class: "h1", style: "font-size:30px" }, "Trick ", "done", "!"),
           el("p", { class: "sub", text: `${trickStatus(L.n).right} of ${qs.length} right on your latest tries.` }),
           el("div", { class: "row" }, nextL ? el("button", { class: "btn sun", type: "button", onclick: () => openLesson(nextL.n) }, `Next: ${nextL.title}`) : el("button", { class: "btn sun", type: "button", onclick: startChallenge }, "Take the mixed challenge"),
             el("button", { class: "btn ghost", type: "button", onclick: () => { ui.desmos.lesson = null; render(); } }, "Skills checklist"))))
@@ -1657,8 +1748,8 @@
       const s = MOCK_SPEC[kind];
       const n = Object.values(s.rw.counts).reduce((a, b) => a + b, 0) * 2 + Object.values(s.math.counts).reduce((a, b) => a + b, 0) * 2;
       const mins = mockMins(kind);
-      return el("div", { class: "step" }, el("strong", { text: s.label.toLowerCase() }),
-        el("span", { style: "font-weight:900;font-size:44px;line-height:1", text: `${n} q` }), el("span", { class: "tiny", text: mins == null ? "Untimed + break" : `${Math.floor(mins / 60)} h ${mins % 60} min + break` }),
+      return el("div", { class: "step" }, el("strong", { text: s.label }),
+        el("span", { style: "font-weight:800;font-size:32px;line-height:1.1", text: `${n} questions` }), el("span", { class: "tiny", text: mins == null ? "Untimed + break" : `${Math.floor(mins / 60)} h ${mins % 60} min + break` }),
         el("p", { style: "margin:0", text: desc }), el("button", { class: "btn", type: "button", onclick: () => startMock(kind) }, cta));
     };
     const past = progress.mocks.slice().sort((a, b) => b.at - a.at);
@@ -1671,7 +1762,7 @@
         el("div", { class: "timing" },
           el("span", { class: "field", id: "time-label", text: "Timing" }),
           el("div", { class: "pills", role: "group", "aria-labelledby": "time-label" }, TIME_OPTS.map(([v, l]) => el("button", { class: "pill", type: "button", "aria-pressed": String(progress.timeMult === v), onclick: () => { progress.timeMult = v; save(); render(); } }, l))),
-          el("p", { class: "tiny", style: "margin:0", text: "Approved for extra time on the real SAT? Practise with it here. It also applies to timed drills, and your score is labelled with the timing you used." })),
+          el("p", { class: "tiny", style: "margin:0", text: "Approved for extra time on the real SAT? Practice with it here. It also applies to timed drills, and your score is labeled with the timing you used." })),
         el("p", { class: "tiny", style: "margin:12px 0 0", text: "Tools: mark for review, answer eliminator, question navigator, hideable timer, built-in calculator and grapher, reference sheet. Leave anytime; the timer runs only while the test is open." })),
       sheet("", title("Past practice tests", true), past.length ? el("div", { class: "tour wide" }, past.map((m, i) => el("div", {},
         el("span", { class: "k", text: "abcdefghijklmnopqrst"[i] }), el("span", { text: `${MOCK_SPEC[m.kind].label.toLowerCase()} · ${niceDate(m.at)}${timeLabel(m.mult)}` }),
@@ -1681,7 +1772,7 @@
   function renderBreak(am) {
     return sheet("", el("div", { class: "stack", style: "justify-items:center;text-align:center" },
       trailbar(am),
-      el("h2", { class: "h1" }, "Halfway ", el("mark", { class: "hl", text: "there" }), "!"),
+      el("h2", { class: "h1" }, "Halfway ", "there", "!"),
       el("p", { class: "sub", style: "margin:0 auto", text: "Reading and Writing is done. Math starts when the break ends or when you choose." }),
       gemSays("Halfway! Stand up, grab some water, look at something far away. Your Reading and Writing answers are saved.", "cheer"),
       el("span", { id: "test-clock", style: "font-weight:800;font-size:72px;line-height:1;font-variant-numeric:tabular-nums", text: clock(am.breakLeft) }),
@@ -1764,7 +1855,7 @@
   }
   // The phone's status bar follows theme-color, which only knows the system scheme. A chosen theme overrides it.
   function syncStatusBar() {
-    const t = getTheme(), color = { light: "#f5f1e4", dark: "#14161b" };
+    const t = getTheme(), color = { light: "#eef0e6", dark: "#121a16" };
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => { m.content = t === "system" ? color[/dark/.test(m.media) ? "dark" : "light"] : color[t]; });
   }
   function gearIcon(size) {
@@ -1885,7 +1976,7 @@
     const fresh = Date.now() - rec.at < 10 * 60e3;
     return el("div", { class: "stack" },
       fresh ? el("div", { class: "made-it" }, trailbar(null, true),
-        el("h2", { class: "h1" }, "You made it to the ", el("mark", { class: "hl", text: "end" }), "!"),
+        el("h2", { class: "h1" }, "You made it to the ", "end", "!"),
         el("p", { class: "pen", text: rec.kind === "full" ? "A whole practice SAT. That takes grit." : "Test done. Every one you take makes the real one feel more familiar." })) : null,
       sheet("", title(`${MOCK_SPEC[rec.kind].label.toLowerCase()} · ${niceDate(rec.at)}${timeLabel(rec.mult)}`, true),
         el("div", { class: "numgrid", style: "max-width:560px" }, el("div", { class: "numbox" }, el("small", { text: "total" }), el("b", { style: "font-size:56px", text: rec.total })), el("div", { class: "numbox" }, el("small", { text: "R&W" }), el("b", { text: rec.rw })), el("div", { class: "numbox" }, el("small", { text: "math" }), el("b", { text: rec.math }))),
@@ -2072,7 +2163,7 @@
     const lowest = el("div", {}, title("Lowest skills", true),
       low.length ? el("div", { class: "tour" }, low.map((r, i) => el("div", {}, el("span", { class: "k", text: i + 1 }),
         el("span", {}, el("b", { text: r.skill }), el("br"), el("small", { text: `${Math.round(r.st.rate * 100)}% of ${r.st.total} · ${DOMAINS[r.domain].name}` })),
-        el("button", { type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = r.skill; loadPracticeQuestion(); go("practice"); } }, "Practise"))))
+        el("button", { type: "button", onclick: () => { ui.pr.source = "domain"; ui.pr.skill = r.skill; loadPracticeQuestion(); go("practice"); } }, "Practice"))))
         : el("p", { class: "sub", text: "Answer at least 3 questions on a skill in this range to rank it here." }));
     return sheet("", el("div", { class: "row between", style: "margin-bottom:14px" }, title("Your practice"), range), tiles,
       el("div", { class: "cols", style: "margin-top:16px" }, el("div", {}, title("Right and wrong, by difficulty", true), el("div", { class: "chart-wrap" }, verdictChart(list, days)),
@@ -2181,12 +2272,12 @@
       el("div", { class: "row between", style: "margin-bottom:12px" }, title(`${label}: ${ids.length} question${ids.length === 1 ? "" : "s"}`, true),
         el("div", { class: "row" },
           rv.tab === "collections" ? confirmBtn("del-col", "Delete collection", "Tap again to delete", () => { delete progress.cols[rv.col]; rv.col = null; save(); render(); }) : null,
-          el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: "review", label, ids: ids.slice() }) }, `Practise all ${ids.length}`))),
+          el("button", { class: "btn", type: "button", onclick: () => beginSet({ kind: "review", label, ids: ids.slice() }) }, `Practice all ${ids.length}`))),
       el("div", { class: "tour" }, ids.map((id, i) => {
         const q = getQ(id), fixed = Boolean(latest(id)?.c);
         const notes = [progress.qnotes[id]?.n, ...(progress.hl[id] || []).map((h) => h.n)].filter(Boolean);
         return el("div", {}, el("span", { class: "k", text: i + 1 }),
-          el("span", {}, el("b", { text: `${skillOf(q)} · ${DIFF[q.diff]}` }), rv.tab === "missed" ? el("small", { text: fixed ? " · corrected since" : " · never corrected" }) : null, el("br"),
+          el("span", {}, el("b", { text: `${skillOf(q)}, ${DIFF[q.diff]}` }), rv.tab === "missed" ? el("small", { text: fixed ? ", corrected since" : ", not yet corrected" }) : null, el("br"),
             el("small", { class: "snip", style: "display:block;color:inherit;opacity:.8", text: plain(q.passage?.[0] || q.prompt) }),
             notes.map((n) => el("small", { class: "rv-note", text: "Note: " + n }))),
           el("button", { type: "button", onclick: () => { ui.pr.source = rv.tab === "missed" || rv.tab === "saved" ? rv.tab : "mixed"; loadPracticeQuestion(q); go("practice"); } }, "Retry"));
@@ -2235,12 +2326,12 @@
   function renderMatch() {
     const m = ui.vocab.match, best = progress.games.match;
     if (!m) return sheet("", el("div", { class: "rush-start" },
-      el("h2", { class: "h1" }, "Vocab ", el("mark", { class: "hl", text: "Match" })),
+      el("h2", { class: "h1" }, "Vocab ", "Match"),
       el("p", { class: "sub", text: "Six words, six definitions. Tap a word, then its meaning. The clock runs until all six are paired, and each wrong pair adds 2 seconds." }),
       el("p", { class: "pen", text: best ? `Your best: ${best.toFixed(1)}s. Beat it?` : "No time yet. Set one!" }),
       el("button", { class: "btn big sun", type: "button", onclick: startMatch }, "Start matching")));
     if (m.end) return sheet("", el("div", { class: "rush-start" },
-      el("h2", { class: "h1" }, "All six in ", el("mark", { class: "hl", text: `${matchTime(m).toFixed(1)}s` })),
+      el("h2", { class: "h1" }, "All six in ", `${matchTime(m).toFixed(1)}s`),
       el("p", { class: "sub", text: m.misses ? `${m.misses} wrong pair${m.misses === 1 ? "" : "s"} (+${m.misses * 2}s)` : "No wrong pairs. Clean round." }),
       el("p", { class: "pen", text: m.newBest ? "New personal best!" : `Your best is still ${best.toFixed(1)}s. Go get it.` }),
       el("div", { class: "row" }, el("button", { class: "btn sun", type: "button", onclick: startMatch }, "Play again"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.vocab.match = null; render(); } }, "Done"))));
@@ -2279,11 +2370,11 @@
   function renderLearn() {
     const L = ui.vocab.learn;
     if (!L) return sheet("", el("div", { class: "rush-start" },
-      el("h2", { class: "h1" }, "Learn in ", el("mark", { class: "hl", text: "context" })),
+      el("h2", { class: "h1" }, "Learn in ", "context"),
       el("p", { class: "sub", text: "Ten sentences, each missing one word from the deck. Pick the word that fits, then see its meaning. This is the same move as a Words in Context question." }),
       el("button", { class: "btn big sun", type: "button", onclick: startLearn }, "Start learning")));
     if (L.i >= L.order.length) return sheet("", el("div", { class: "rush-start" },
-      el("h2", { class: "h1" }, "Round done: ", el("mark", { class: "hl", text: `${L.right} of ${L.order.length}` })),
+      el("h2", { class: "h1" }, "Round done: ", `${L.right} of ${L.order.length}`),
       L.missed.length ? el("p", { class: "sub", text: "Words to look at again: " + L.missed.join(", ") }) : el("p", { class: "sub", text: "Every word right." }),
       el("p", { class: "pen", text: L.right >= 8 ? "That's Words in Context form. Nice." : "Each miss is a word you now know better." }),
       el("div", { class: "row" }, el("button", { class: "btn sun", type: "button", onclick: startLearn }, "Another round"), el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.vocab.game = "cards"; ui.vocab.learn = null; render(); } }, "Back to flashcards"))));
@@ -2574,7 +2665,7 @@
     for (let y = Math.ceil(-yR / step) * step; y <= yR; y += step) { ctx.beginPath(); ctx.moveTo(0, Y(y)); ctx.lineTo(Wd, Y(y)); ctx.stroke(); }
     ctx.strokeStyle = ink; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.moveTo(0, Y(0)); ctx.lineTo(Wd, Y(0)); ctx.stroke();
-    ctx.fillStyle = ink; ctx.font = "16px Archivo, sans-serif";
+    ctx.fillStyle = ink; ctx.font = "16px Overpass, sans-serif";
     ctx.fillText(String(R), Wd - 30, Y(0) - 6); ctx.fillText(String(Math.round(yR * 10) / 10), X(0) + 6, 18);
     const colors = ["#e3342b", "#2f5fd0", "#1b7a33"];
     const notes = [];

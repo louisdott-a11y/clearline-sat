@@ -34,7 +34,7 @@ Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `di
 
 ## Architecture
 
-**Load order matters.** `index.html` loads scripts at the bottom in this order: `config.js`, `bank.js`, `mathgen.js`, `calc.js`, `vocab.js`, `clues.js`, `desmos.js`, `report.js`, then `app.js`. Each data file sets one global (`window.CL_CONFIG`, `CL_BANK`, `CL_MATH`, `CL_CALC`, `CL_VOCAB`, `CL_CLUES`, `CL_DESMOS`, `CL_REPORT`). `app.js` loads last and reads them all. Tests reuse the same files in Node via `global.window = global; require("../assets/x.js")`, so data files must stay free of DOM access at load time.
+**Load order matters.** `index.html` loads scripts at the bottom in this order: `config.js`, `bank.js`, `mathgen.js`, `calc.js`, `vocab.js`, `clues.js`, `desmos.js`, `report.js`, `coach.js`, then `app.js`. Each data file sets one global (`window.CL_CONFIG`, `CL_BANK`, `CL_MATH`, `CL_CALC`, `CL_VOCAB`, `CL_CLUES`, `CL_DESMOS`, `CL_REPORT`, `CL_COACH`). `app.js` loads last and reads them all. Tests reuse the same files in Node via `global.window = global; require("../assets/x.js")`, so data files must stay free of DOM access at load time.
 
 **`app.js` is a tiny homemade framework** (~2800 lines, one IIFE):
 - `ui` holds transient screen state (current view, question, open dock panel). `progress` holds everything persisted.
@@ -50,6 +50,8 @@ Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `di
 
 **Desmos walkthroughs (`walk`).** Every Math question carries an array of steps: `say` (what Gem says), `why` (one short sentence), `keys` (expressions to type), optional `view`, `mark`, `table`, `shows` (expected Desmos values), and `pick` on the last step only. `tests/walk.test.js` enforces the shape, that no step before the last leaks the answer, that computed keys declare `shows`, and that `pick` equals the correct answer. `tests/e2e/walk.e2e.js` then checks `shows` against real Desmos. Use a plain `-` in `keys`, never the Unicode minus.
 
+**Coach ("Walk me through it").** `coach.js` builds a plan from a question's own answer key: Math uses its `walk` steps (minus the last), R&W uses `steps` minus the last; wrong choices come with their `why`. `app.js` (`startCoach`, `renderCoach`) asks the student to rule out choices one at a time and shows the full solution only on request. No AI and no server. Practice only, never in mock tests. `tests/coach.test.js` checks every question: only wrong choices can be ruled out, each has a reason, no early step names the answer.
+
 **Claude-only features.** `IN_CLAUDE = Boolean(window.claude?.use)`. Ask Gem (AI coach), the follow-up tutor and question flagging render only inside Claude's artifact runtime. On the public site they are hidden on purpose. Conversely, Desmos cannot load inside Claude (outside scripts blocked), so `calc.js` (a safe parser, no `eval`) stands in. Gem the mascot appears everywhere; only the AI coach is gated.
 
 **Mock test routing.** Two modules per section. Module 1 at or above 60% (weighted by difficulty) routes to the harder Module 2; the easier Module 2 caps the section score. Scores are always labeled as estimates.
@@ -58,7 +60,7 @@ Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `di
 
 - `tests/` checks data and logic, not screens. Adding a question, generator or walkthrough means `npm test` must still pass; the walk test runs every generator for 200 seeds.
 - `report.js` output is an HTML file students send to teachers; it must escape all student text and contain no scripts (`tests/report.test.js`).
-- Design tokens, voice and layout rules are in `DESIGN.md` (hand-drawn park-map theme; Archivo, Source Serif 4, Caveat). Product constraints and what not to build are in `PRODUCT.md`. Key rule from there: question and mock screens keep the exact SAT format and timing; fun lives in voice, color and feedback only.
+- Design tokens, voice and layout rules are in `DESIGN.md` (Trailhead: park-trail map, sage paper with contour lines, forest ink, one yellow trail-marker accent; Overpass, Literata, Caveat for pen notes only). The local `design-critic` agent (`.claude/agents/`) reviews screenshots against it. Product constraints and what not to build are in `PRODUCT.md`. Key rule from there: question and mock screens keep the exact SAT format and timing; fun lives in voice, color and feedback only.
 - Never invent testimonials, user counts or score-improvement claims.
 - `research/`, `.claude/`, `.impeccable/`, `.playwright-mcp/` and `.aider*` are gitignored private notes. `docs/` and `tests/` are committed but never deployed.
 - `assets/config.js` holds the Desmos API key (currently the public demo key). `vercel.json` sets security headers and a 5-minute cache on `assets/*.js`.

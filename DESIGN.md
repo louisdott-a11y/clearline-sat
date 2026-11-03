@@ -1,96 +1,96 @@
 ---
 name: Clearline
-description: Free SAT prep drawn as a hand-made park guide map. You are the pin, the next step is the yellow path.
+description: Free SAT prep drawn as a park trail map (Trailhead). You are the pin, the next step is the yellow trail marker.
 colors:
-  sun: "#f5e211"
-  coral: "#ff705d"
-  sky: "#2ba0ff"
-  lilac: "#ebc1ff"
-  land: "#8ed462"
-  swipe: "#5db33a"
-  pen: "#1d3fbf"
-  water: "#f5f1e4"
-  card: "#fffcf2"
-  card-2: "#ede7d3"
-  hover: "#ebe4cd"
-  ink: "#2c2e2a"
-  ink-soft: "#5c5e55"
-  line: "#d9d1b8"
-  line-strong: "#a9a189"
-  accent-text: "#0b62b3"
-  accent-soft: "#d9edff"
-  green-fill: "#2f7f22"
-  green: "#2a6e1c"
-  green-wash: "#e3f4d6"
-  red-fill: "#d23b2f"
-  red: "#b3261e"
-  red-wash: "#fde7e2"
-  amber-fill: "#f5a524"
-  amber: "#8a5a00"
-  dark-water: "#14161b"
-  dark-card: "#1c1f25"
-  dark-card-2: "#272b33"
-  dark-hover: "#2b3038"
-  dark-ink: "#ebe8e0"
-  dark-ink-soft: "#a6a8ae"
-  dark-line: "#3a3f48"
-  dark-line-strong: "#6a707d"
-  dark-edge: "#6a7080"
-  dark-on-color: "#191b20"
-  dark-sun: "#e8d55a"
+  sun: "#f2c200"
+  coral: "#ee7a63"
+  sky: "#3d8fd6"
+  lilac: "#dcc3f2"
+  land: "#cfe5b4"
+  swipe: "#6cb54a"
+  pen: "#23664f"
+  water: "#eef0e6"
+  card: "#fafbf5"
+  card-2: "#e6eadc"
+  hover: "#e1e6d6"
+  ink: "#1f3a2e"
+  ink-soft: "#55695e"
+  line: "#cfd6c4"
+  line-strong: "#9aa792"
+  accent-text: "#1c64a8"
+  accent-soft: "#dcebf8"
+  green-fill: "#2f8545"
+  green: "#2c7a3f"
+  green-wash: "#e0f0dc"
+  red-fill: "#c94a36"
+  red: "#b4412f"
+  red-wash: "#f8e5df"
+  amber-fill: "#e9a63a"
+  amber: "#85590a"
+  dark-water: "#121a16"
+  dark-card: "#18221d"
+  dark-card-2: "#202c26"
+  dark-hover: "#24322b"
+  dark-ink: "#e6ebe2"
+  dark-ink-soft: "#a3b0a6"
+  dark-line: "#2f3d35"
+  dark-line-strong: "#5f7166"
+  dark-edge: "#5f7166"
+  dark-on-color: "#16201b"
+  dark-sun: "#e8c53a"
   dark-coral: "#ef8778"
   dark-sky: "#6cb4ef"
   dark-lilac: "#c9aeea"
-  dark-land: "#26392b"
+  dark-land: "#24382b"
   dark-swipe: "#4a7f3f"
   dark-mark: "#5ba84b"
-  dark-pen: "#a9c0f7"
-  dark-accent-soft: "#1b2b3e"
+  dark-pen: "#9fd6bf"
+  dark-accent-soft: "#1a2b38"
   dark-accent-text: "#8ec8f7"
   dark-green-fill: "#5ba84b"
   dark-green: "#8ccf7c"
-  dark-green-wash: "#1b2a1f"
+  dark-green-wash: "#1a2a1f"
   dark-red-fill: "#e0685a"
   dark-red: "#ff9b8e"
-  dark-red-wash: "#331f1d"
+  dark-red-wash: "#331f1b"
   dark-amber-fill: "#e3a94a"
   dark-amber: "#f0c060"
 typography:
   display:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "clamp(44px, 5.4vw, 72px)"
     fontWeight: 800
     lineHeight: 1.05
     letterSpacing: "-0.035em"
   headline:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "34px"
     fontWeight: 800
     lineHeight: 1.05
     letterSpacing: "-0.04em"
   title:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "19px"
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: "-0.02em"
   body:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "14.5px"
     fontWeight: 400
     lineHeight: 1.5
   lede:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "18px"
     fontWeight: 400
     lineHeight: 1.5
   reading:
-    fontFamily: "Source Serif 4, Georgia, Times New Roman, serif"
+    fontFamily: "Literata, Georgia, Times New Roman, serif"
     fontSize: "17px"
     fontWeight: 400
     lineHeight: 1.7
   map-lettering:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 700
     letterSpacing: "0.06em"
@@ -105,20 +105,20 @@ typography:
     fontWeight: 600
     lineHeight: 1.2
   pen-plain:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 500
     lineHeight: 1.5
   trail-label:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 600
   clock:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "26px"
     fontWeight: 800
   small:
-    fontFamily: "Archivo, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Overpass, Segoe UI, system-ui, sans-serif"
     fontSize: "12.5px"
     fontWeight: 400
     lineHeight: 1.5
@@ -302,25 +302,40 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Park Guide Map"**
+**Creative North Star: "Trailhead"** (redesign chosen 2026-11-02 over a white "Answer Sheet" study-app direction)
 
-Studying is a walk around a hand-drawn park map. The ground is cream water, subjects are flat colored regions, everything is outlined in a 2px ink pen line, and the student is a coral pin with a dotted yellow trail leading to the one next step. The shell (Home, navigation, rewards) is loud, flat and printed-looking: saturated fills, chunky Archivo, pill-shaped capsules with a round ink arrow chip. It rejects the category default of a grey SaaS dashboard with white cards and a violet accent.
+Studying is a walk on a park trail map. The ground is sage survey paper with faint contour lines, everything is outlined in a 2px forest-ink line, and the student is a pin on a dotted trail leading to the one next step, marked in trail-marker yellow. Interface lettering is Overpass, a free face based on US highway signs, so the chrome reads like trail signage. It rejects both the grey SaaS dashboard and the warm-cream-plus-serif look that most generated sites share.
 
-Question and test screens set the land lobe and pin aside but keep the same paper, ink and voice. They switch reading text to Source Serif 4, step the outline down to hairlines, and keep the SAT layout (passage beside question, Bluebook-style header, timer, navigator grid) unchanged. They stay friendly: a flat four-stop trail shows where a mock test is, a coral or blue stripe under the test header names the section, and a tutor's blue pen marks wrong picks, circles walkthrough steps and leaves short notes between questions. The fun comes from voice, color, pen and feedback. Nothing changes how a question is asked or timed.
+Question and test screens set the map aside but keep the paper, ink and voice. Passages, prompts and answer choices are set in Literata so they read like a printed test booklet, and the SAT layout (passage beside question, header, timer, navigator grid) is unchanged. After a student checks an answer, a teacher's forest-green pen (Caveat) explains a wrong pick and underlines the clue. Before checking, nothing handwritten appears on a question.
 
-Density is relaxed on the shell (generous gutters, one big heading, one action) and tighter in practice and test views, where the work happens.
+Coach ("Walk me through it") is the step-by-step tutor on practice questions. It speaks in Overpass, never in the passage face, so coach talk never looks like test content.
 
 **Key Characteristics:**
-- Cream water ground, green land lobes, 2px ink outlines.
+- Sage paper ground with faint contour lines, soft land-green lobes, 2px forest-ink outlines.
 - Region color coding: yellow next step, coral Reading and Writing, blue Math, lilac tools.
-- Capsule buttons with a round ink arrow chip that slides forward on hover.
-- Archivo for the shell; Source Serif 4 for question and passage text.
-- One marker swipe per region; the Caveat hand is a tutor's blue pen that annotates practice, review and between-module screens, always switchable to typed text.
-- Flat fills with a single soft lift shadow; no gradients.
+- Overpass for the interface; Literata for passages, prompts and choices; Caveat only for the teacher's pen after checking.
+- Headlines are plain ink: no highlighter on single words, no all-caps tracked labels, no "A · B · C" meta strings.
+- Flat fills with a single soft lift shadow; no gradients, no glass.
+
+## Motion
+
+Every animation explains something that just changed, runs 150 to 400 ms, moves only `transform` and `opacity` (or a color fill), and sits inside `@media (prefers-reduced-motion: no-preference)`. With reduced motion, Coach shows each line at once with no typing pause.
+- **Answer feedback:** the right/wrong reveal and pen marks on a checked question.
+- **Progress:** the Coach trail dot just finished fills yellow (300 ms); the trail line under it turns solid.
+- **Step reveal:** each new Coach line slides up 6px and fades in (260 ms) after a short typing pause (380 ms, three bouncing dots).
+- Nothing animates on page load for decoration.
+
+## Coach
+
+A chat-style panel under the answer choices on practice questions (and on Review retries). Never on mock tests.
+- **Header:** "Walk me through it", a compact trail (13px dots joined by 16px paths, about 100px wide) and "Step n of m" in 13px Soft Ink.
+- **Lines:** steps have a 3px left bar in Strong Hairline; only the newest step's bar is yellow. Ruled-out reasons have a red bar and a red "Ruled out." lead. The student's replies are small ink bubbles aligned right.
+- **Controls:** the choices still in play as small outlined buttons (44px tall on touch screens); for typed answers, "Show the next step" plus an answer box.
+- **Footer:** "Show full solution" (never automatic) and, for Math, "Show me in Desmos".
 
 ## Colors
 
-A flat, saturated map palette on warm cream paper, with ink lines doing the structural work.
+A restrained map palette on cool sage paper, with forest-ink lines doing the structural work and one strong accent, trail-marker yellow.
 
 ### Primary
 - **Trail Yellow** (sun): the next step and only the next step. It fills the primary call to action (the diagnostic capsule, "Start" on today's plan), the dotted trail, the progress meter fill, the map-key "Next step" swatch and text selection. On the test trail it fills the stops already passed, and on a Question Rush round it fills the clock, the only yellow on that view. On the Desmos skills checklist it fills mastered skill stops, the same "passed" meaning as the trail.
@@ -331,12 +346,12 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 
 ### Tertiary
 - **Lilac Kiosk** (lilac): tools and side paths (Question bank capsule, Ask Gem tag, the map-key "Tools" swatch). Desmos is a tool, so its subject takes lilac: the "Best trick" badge, the practicing skill stop and "The Desmos way" panel, which uses a 1.5px lilac border over a lilac tint (`color-mix(in srgb, lilac 18%, card)`).
-- **Land Green** (land): the landmass lobe behind first-run Home and the brand mark disc. Never a button fill.
-- **Marker Green** (swipe): the highlighter swipe behind one word per region ("score").
-- **Pen Blue** (pen): the tutor's pen and nothing else: Caveat notes, walkthrough steps, hand-drawn rings, scratches and underlines, the wavy clue underline and pen hint links.
+- **Land Green** (land): a soft, pale landmass lobe behind first-run Home and the brand mark disc, kept quiet so yellow stays the one strong color. Never a button fill.
+- **Marker Green** (swipe): reserved; headlines no longer get a highlighter swipe.
+- **Forest Pen** (pen): the teacher's pen and nothing else: Caveat notes after checking, hand-drawn rings, scratches and underlines, and the wavy clue underline. Deep green so it never reads as the Math blue.
 
 ### Neutral
-- **Water Cream** (water): page ground, sidebar and topbar.
+- **Sage Paper** (water): page ground, sidebar and topbar, with a faint contour-line pattern on the page.
 - **Paper** (card): sheets, cards, answer choices, inputs, ghost buttons.
 - **Shaded Paper** (card-2): question headers, chips, inset boxes, calculator keys.
 - **Hover Paper** (hover): hover fill for nav, list rows, ghost buttons and choices.
@@ -351,10 +366,10 @@ A flat, saturated map palette on warm cream paper, with ink lines doing the stru
 Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `data-theme="light"`, or `data-theme="dark"`). Rebuilt on 2026-10-14.
 - **Ground and surfaces:** cool neutral charcoal, never pure black, in three steps: dark-water (page, sidebar, topbar), dark-card (sheets, choices, inputs) and dark-card-2 (headers, chips, inset boxes), with dark-hover above them.
 - **Text:** a soft off-white ink (dark-ink, 14.8:1 on the ground) and a muted gray Soft Ink (dark-ink-soft, at least 5.6:1 on every surface). Placeholders use Soft Ink, never the browser gray.
-- **Edges:** the 2px outline becomes a calm gray (`--edge-c`, dark-edge, 3.3:1 or better) instead of cream, so fills are not ringed in light. Hairlines are dark-line and dark-line-strong.
+- **Edges:** the 2px outline becomes a calm gray (`--edge-c`, dark-edge, 3.3:1 or better) instead of light paper, so fills are not ringed in light. Hairlines are dark-line and dark-line-strong.
 - **Region colors:** sun, coral, sky and lilac are softened (less saturated, slightly lighter) and keep their meanings and the One Yellow Rule. Text on them is dark-on-color (6.9:1 or better). The round arrow chip stays a dark chip (`--chip`) with a light arrow in both themes.
 - **Verdicts:** lighter green-fill and red-fill with dark text on filled bubbles (`--on-fill`), dark washes with lighter verdict text. Chart bars mix toward the card for easy and medium difficulty instead of fading with opacity.
-- **Map and marks:** a deep green lobe (dark-land) with a gray edge, a brighter marker swipe (dark-swipe) and a mid-green brand disc (dark-mark). The pen is a light Pen Blue (dark-pen). Gem keeps its lilac body and dark face, with a gray outline.
+- **Map and marks:** a deep green lobe (dark-land) with a gray edge, a brighter marker swipe (dark-swipe) and a mid-green brand disc (dark-mark). The pen is a light Forest Pen (dark-pen). Gem keeps its lilac body and dark face, with a gray outline.
 - **Focus:** a light blue ring (dark-accent-text), not yellow, so focus never reads as a second next step.
 - **Desmos:** the embedded calculator switches to its own `invertedColors`, so the graph never sits as a white slab.
 
@@ -365,11 +380,11 @@ Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `dat
 
 ## Typography
 
-**Display Font:** Archivo (with Segoe UI, system-ui, sans-serif)
-**Reading Font:** Source Serif 4 (with Georgia, Times New Roman, serif)
+**Display Font:** Overpass (with Segoe UI, system-ui, sans-serif)
+**Reading Font:** Literata (with Georgia, Times New Roman, serif)
 **Hand Font:** Caveat 600 (with Comic Sans MS, cursive), the tutor's pen
 
-**Character:** Archivo at 800 with tight tracking reads like a park sign: bold, friendly, slightly condensed. Source Serif 4 brings the calm of a printed test booklet to questions. Caveat is the pen note someone scribbled on the map.
+**Character:** Overpass, drawn from US highway signs, reads like trail signage: clear, sturdy, friendly. Literata brings the calm of a printed test booklet to questions. Caveat is the pen note someone scribbled on the map.
 
 ### Hierarchy
 - **Display** (800, clamp(44px, 5.4vw, 72px), 1.05, max 11ch): the first-run Home heading only. 42px under 900px.
@@ -378,9 +393,9 @@ Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `dat
 - **Lede** (400, 18px, max 46ch): the one line of sub copy under the display heading. 16.5px on mobile.
 - **Body** (400, 14.5px, 1.5): shell copy; secondary copy uses Soft Ink at max 72ch.
 - **Reading** (400 / 600 for the prompt, 17px, 1.7, max 64ch): passages, prompts, answer choices (16px), explanations. 16px on mobile.
-- **Map lettering** (700, 12px, 0.06em, uppercase): the pin label and the map key, the printed lettering of the map itself.
-- **Hand** (600, 24px, 1, rotated -4deg, Pen Blue): the one handwritten margin note on first-run Home.
-- **Pen** (600, 22px, 1.2, Pen Blue, upright): tutor notes, walkthrough steps, Rush feedback, the miss-reason question. Smaller pen sizes: 20px for the note under a wrong pick and for pen hint links, 16px for the raised "clue" note. With typed text switched on, pen text becomes Archivo 500 at 15px, 1.5 (pen links 13px) and keeps Pen Blue.
+- **Map lettering** (700, 13px, sentence case): the pin label and the map key.
+- **Hand** (600, 24px, 1, rotated -4deg, Forest Pen): the one handwritten margin note on first-run Home.
+- **Pen** (600, 22px, 1.2, Forest Pen, upright): tutor notes, walkthrough steps, Rush feedback, the miss-reason question. Smaller pen sizes: 20px for the note under a wrong pick and for pen hint links, 16px for the raised "clue" note. With typed text switched on, pen text becomes Overpass 500 at 15px, 1.5 (pen links 13px) and keeps Forest Pen.
 - **Trail label** (600, 12px, Soft Ink; 10.5px under 900px): the four stop names on the test trail. The current stop goes to 800 and ink.
 - **Clock** (800, 26px, tabular): the Question Rush countdown; the running score beside it is 22px.
 - **Small** (400, 12.5px, Soft Ink): captions, legends, notices, skill-row status lines and small pill buttons.
@@ -389,13 +404,13 @@ Night at the park, not an inverted map (`prefers-color-scheme: dark` unless `dat
 - Numbers (stats, timer, scores) use tabular figures at 800.
 
 ### Named Rules
-**The Two Registers Rule.** Archivo runs the shell and all chrome. Source Serif 4 is only for what a student reads to answer a question. Don't mix them inside one block.
+**The Two Registers Rule.** Overpass runs the shell and all chrome. Literata is only for what a student reads to answer a question. Don't mix them inside one block.
 
 **The One Note Rule.** On the shell, one decorative Caveat note and one marker swipe per region. More than one turns the map into a scrapbook. The tutor's pen on practice, review and between-module screens is not decoration and is not counted, but it only explains, encourages or marks a student's work.
 
 **The Literal Keys Rule.** Monospace appears only for text a student types verbatim into Desmos. It never wraps (the box scrolls sideways instead), and it never sets headings, numbers or chrome.
 
-**The Typed Text Rule.** Every pen surface has a typed equivalent. A visible "Switch to typed text" toggle swaps every pen line to Archivo while it keeps Pen Blue, and pen marks are hidden from assistive tech with the meaning repeated in text.
+**The Typed Text Rule.** Every pen surface has a typed equivalent. A visible "Switch to typed text" toggle swaps every pen line to Overpass while it keeps Forest Pen, and pen marks are hidden from assistive tech with the meaning repeated in text.
 
 ## Layout
 
@@ -454,7 +469,7 @@ Region-colored capsules (coral, sky, lilac) with 20px left padding, 16px semibol
 - **Right / wrong:** green or red border plus wash.
 
 ### Navigation
-Sidebar items are 15px medium pills with 19px line icons. Hover shows Hover Paper. The current page inverts to an Ink pill with cream text. A coral count badge marks missed questions. On mobile the sidebar becomes a scrolling row.
+Sidebar items are 15px medium pills with 19px line icons. Hover shows Hover Paper. The current page inverts to an Ink pill with paper-colored text. A coral count badge marks missed questions. On mobile the sidebar becomes a scrolling row.
 
 ### Answer Choice
 Paper row, 1px Strong Hairline, 12px radius, serif text, with a 28px round letter bubble. Selected: blue border and inset ring, Selection Blue wash, filled bubble. Right and wrong use green or red ring, wash and filled bubble. A struck choice is 45% opacity with a line-through.
@@ -473,9 +488,9 @@ A tutor's blue pen that works on the student's page. Upright Caveat, never rotat
 - **Note:** a pen line under a heading or next to an action ("Beat it?", "Last stop. You've got this.").
 - **Wrong-pick note:** a 20px pen note indented under the chosen wrong answer, explaining why it misleads.
 - **Marks:** a ring around the right answer's bubble, a scratch through the wrong pick's text, an underline under a walkthrough answer. Drawn with stroke-dashoffset over 700ms; in a walkthrough each mark lands 400ms after its line.
-- **Clue:** a wavy 1.5px Pen Blue underline (5px offset) on the passage words that hold the clue, with a raised 16px "clue" note after them. Screen readers hear "Clue:" instead.
-- **Pen link:** a hint trigger set in 20px Caveat, underlined in Pen Blue at 45%.
-- **Typed text:** the body-level switch sets all of the above in Archivo (see The Typed Text Rule).
+- **Clue:** a wavy 1.5px Forest Pen underline (5px offset) on the passage words that hold the clue, with a raised 16px "clue" note after them. Screen readers hear "Clue:" instead.
+- **Pen link:** a hint trigger set in 20px Caveat, underlined in Forest Pen at 45%.
+- **Typed text:** the body-level switch sets all of the above in Overpass (see The Typed Text Rule).
 
 ### Walkthrough
 A dashed panel (1.5px dashed Strong Hairline, 14px radius, Paper, 14px 18px 16px padding) holding numbered pen steps. Each number sits in a hand-drawn circle; the final "so" line drops the circle and gets a pen underline. Lines write in left to right one after another (600ms clip reveal, staggered), behind `prefers-reduced-motion: no-preference`. A smaller variant opens as the hint before answering.
@@ -499,13 +514,13 @@ A round gear tag (Paper, 2px ink edge, icon only, labelled "Settings") ends the 
 One dismissible note at a time in the page banner slot (the mock-paused banner wins): a private-window warning, or on iPhone Safari outside the Home Screen app, an "Add to Home Screen" tip. Each has a ghost "Got it" and is remembered per device (`clearline-tips-seen`).
 
 ### Gem Mascot
-An original cut gem in Lilac (Gem is a tool) with a 2.5px ink outline, ink facet lines, dot eyes, coral cheeks and a smile (an open grin when cheering), 64px. Beside it sits a speech bubble: Paper, 2px ink edge, 16px radius, Soft Lift, a tail on the left, Archivo 14.5px (not Caveat, so it never counts against the One Note Rule). It appears on Home (both first-run and plan views), the test break and Question Rush results, with one short line that fits the moment. It bobs gently, and hops twice when cheering, behind `prefers-reduced-motion: no-preference`. Screen readers hear "Gem says:" before the line.
+An original cut gem in Lilac (Gem is a tool) with a 2.5px ink outline, ink facet lines, dot eyes, coral cheeks and a smile (an open grin when cheering), 64px. Beside it sits a speech bubble: Paper, 2px ink edge, 16px radius, Soft Lift, a tail on the left, Overpass 14.5px (not Caveat, so it never counts against the One Note Rule). It appears on Home (both first-run and plan views), the test break and Question Rush results, with one short line that fits the moment. It bobs gently, and hops twice when cheering, behind `prefers-reduced-motion: no-preference`. Screen readers hear "Gem says:" before the line.
 
 ### Vocab Games
-A filter-pill group (Flashcards, Match, Learn) heads the Vocab view. Match and Learn use the Rush start/end card (headline with one marker-swiped word, one pen line, one yellow start). Match is two columns (words in Archivo bold, definitions in serif) of answer-choice rows; the picked row takes the selected-choice look, a wrong pair flashes red for 700ms and adds 2 seconds, a matched pair turns right-green at 60% opacity. The clock is the Rush clock. Learn shows the deck's example sentence with a blank, four answer-choice rows and, after a pick, a walkthrough panel with the definition.
+A filter-pill group (Flashcards, Match, Learn) heads the Vocab view. Match and Learn use the Rush start/end card (headline with one marker-swiped word, one pen line, one yellow start). Match is two columns (words in Overpass bold, definitions in serif) of answer-choice rows; the picked row takes the selected-choice look, a wrong pair flashes red for 700ms and adds 2 seconds, a matched pair turns right-green at 60% opacity. The clock is the Rush clock. Learn shows the deck's example sentence with a blank, four answer-choice rows and, after a pick, a walkthrough panel with the definition.
 
 ### Share My Progress
-A sheet on Analytics with an optional name field and an ink "Download report" button. The report file is its own small page: the same cream, paper and 2px ink edge tokens (light and dark), tiles for time practiced, a score estimate labelled not official, and plain tables. No scripts.
+A sheet on Analytics with an optional name field and an ink "Download report" button. The report file is its own small page: the same sage paper, card and 2px ink edge tokens (light and dark), tiles for time practiced, a score estimate labelled not official, and plain tables. No scripts.
 
 ### Test Trail and Section Stripe
 - **Trail:** four stops (Reading and Writing 1 and 2, Math 1 and 2) joined by 2.5px dotted hairlines. Passed stops are Trail Yellow with an ink ring and an ink connector, the current stop is coral with an ink ring and a soft coral halo, stops ahead are hollow Paper. Shown on the test head, the module review, the break and the results header.
@@ -538,9 +553,9 @@ A sheet on Analytics with an optional name field and an ink "Download report" bu
 - **Do** keep one Trail Yellow action per view and make it the next step.
 - **Do** color subjects by region: coral for Reading and Writing, blue for Math, lilac for tools, always with ink text.
 - **Do** end forward actions with the round ink arrow chip, and let it slide on hover and focus.
-- **Do** set passages, prompts and choices in Source Serif 4 at 16 to 17px, 1.7 line height, 64ch maximum.
+- **Do** set passages, prompts and choices in Literata at 16 to 17px, 1.7 line height, 64ch maximum.
 - **Do** gate every animation behind `prefers-reduced-motion: no-preference`.
-- **Do** keep the pen in Pen Blue and give every pen surface the typed-text switch.
+- **Do** keep the pen in Forest Pen and give every pen surface the typed-text switch.
 - **Do** mark the test section with its region stripe and show progress on the four-stop trail.
 - **Do** put keystrokes students must type in the keystroke box or inline `code`, never in body prose.
 

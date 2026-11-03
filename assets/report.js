@@ -17,8 +17,8 @@ window.CL_REPORT = (() => {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${who} SAT progress · Clearline</title>
 <style>
-:root{--bg:#f5f1e4;--card:#fffcf2;--ink:#2c2e2a;--soft:#5c5e55;--line:#d9d1b8;--coral:#ff705d;--sky:#2ba0ff;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#14161b;--card:#1c1f25;--ink:#ebe8e0;--soft:#a6a8ae;--line:#30343c;--edge:#6a7080;--coral:#ef8778;--sky:#6cb4ef;color-scheme:dark}}
+:root{--bg:#eef0e6;--card:#fafbf5;--ink:#1f3a2e;--soft:#55695e;--line:#cfd6c4;--coral:#ff705d;--sky:#2ba0ff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121a16;--card:#18221d;--ink:#e6ebe2;--soft:#a3b0a6;--line:#2f3d35;--edge:#5f7166;--coral:#ef8778;--sky:#6cb4ef;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
 main{max-width:860px;margin:0 auto;padding:28px 16px 48px}h1{font-size:30px;line-height:1.1;margin:0 0 4px;letter-spacing:-.02em}h2{font-size:18px;margin:0 0 10px}
 .soft{color:var(--soft);margin:4px 0 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin:18px 0}

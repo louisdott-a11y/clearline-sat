@@ -168,7 +168,7 @@ window.CL_BANK = (() => {
       ["", "A semicolon must join two independent clauses. The list isn't a clause.", "This joins two independent clauses with only a comma (a comma splice).", "With no punctuation, the list runs directly into “objects.”"]),
     R("r7", "SEC", 2, "The collection of letters that the historian found in the town archive {blank} new details about how the town was founded.", "SEC",
       ["reveal", "reveals", "have revealed", "are revealing"], 1,
-      ["Find the subject by skipping the phrases in between: “The collection … reveals.”", "“Collection” is singular, so the verb must be singular: reveals."],
+      ["Find the subject by skipping the phrases in between: “The collection … (verb).” The verb has to agree with “collection,” not with “letters.”", "“Collection” is singular, so the verb must be singular: reveals."],
       ["This plural verb agrees with “letters,” which isn't the subject.", "", "“Have” is plural. The subject “collection” is singular.", "“Are” is plural. The subject “collection” is singular."]),
     R("r8", "SEC", 2, "Plotting thousands of ocean depth readings by hand, {blank}", "SEC",
       ["mapmaker Marie Tharp revealed a rift valley running down the middle of the Atlantic Ocean floor.", "a rift valley running down the middle of the Atlantic Ocean floor was revealed by mapmaker Marie Tharp.", "the Atlantic Ocean floor turned out to have a rift valley running down its middle.", "mapmaker Marie Tharp's maps revealed a rift valley running down the middle of the Atlantic Ocean floor."], 0,
