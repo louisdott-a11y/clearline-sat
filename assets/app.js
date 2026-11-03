@@ -1948,9 +1948,13 @@
     if (clearLocal) {
       if (midTest()) { toast("Finish your practice test or take the break before signing out."); return; }
       clearTimeout(saveTimer);
-      if (!(await cloudSync())) { toast("Couldn't reach your account, so you're still signed in and nothing was lost. Try again in a minute."); return; }
-      cloud = null; progress = blankProgress();
-      try { localStorage.removeItem(LOCAL_KEY); sessionStorage.removeItem("cl-walk"); } catch {}
+      const synced = await cloudSync();
+      // cloud is cleared when the account no longer exists (deleted elsewhere): just end the session, keep this copy.
+      if (!synced && cloud) { toast("Couldn't reach your account, so you're still signed in and nothing was lost. Try again in a minute."); return; }
+      if (synced) {
+        cloud = null; progress = blankProgress();
+        try { localStorage.removeItem(LOCAL_KEY); sessionStorage.removeItem("cl-walk"); } catch {}
+      }
     } else save(true);
     try {
       const { csrfToken } = await (await fetch("/api/auth/csrf", { cache: "no-store" })).json();

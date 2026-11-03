@@ -61,3 +61,9 @@ export async function userId(request) {
   const session = await res.json().catch(() => null);
   return session?.user?.id ?? null;
 }
+
+// A session cookie stays valid after its account is deleted on another device; treat that as signed out.
+export async function accountExists(sql, uid) {
+  const [row] = await sql`select 1 from users where id = ${uid}`;
+  return Boolean(row);
+}
