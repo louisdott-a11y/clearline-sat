@@ -9,8 +9,8 @@ Clearline is a static site: `index.html`, `404.html` and `assets/`. No server, n
 1. **Get your own Desmos key.** The key in the code is Desmos's public demo key.
    - Go to https://www.desmos.com/api and request an API key.
    - Paste it between the quotes on the `DESMOS_API_KEY` line in `assets/config.js` and commit.
-2. **Check the site address in the share tags.** `index.html` assumes `https://clearline-sat.vercel.app/`.
-   If Vercel gives the project a different address, change the three URLs under the "Social share tags" comment near the top of `index.html`, and the `NEW` address in `bridge/index.html`.
+2. **Check the site address in the share tags.** `index.html` assumes `https://clearlinesat.com/`.
+   If the address changes, update the three URLs under the "Social share tags" comment near the top of `index.html`, and `HOME` in `bridge/index.html`.
 
 ## Create the Vercel project (one time)
 
@@ -20,23 +20,28 @@ Clearline is a static site: `index.html`, `404.html` and `assets/`. No server, n
 4. Project name: `clearline-sat` (this gives `clearline-sat.vercel.app`). Framework preset: **Other**. Leave build settings alone; `vercel.json` sets them.
 5. **Deploy**. Every later `git push` to `main` redeploys automatically.
 
-## The old address (clearline-sat.pages.dev)
+## The domain (clearlinesat.com)
+
+Bought on Cloudflare Registrar. In Vercel (project **Settings** → **Domains**), `clearlinesat.com` serves the site and `www.clearlinesat.com` permanently redirects (308) to it. In Cloudflare **DNS** for the domain, two CNAME records point `@` and `www` at the target Vercel shows, both set to **DNS only** (gray cloud) so Vercel can issue the HTTPS certificate.
+
+## The old addresses (clearline-sat.pages.dev and clearline-sat.vercel.app)
 
 `*.pages.dev` addresses belong to Cloudflare and can't be pointed at Vercel. Instead, the Cloudflare Pages project stays connected to the same repo and keeps building on every push, but `build.sh` notices it is running on Cloudflare (`CF_PAGES` is set) and builds only `bridge/index.html`.
 
-That bridge page matters because browsers keep saved progress per address. It reads the student's progress, packs it into the link, and sends them to `clearline-sat.vercel.app/#import=…`, where `app.js` checks it and merges it in. If the progress is too big for a link, the bridge offers it as a backup file instead.
+That bridge page matters because browsers keep saved progress per address. It reads the student's progress, packs it into the link, and hands it on. pages.dev sends students to `clearline-sat.vercel.app/bridge.html`, which adds any progress saved at that address and sends everything to `clearlinesat.com/#import=…`, where `app.js` checks it and merges it in. Visitors who open `clearline-sat.vercel.app` directly are sent to the same bridge by a small script at the top of `index.html`. If the progress is too big for a link, the bridge offers it as a backup file instead.
 
-Keep the Cloudflare project running for several months so returning students get carried over. Don't delete it.
+Never remove `clearline-sat.vercel.app` from the project, and keep the Cloudflare project running for several months, so returning students get carried over. Don't delete it.
 
 ## Visit counter
 
-The Cloudflare Web Analytics script in `index.html` works on any host. In the Cloudflare dashboard, open **Analytics & Logs** → **Web Analytics** and add `clearline-sat.vercel.app` as a site hostname so visits keep being counted.
+The Cloudflare Web Analytics script in `index.html` works on any host. In the Cloudflare dashboard, open **Analytics & Logs** → **Web Analytics** and set the site's hostname to `clearlinesat.com` so visits keep being counted.
 
 ## After it's live: a 2-minute check
 
 - Open the site on your laptop and your phone.
 - Open the Calculator: it should be Desmos. "Desmos couldn't load" means the key is wrong or not approved yet.
 - No "Ask Gem" button and no "flag a problem" link (those only work inside Claude).
-- Visit `clearline-sat.vercel.app/some-made-up-page`: the "This trail doesn't exist" page should show.
-- Visit `clearline-sat.pages.dev` in a browser where you have used Clearline: you should land on the Vercel address with your progress and a "Your progress moved over" message.
+- Visit `clearlinesat.com/some-made-up-page`: the "This trail doesn't exist" page should show.
+- Visit `clearline-sat.pages.dev` and `clearline-sat.vercel.app` in a browser where you have used Clearline: you should land on clearlinesat.com with your progress and a "Your progress moved over" message.
+- Visit `www.clearlinesat.com`: it should switch to `clearlinesat.com`.
 - Paste the site link into a chat app: the preview should show the green map card (`assets/og.png`).

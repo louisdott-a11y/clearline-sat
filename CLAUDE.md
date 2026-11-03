@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Clearline SAT: a free, static SAT-prep site (live at https://clearline-sat.vercel.app; the old https://clearline-sat.pages.dev forwards there). Plain HTML, CSS and JavaScript. No framework, no bundler, no npm dependencies. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. All student progress lives in `localStorage`; nothing is sent to a server.
+Clearline SAT: a free, static SAT-prep site (live at https://clearlinesat.com; the old https://clearline-sat.pages.dev and https://clearline-sat.vercel.app forward there). Plain HTML, CSS and JavaScript. No framework, no bundler, no npm dependencies. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. All student progress lives in `localStorage`; nothing is sent to a server.
 
 ## Commands
 
@@ -30,7 +30,7 @@ PW=/path/to/node_modules/playwright node tests/e2e/walk.e2e.js
 # SKIP_PARSE=1 skips the slow per-step Desmos value check; screenshots land in tests/e2e/out/
 ```
 
-Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `404.html` and `assets/` and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`. Cloudflare Pages still builds on push too, but `build.sh` detects it (`CF_PAGES`) and outputs only `bridge/index.html`, which forwards students to Vercel with their progress packed into `#import=` (read by `importFromLink()` in `app.js`).
+Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `404.html` and `assets/` and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`. Cloudflare Pages still builds on push too, but `build.sh` detects it (`CF_PAGES`) and outputs only `bridge/index.html`, which forwards students with their progress packed into `#import=`. The same page ships as `dist/bridge.html`; an inline script at the top of `index.html` sends visitors on clearline-sat.vercel.app there. Chain: pages.dev, then vercel.app/bridge.html, then clearlinesat.com, where `importFromLink()` in `app.js` merges each bundle.
 
 ## Architecture
 

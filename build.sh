@@ -9,6 +9,8 @@ if [ -n "$CF_PAGES" ]; then
   exit 0
 fi
 cp index.html 404.html dist/
+# The old clearline-sat.vercel.app address is sent to this page, which forwards students and their progress to clearlinesat.com.
+cp bridge/index.html dist/bridge.html
 cp -R assets dist/assets
 # Tag every assets/*.js script with this commit (assets/app.js?v=1a2b3c4), so a deploy reaches visitors right away
 # instead of after the browser's cached copy expires. The host provides the commit; locally, git does.

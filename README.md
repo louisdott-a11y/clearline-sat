@@ -2,7 +2,7 @@
 
 **Free SAT prep where every answer is checked and every wrong choice is explained.**
 
-[![Open Clearline](https://img.shields.io/badge/Open_Clearline-clearline--sat.vercel.app-2f9e44?style=for-the-badge)](https://clearline-sat.vercel.app)
+[![Open Clearline](https://img.shields.io/badge/Open_Clearline-clearlinesat.com-2f9e44?style=for-the-badge)](https://clearlinesat.com)
 
 No account, no paywall, no ads. Open the link and start practicing.
 
@@ -70,7 +70,7 @@ No account, no paywall, no ads. Open the link and start practicing.
 - **Plain HTML, CSS and JavaScript.** No frameworks, no build tools, no dependencies. The whole app is one page (`index.html`) plus a few script files in `assets/`.
 - **Progress lives in the browser.** Everything a student does is saved in `localStorage` on their own device. Nothing is sent to a server.
 - **Self-check tests.** `tests/` holds small Node scripts that check the question data: every answer key is valid, every wrong choice has an explanation, Desmos answers are recomputed from scratch, and the teacher report can't run scripts.
-- **Hosted on Vercel.** Every push to `main` runs `build.sh`, which copies only the public files into `dist/`, and Vercel publishes it. The old address, clearline-sat.pages.dev, forwards students (and their saved progress) to the new one.
+- **Hosted on Vercel.** Every push to `main` runs `build.sh`, which copies only the public files into `dist/`, and Vercel publishes it at clearlinesat.com. The old addresses, clearline-sat.pages.dev and clearline-sat.vercel.app, forward students (and their saved progress) there.
 
 More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
