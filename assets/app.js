@@ -690,7 +690,6 @@
     document.body.classList.toggle("plain-notes", Boolean(progress.plainNotes));
     renderMenu();
     renderTools();
-    if (matchMedia("(max-width: 900px)").matches) document.querySelector('.menu [aria-current="page"]')?.scrollIntoView({ inline: "center", block: "nearest" });
     const banner = document.getElementById("banner");
     banner.replaceChildren(am && ui.view !== "mock"
       ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "Resume test"))
@@ -706,10 +705,10 @@
   }
   function renderMenu() {
     const missed = missedIds().length;
-    document.getElementById("menu").replaceChildren(...VIEWS.map(([k, label]) => el("button", { type: "button", "aria-current": ui.view === k ? "page" : false, onclick: () => { if (k === "mock" && !progress.activeMock) ui.mockResult = null; go(k); } },
+    document.getElementById("menu").replaceChildren(...VIEWS.map(([k, label]) => el("button", { type: "button", "aria-current": ui.view === k ? "page" : false, onclick: () => { closeNav(false); if (k === "mock" && !progress.activeMock) ui.mockResult = null; go(k); } },
       svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d: ICONS[k] })),
       el("span", { class: "menu-label", text: label }), k === "review" && missed ? el("span", { class: "count", text: missed }) : null)),
-      el("button", { type: "button", class: "menu-settings settings-trigger", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: toggleSettings }, gearIcon(19), el("span", { class: "menu-label", text: "Settings" })));
+      el("button", { type: "button", class: "menu-settings settings-trigger", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: () => { closeNav(false); toggleSettings(); } }, gearIcon(19), el("span", { class: "menu-label", text: "Settings" })));
   }
   function renderTools() {
     const ico = (d) => svg("svg", { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d }));
@@ -717,10 +716,15 @@
       el("span", { class: "tag", title: "Study streak" }, ico("M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5"), el("b", { text: streak() }), "day streak"),
       el("span", { class: "tag", title: "Time studied today" }, ico("M12 7v5l3 2M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"), el("b", { id: "tool-today", text: fmtMin(progress.study[dayKey()] || 0) }), "today"),
       el("button", { class: "tag", type: "button", id: "focus-btn", "aria-label": "Focus timer, start or pause", onclick: () => { focus.running = !focus.running; renderFocus(); } }, el("span", { id: "focus-label", text: focus.phase === "focus" ? "Focus" : "Break" }), el("b", { id: "focus-clock", text: clock(focus.left) }), el("span", { id: "focus-state", text: focus.running ? "❚❚" : "▶" })),
-      el("button", { class: "tag", type: "button", "aria-pressed": String(ui.dock === "calc"), onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, ico("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), "Calculator"),
-      el("button", { class: "tag", type: "button", onclick: () => { ui.refOpen = true; render(); } }, ico("M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"), "Reference"),
+      el("button", { class: "tag t-calc", type: "button", "aria-pressed": String(ui.dock === "calc"), onclick: () => { ui.dock = ui.dock === "calc" ? null : "calc"; renderDock(); } }, ico("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), "Calculator"),
+      el("button", { class: "tag t-ref", type: "button", onclick: () => { ui.refOpen = true; render(); } }, ico("M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"), "Reference"),
       el("button", { class: "tag gear settings-trigger", type: "button", "aria-label": "Settings", title: "Settings", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: toggleSettings }, gearIcon(17)),
       ...(IN_CLAUDE ? [el("button", { class: "tag sun", type: "button", "aria-pressed": String(ui.dock === "gem"), onclick: () => { ui.dock = ui.dock === "gem" ? null : "gem"; renderDock(); } }, ico("M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"), "Ask Gem")] : []));
+    // Phones: Calculator and Reference live in the menu drawer instead of the chip row.
+    const big = (d) => svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d }));
+    document.getElementById("drawer-tools").replaceChildren(
+      el("button", { type: "button", onclick: () => { closeNav(false); ui.dock = "calc"; renderDock(); } }, big("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), el("span", { class: "menu-label", text: "Calculator" })),
+      el("button", { type: "button", onclick: () => { closeNav(false); ui.refOpen = true; render(); } }, big("M18 5H6l6 7-6 7h12"), el("span", { class: "menu-label", text: "Reference" })));
   }
 
   // ------------------------------------------------------------------ home dashboard
@@ -2802,6 +2806,54 @@
   });
   addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(true); });
   addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) go(h); });
+
+
+  // ------------------------------------------------------------------ phone menu drawer
+  // Under 900px the sidebar is a drawer. While it is open the page behind it is inert (can't be clicked, scrolled or
+  // tabbed into), focus starts on the current page's link, and closing returns focus to the menu button.
+  const navBtn = document.getElementById("nav-btn"), drawer = document.getElementById("drawer"), mainEl = document.querySelector(".main");
+  const phoneNav = matchMedia("(max-width: 900px)");
+  const navOpen = () => document.body.classList.contains("nav-open");
+  function openNav() {
+    document.body.classList.add("nav-open");
+    navBtn.setAttribute("aria-expanded", "true");
+    drawer.setAttribute("role", "dialog"); drawer.setAttribute("aria-modal", "true"); drawer.setAttribute("aria-label", "Main menu");
+    mainEl.inert = true;
+    (drawer.querySelector('[aria-current="page"]') || drawer.querySelector("button, a")).focus();
+  }
+  function closeNav(refocus = true) {
+    if (!navOpen()) return;
+    document.body.classList.remove("nav-open");
+    navBtn.setAttribute("aria-expanded", "false");
+    for (const a of ["role", "aria-modal", "aria-label"]) drawer.removeAttribute(a);
+    mainEl.inert = false;
+    if (refocus) navBtn.focus();
+  }
+  navBtn.addEventListener("click", () => (navOpen() ? closeNav() : openNav()));
+  document.getElementById("scrim").addEventListener("click", () => closeNav());
+  document.getElementById("nav-close").addEventListener("click", () => closeNav());
+  addEventListener("keydown", (e) => {
+    if (!navOpen()) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); closeNav(); return; }
+    // Keep Tab inside the drawer.
+    if (e.key === "Tab") {
+      const items = [...drawer.querySelectorAll("a[href], button:not([disabled])")];
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, true);
+  // Swipe left on the drawer to close it.
+  let swipe = null;
+  drawer.addEventListener("touchstart", (e) => { swipe = navOpen() ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+  drawer.addEventListener("touchend", (e) => {
+    if (!swipe) return;
+    const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
+    swipe = null;
+    if (dx < -60 && Math.abs(dy) < Math.abs(dx)) closeNav();
+  }, { passive: true });
+  drawer.querySelector(".brand").addEventListener("click", () => closeNav(false));
+  phoneNav.addEventListener("change", () => closeNav(false));
 
   // ------------------------------------------------------------------ boot
   progress = loadLocal();

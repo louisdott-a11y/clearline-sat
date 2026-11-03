@@ -50,6 +50,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .scrim { background: rgba(0, 0, 0, 0.6); }
   :root:not([data-theme="light"]) {
     --bg: #121a16; --card: #18221d; --card-2: #202c26; --hover: #24322b;
     --ink: #e6ebe2; --ink-soft: #a3b0a6; --line: #2f3d35; --line-strong: #5f7166;
@@ -101,6 +102,9 @@ button { cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .menu button:hover { background: var(--hover); color: var(--ink); } }
 .menu button[aria-current="page"] { background: var(--black); color: var(--on-black); font-weight: 600; }
 .menu svg { width: 19px; height: 19px; flex-shrink: 0; }
+.nav-btn, .nav-close, .scrim, .drawer-tools { display: none; }
+.nav-btn, .nav-close { place-items: center; width: 44px; height: 44px; border: var(--edge); border-radius: 999px; background: var(--card); color: var(--ink); padding: 0; }
+.nav-close { position: absolute; top: 14px; right: 12px; border-color: var(--line-strong); }
 .menu .count { margin-left: auto; font-size: 11.5px; font-weight: 700; background: var(--coral); color: var(--on-color); border: 1.5px solid var(--edge-c); border-radius: 999px; padding: 0 7px; min-width: 20px; text-align: center; }
 .side-foot { margin-top: auto; font-size: 12px; color: var(--ink-soft); padding: 0 8px; }
 .feedback-link { display: inline-block; margin-top: 6px; color: var(--accent-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
@@ -539,6 +543,9 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
   @keyframes wt-flash { from { background: color-mix(in srgb, var(--sun) 65%, var(--accent-soft)); } }
 }
 @media (prefers-reduced-motion: no-preference) and (max-width: 900px) {
+  .side { transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 250ms; }
+  body.nav-open .side { transition: transform 250ms cubic-bezier(0.32, 0.72, 0, 1), visibility 0s; }
+  .scrim { transition: opacity 250ms ease; }
   .dock.walk.opening { animation: wt-up 280ms cubic-bezier(0.32, 0.72, 0, 1) both; }
   @keyframes wt-up { from { transform: translateY(100%); } }
 }
@@ -653,11 +660,20 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
 
 @media (max-width: 900px) {
   .app { grid-template-columns: minmax(0, 1fr); }
-  .side { position: sticky; top: 0; z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 8px; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(32px, env(safe-area-inset-right)); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
-  .brand span:last-child, .side-foot { display: none; }
-  .menu { display: flex; gap: 2px; }
-  .menu button { width: auto; white-space: nowrap; padding: 7px 10px; }
-  .topbar { position: static; padding: 10px 16px; }
+  /* Phones: the sidebar is a drawer that slides in from the left over a dimmed backdrop. */
+  .side { position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; width: min(80vw, 320px); height: 100dvh; overflow-y: auto; gap: 18px; padding: 18px 14px max(18px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); transform: translateX(-102%); visibility: hidden; box-shadow: none; }
+  body.nav-open .side { transform: none; visibility: visible; box-shadow: 12px 0 32px -12px rgba(0, 0, 0, 0.35); }
+  body.nav-open { overflow: hidden; }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(18, 26, 22, 0.45); opacity: 0; pointer-events: none; }
+  body.nav-open .scrim { opacity: 1; pointer-events: auto; }
+  :root[data-theme="dark"] .scrim { background: rgba(0, 0, 0, 0.6); }
+  .drawer-tools { display: grid; padding-top: 12px; border-top: 1px solid var(--line); }
+  .menu button { min-height: 44px; }
+  .nav-btn, .nav-close { display: grid; }
+  .topbar { position: sticky; top: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px 10px; padding: 8px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); }
+  .topbar h1 { font-size: 20px; }
+  .tools { grid-column: 1 / -1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .tools .t-calc, .tools .t-ref { display: none; }
   .tag.gear { display: none; }
   .menu .menu-settings { display: flex !important; }
   .settings-panel { top: 64px; right: 16px; left: 16px; width: auto; }
@@ -714,16 +730,19 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
 </head><body>
 
 <div class="app">
-  <aside class="side">
+  <aside class="side" id="drawer">
     <a class="brand" href="#home" aria-label="Clearline SAT home">
       <span class="brand-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 17 L19 7"></path><circle cx="6" cy="7" r="1.6" fill="currentColor" stroke="none"></circle></svg></span>
       <span>Clearline</span>
     </a>
+    <button class="nav-close" id="nav-close" type="button" aria-label="Close menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <nav class="menu" id="menu" aria-label="Main"></nav>
+    <div class="menu drawer-tools" id="drawer-tools" role="group" aria-label="Tools"></div>
     <div class="side-foot">Free SAT prep. Every answer checked, every wrong choice explained.</div>
   </aside>
+  <div class="scrim" id="scrim"></div>
   <div class="main">
-    <header class="topbar"><h1 id="page-title">Home</h1><div class="tools" id="tools"></div></header>
+    <header class="topbar"><button class="nav-btn" id="nav-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="drawer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><h1 id="page-title">Home</h1><div class="tools" id="tools"></div></header>
     <div class="content">
       <div id="banner"></div>
       <main id="view"></main>
@@ -750,5 +769,5 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
 <script src="assets/coach.js" charset="utf-8"></script>
 <script src="assets/app.js" charset="utf-8"></script>
 
-<!-- Cloudflare Web Analytics: privacy-friendly visit counts, no cookies --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "2f45e8c65c0644fb895f290d6b96c8ca"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics: privacy-friendly visit counts, no cookies. Loaded after the page so it never slows the first paint. --><script>addEventListener("load", function () { var s = document.createElement("script"); s.defer = true; s.src = "https://static.cloudflareinsights.com/beacon.min.js"; s.setAttribute("data-cf-beacon", '{"token": "2f45e8c65c0644fb895f290d6b96c8ca"}'); document.body.appendChild(s); });</script><!-- End Cloudflare Web Analytics -->
 </body></html>
