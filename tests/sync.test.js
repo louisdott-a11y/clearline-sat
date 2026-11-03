@@ -7,7 +7,7 @@ const rand = () => require("crypto").randomBytes(24).toString("base64url");
 Object.assign(process.env, { AUTH_SECRET: rand(), AUTH_GOOGLE_ID: rand(), AUTH_GOOGLE_SECRET: rand(), DATABASE_URL: `postgresql://nobody:${rand()}@localhost/none` });
 
 (async () => {
-  const { readProgress, sameOrigin, MAX_BYTES } = await import("../api/_checks.mjs");
+  const { readProgress, sameOrigin, MAX_BYTES, restoreAuthRequest } = await import("../api/_checks.mjs");
   const { userId } = await import("../api/_lib.mjs");
   const progress = await import("../api/progress.mjs");
   const account = await import("../api/account.mjs");
@@ -23,6 +23,13 @@ Object.assign(process.env, { AUTH_SECRET: rand(), AUTH_GOOGLE_ID: rand(), AUTH_G
   assert.strictEqual(readProgress("{\"attempts\":[]}").status, 400, "attempts must be an object");
   assert.strictEqual(readProgress("not json").status, 400, "bad JSON is refused");
   assert.strictEqual(readProgress(JSON.stringify({ attempts: {}, pad: "x".repeat(MAX_BYTES) })).status, 413, "over 1 MB is refused");
+
+  // The Vercel rewrite's ?authpath= is turned back into the original Auth.js address, keeping method, headers and body.
+  const back = await restoreAuthRequest(new Request("https://clearlinesat.com/api/authjs?authpath=callback/google&code=abc", { method: "POST", headers: { cookie: "x=1" }, body: "a=1" }));
+  assert.strictEqual(back.url, "https://clearlinesat.com/api/auth/callback/google?code=abc", "original address restored");
+  assert.strictEqual(back.method, "POST"); assert.strictEqual(back.headers.get("cookie"), "x=1"); assert.strictEqual(await back.text(), "a=1");
+  const plain = new Request("https://clearlinesat.com/api/auth/session");
+  assert.strictEqual(await restoreAuthRequest(plain), plain, "a request without ?authpath= passes through untouched");
 
   // Sessions: only a cookie signed with the real secret identifies a user.
   const cookieName = "authjs.session-token"; // the http name; on https Auth.js adds the __Secure- prefix

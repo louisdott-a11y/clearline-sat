@@ -23,3 +23,17 @@ export function readProgress(text) {
 
 export const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+
+// Vercel sends every /api/auth/... address to api/authjs.mjs (see vercel.json) with the original path in ?authpath=,
+// because file names can't catch multi-part paths like /api/auth/callback/google in a plain project.
+// This puts the original address back before Auth.js reads it.
+export async function restoreAuthRequest(request) {
+  const url = new URL(request.url);
+  const path = url.searchParams.get("authpath");
+  if (path == null) return request;
+  url.searchParams.delete("authpath");
+  url.pathname = "/api/auth/" + path.replace(/^\/+/, "");
+  const hasBody = !["GET", "HEAD"].includes(request.method);
+  return new Request(url, { method: request.method, headers: request.headers, body: hasBody ? await request.text() : undefined });
+}
+

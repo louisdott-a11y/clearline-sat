@@ -46,6 +46,10 @@
     {
       "source": "/privacy",
       "destination": "/privacy.html"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/authjs?authpath=:path*"
     }
   ]
 }
