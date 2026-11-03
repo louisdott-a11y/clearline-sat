@@ -45,3 +45,13 @@ The Cloudflare Web Analytics script in `index.html` works on any host. In the Cl
 - Visit `clearline-sat.pages.dev` and `clearline-sat.vercel.app` in a browser where you have used Clearline: you should land on clearlinesat.com with your progress and a "Your progress moved over" message.
 - Visit `www.clearlinesat.com`: it should switch to `clearlinesat.com`.
 - Paste the site link into a chat app: the preview should show the green map card (`assets/og.png`).
+
+## Account sync (optional Google sign-in)
+
+Four environment variables in Vercel (project **Settings** → **Environment Variables**, Production and Preview). They never go in the repo or in chat:
+- `DATABASE_URL`: the connection string of the Neon project `clearline-sat` (its own project, never shared with another app).
+- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`: from a Google Cloud OAuth client (Web application) with redirect URI `https://clearlinesat.com/api/auth/callback/google`.
+- `AUTH_SECRET`: a random value from `openssl rand -base64 32`.
+
+The `users` and `progress` tables create themselves on first use. To check what's stored, open the Neon project's Tables view.
+

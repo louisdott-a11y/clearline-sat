@@ -120,6 +120,7 @@
   const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
+  let cloud = null; // { email } once signed in with Google on the public site (see "account sync" below)
   const ui = {
     view: "home",
     pr: { source: "mixed", skill: "all", diff: "any", q: null, picked: null, spr: "", checked: false, shownAt: 0, hint: false },
@@ -175,6 +176,7 @@
         try { await db.doc("data/users/" + uid + "/progress").set(JSON.parse(JSON.stringify(progress))); }
         catch { db = null; setSync("Progress is saved in this browser only. Your account couldn't save it."); }
       }
+      if (cloud) cloudSync();
     };
     if (now) run(); else saveTimer = setTimeout(run, 1200);
   }
@@ -724,7 +726,8 @@
     const big = (d) => svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d }));
     document.getElementById("drawer-tools").replaceChildren(
       el("button", { type: "button", onclick: () => { closeNav(false); ui.dock = "calc"; renderDock(); } }, big("M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"), el("span", { class: "menu-label", text: "Calculator" })),
-      el("button", { type: "button", onclick: () => { closeNav(false); ui.refOpen = true; render(); } }, big("M18 5H6l6 7-6 7h12"), el("span", { class: "menu-label", text: "Reference" })));
+      el("button", { type: "button", onclick: () => { closeNav(false); ui.refOpen = true; render(); } }, big("M18 5H6l6 7-6 7h12"), el("span", { class: "menu-label", text: "Reference" })),
+      IN_CLAUDE ? null : el("button", { type: "button", onclick: () => { closeNav(false); toggleSettings(); } }, big("M4 12a8 8 0 0 1 14-5l2-2v6h-6l2.3-2.3A5.5 5.5 0 0 0 6.5 12M20 12a8 8 0 0 1-14 5l-2 2v-6h6l-2.3 2.3a5.5 5.5 0 0 0 9.8-3.3"), el("span", { class: "menu-label", text: cloud ? "Synced" : "Sign in to sync" })));
   }
 
   // ------------------------------------------------------------------ home dashboard
@@ -1899,7 +1902,80 @@
             el("button", { class: "btn small ghost", type: "button", onclick: () => document.getElementById("restore-file").click() }, "Restore from backup"),
             el("input", { type: "file", id: "restore-file", accept: ".json,application/json", hidden: true, onchange: (e) => readBackup(e.target.files[0]) })),
         el("p", { class: "tiny", style: "margin:8px 0 0", text: "A backup is a small file. Keep it somewhere safe, or open it on another device to move your progress there." })),
+      syncSettings(),
       el("p", { class: "tiny", style: "margin:14px 0 0" }, "Found a mistake or have an idea? ", feedbackLink())));
+  }
+
+  // ------------------------------------------------------------------ account sync (optional Google sign-in)
+  // Signed in, every save also syncs: fetch the account's copy, combine it with this browser's using merge() (answers
+  // already counted are skipped, matched by their timestamp), keep the result here and send it back. So progress made
+  // on any device ends up everywhere, and nothing counts twice. The server only ever sees the signed-in user's own row.
+  let cloudBusy = Promise.resolve();
+  const midTest = () => Boolean(progress.activeMock && !progress.activeMock.onBreak);
+  function cloudSync() {
+    // A timed test keeps its place in this browser and syncs at the break or the end, so nothing shifts mid-module.
+    if (midTest()) return cloudBusy;
+    return (cloudBusy = cloudBusy.then(async () => {
+      try {
+        const r = await fetch("/api/progress", { cache: "no-store" });
+        if (r.status === 401) { cloud = null; setSync("Progress is saved in this browser. Sign in again to sync it."); return; }
+        if (!r.ok) throw 0;
+        const { progress: server } = await r.json();
+        if (server) progress = merge(server, progress);
+        try { localStorage.setItem(LOCAL_KEY, JSON.stringify(progress)); } catch {}
+        const put = await fetch("/api/progress", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(progress) });
+        if (!put.ok) throw 0;
+        setSync("Progress is saved to your account and this browser.");
+      } catch { setSync("Progress is saved in this browser. Your account couldn't be reached; it will sync next time."); }
+    }));
+  }
+  async function cloudBoot() {
+    if (IN_CLAUDE) return;
+    if (sessionStorage.getItem("cl-deleted")) { sessionStorage.removeItem("cl-deleted"); toast("Your account and synced progress were deleted."); }
+    try {
+      const s = await (await fetch("/api/auth/session", { cache: "no-store" })).json();
+      if (!s?.user?.id) return;
+      cloud = { email: s.user.email || "" };
+      await cloudSync();
+      render();
+    } catch { cloud = null; }
+  }
+  // Auth.js sign-in and sign-out are form posts carrying its anti-forgery token.
+  async function authPost(action) {
+    save(true);
+    try {
+      const { csrfToken } = await (await fetch("/api/auth/csrf", { cache: "no-store" })).json();
+      const f = el("form", { method: "POST", action: "/api/auth/" + action, hidden: true },
+        el("input", { type: "hidden", name: "csrfToken", value: csrfToken }), el("input", { type: "hidden", name: "callbackUrl", value: location.origin + "/#home" }));
+      document.body.append(f); f.submit();
+    } catch { toast("Couldn't reach sign-in right now. Try again in a minute."); }
+  }
+  async function deleteAccount() {
+    try {
+      const r = await fetch("/api/account", { method: "DELETE" });
+      if (!r.ok) throw 0;
+      cloud = null; sessionStorage.setItem("cl-deleted", "1");
+      authPost("signout");
+    } catch { toast("Couldn't delete right now. Try again in a minute."); }
+  }
+  function syncSettings() {
+    if (IN_CLAUDE) return null;
+    const privacy = el("a", { href: "/privacy", class: "feedback-link", style: "margin:0" }, "Privacy");
+    return el("fieldset", { class: "seg", style: "margin-top:14px" }, el("legend", { class: "label", text: "Sync across devices" }),
+      cloud
+        ? el("div", { class: "stack", style: "gap:8px" },
+          el("p", { class: "tiny", style: "margin:0;color:var(--ink)" }, "Synced as ", el("b", { text: cloud.email || "your Google account" }), "."),
+          ui.confirmDelete
+            ? el("div", { class: "stack", style: "gap:8px" },
+              el("p", { class: "tiny", style: "margin:0;color:var(--ink)", text: "Delete your account and the progress saved to it? Progress saved in this browser stays. This can't be undone." }),
+              el("div", { class: "row" }, el("button", { class: "btn small", type: "button", onclick: deleteAccount }, "Yes, delete my account"),
+                el("button", { class: "btn small ghost", type: "button", onclick: () => { ui.confirmDelete = false; render(); } }, "Cancel")))
+            : el("div", { class: "row" }, el("button", { class: "btn small ghost", type: "button", onclick: () => authPost("signout") }, "Sign out"),
+              el("button", { class: "link", type: "button", onclick: () => { ui.confirmDelete = true; render(); } }, "Delete my account and data")),
+          privacy)
+        : el("div", { class: "stack", style: "gap:8px" },
+          el("button", { class: "btn small", type: "button", onclick: () => authPost("signin/google") }, "Sign in with Google to sync"),
+          el("p", { class: "tiny", style: "margin:0" }, "Optional. Your progress follows you to any device where you sign in. Students under 13 shouldn't sign in; Clearline works fully without an account. ", privacy)));
   }
   // ------------------------------------------------------------------ keeping progress safe: backup file, private-window note, iPhone Home Screen tip
   const BACKUP_APP = "clearline-sat";
@@ -2858,7 +2934,7 @@
   // ------------------------------------------------------------------ boot
   progress = loadLocal();
   syncStatusBar();
-  document.querySelector(".side-foot")?.append(el("br"), feedbackLink());
+  document.querySelector(".side-foot")?.append(el("br"), feedbackLink(), "  ", el("a", { class: "feedback-link", href: "/privacy" }, "Privacy"));
   resetFocus("focus");
   { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) ui.view = h; }
   loadPracticeQuestion();
@@ -2867,6 +2943,7 @@
   render();
   pickStoreTip();
   importFromLink();
+  cloudBoot();
 
   // The old addresses forward students here with their progress packed into #import= (one gzipped, base64 backup per
   // old address, joined by "."; see bridge/index.html). It is untrusted input, so it goes through parseBackup and merge.

@@ -11,12 +11,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Clearline SAT: a free, static SAT-prep site (live at https://clearlinesat.com; the old https://clearline-sat.pages.dev and https://clearline-sat.vercel.app forward there). Plain HTML, CSS and JavaScript. No framework, no bundler, no npm dependencies. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. All student progress lives in `localStorage`; nothing is sent to a server.
+Clearline SAT: a free, static SAT-prep site (live at https://clearlinesat.com; the old https://clearline-sat.pages.dev and https://clearline-sat.vercel.app forward there). Plain HTML, CSS and JavaScript. No framework, no bundler; the pages students download use no npm libraries. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. Student progress lives in `localStorage`; optional Google sign-in also syncs it to a database (see Account sync).
 
 ## Commands
 
 ```sh
 npm start                 # python3 -m http.server 8000, then open http://localhost:8000
+npm install               # once: the two server libraries the sync tests and api/ need
 npm test                  # runs every tests/*.test.js with node, stops at the first failure
 node tests/walk.test.js   # run a single test file
 npm run build             # sh build.sh -> dist/ (what Vercel runs on push to main)
@@ -30,7 +31,7 @@ PW=/path/to/node_modules/playwright node tests/e2e/walk.e2e.js
 # SKIP_PARSE=1 skips the slow per-step Desmos value check; screenshots land in tests/e2e/out/
 ```
 
-Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `404.html` and `assets/` and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`. Cloudflare Pages still builds on push too, but `build.sh` detects it (`CF_PAGES`) and outputs only `bridge/index.html`, which forwards students with their progress packed into `#import=`. The same page ships as `dist/bridge.html`; an inline script at the top of `index.html` sends visitors on clearline-sat.vercel.app there. Chain: pages.dev, then vercel.app/bridge.html, then clearlinesat.com, where `importFromLink()` in `app.js` merges each bundle.
+Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `404.html`, `privacy.html` and `assets/` (Vercel deploys `api/` as functions on its own) and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`. Cloudflare Pages still builds on push too, but `build.sh` detects it (`CF_PAGES`) and outputs only `bridge/index.html`, which forwards students with their progress packed into `#import=`. The same page ships as `dist/bridge.html`; an inline script at the top of `index.html` sends visitors on clearline-sat.vercel.app there. Chain: pages.dev, then vercel.app/bridge.html, then clearlinesat.com, where `importFromLink()` in `app.js` merges each bundle.
 
 ## Architecture
 
@@ -51,6 +52,8 @@ Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `di
 **Desmos walkthroughs (`walk`).** Every Math question carries an array of steps: `say` (what Gem says), `why` (one short sentence), `keys` (expressions to type), optional `view`, `mark`, `table`, `shows` (expected Desmos values), and `pick` on the last step only. `tests/walk.test.js` enforces the shape, that no step before the last leaks the answer, that computed keys declare `shows`, and that `pick` equals the correct answer. `tests/e2e/walk.e2e.js` then checks `shows` against real Desmos. Use a plain `-` in `keys`, never the Unicode minus.
 
 **Coach ("Walk me through it").** `coach.js` builds a plan from a question's own answer key: Math uses its `walk` steps (minus the last), R&W uses `steps` minus the last; wrong choices come with their `why`. `app.js` (`startCoach`, `renderCoach`) asks the student to rule out choices one at a time and shows the full solution only on request. No AI and no server. Practice only, never in mock tests. `tests/coach.test.js` checks every question: only wrong choices can be ruled out, each has a reason, no early step names the answer.
+
+**Account sync (optional).** Vercel functions in `api/` (ESM `.mjs`; the only npm libraries, `@auth/core` and `@neondatabase/serverless`, run there, never in the browser). `api/auth/[...auth].mjs` is Auth.js with Google (scope `openid email` only), `api/progress.mjs` GET/PUT, `api/account.mjs` DELETE. `api/_lib.mjs` holds the Auth.js config, the Neon connection and `userId()`, which reads the user only from the signed session cookie; `api/_checks.mjs` holds the request rules (same Origin for writes, 1 MB cap, progress shape) tested by `tests/sync.test.js`. Tables `users` and `progress` are created on first use. In `app.js`, `cloudBoot()` checks the session after first paint and `cloudSync()` (called from `save()`) fetches, `merge()`s and PUTs; it pauses during a timed test. Secrets live only in Vercel env vars: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`. `privacy.html` is served at `/privacy` and must stay true to what this code stores.
 
 **Claude-only features.** `IN_CLAUDE = Boolean(window.claude?.use)`. Ask Gem (AI coach), the follow-up tutor and question flagging render only inside Claude's artifact runtime. On the public site they are hidden on purpose. Conversely, Desmos cannot load inside Claude (outside scripts blocked), so `calc.js` (a safe parser, no `eval`) stands in. Gem the mascot appears everywhere; only the AI coach is gated.
 

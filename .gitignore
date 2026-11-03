@@ -11,3 +11,8 @@ dist/
 # macOS
 .DS_Store
 tests/e2e/out/
+
+# Server libraries (installed by npm, never committed)
+node_modules/
+.env*
+.vercel/
