@@ -1,72 +1,42 @@
-# Deploying Clearline to Cloudflare Pages
+# Deploying Clearline to Vercel
 
-Clearline is a static site: `index.html` plus `assets/`. No server, no database, no build tools.
-`build.sh` copies just those files (and `_headers`) into `dist/`, so `docs/`, `tests/` and the design notes never go online. It also adds the commit hash to each script tag (`?v=…`), so a new deploy isn't hidden behind a cached copy.
+Clearline is a static site: `index.html`, `404.html` and `assets/`. No server, no database, no build tools.
+`build.sh` copies just those files into `dist/`, so `docs/`, `tests/` and the design notes never go online. It also adds the commit hash to each script tag (`?v=…`), so a new deploy isn't hidden behind a cached copy.
+`vercel.json` tells Vercel to run `build.sh`, publish `dist/`, and add security headers plus a short cache on scripts.
 
-## Before the first deploy (10 minutes)
+## Before the first deploy
 
 1. **Get your own Desmos key.** The key in the code is Desmos's public demo key.
-   - Go to https://www.desmos.com/api and request an API key (Desmos reviews requests and emails you a key; their console also points to www.desmos.com/my-api).
-   - Open `assets/config.js` and paste your key between the quotes on the `DESMOS_API_KEY` line.
-   - Commit: `git commit -am "Use my Desmos API key"`
-2. **Check the site address in the share tags.** `index.html` assumes the site will live at `https://clearline-sat.pages.dev/`.
-   If you pick a different Pages project name or use your own domain, change the three URLs under the
-   "Social share tags" comment near the top of `index.html` (`og:url`, `og:image`, `twitter:image`).
+   - Go to https://www.desmos.com/api and request an API key.
+   - Paste it between the quotes on the `DESMOS_API_KEY` line in `assets/config.js` and commit.
+2. **Check the site address in the share tags.** `index.html` assumes `https://clearline-sat.vercel.app/`.
+   If Vercel gives the project a different address, change the three URLs under the "Social share tags" comment near the top of `index.html`, and the `NEW` address in `bridge/index.html`.
 
-## Option A: deploy from GitHub (updates itself on every push)
+## Create the Vercel project (one time)
 
-1. Put the repo on GitHub (already done: github.com/louisdott-a11y/clearline-sat):
-   - Create an empty **private or public** repo on github.com named `clearline-sat` (no README).
-   - In this folder run:
-     ```
-     git remote add origin https://github.com/YOUR-USERNAME/clearline-sat.git
-     git push -u origin main
-     ```
-2. Sign in at https://dash.cloudflare.com (a free account is enough).
-3. Go to **Workers & Pages** → **Create** → **Pages** tab → **Connect to Git**.
-4. Authorize GitHub, pick the `clearline-sat` repo, then **Begin setup**.
-5. Fill in:
-   - Project name: `clearline-sat` (this gives you `clearline-sat.pages.dev`)
-   - Production branch: `main`
-   - Framework preset: **None**
-   - Build command: `sh build.sh`
-   - Build output directory: `dist`
-6. Click **Save and Deploy**. After about a minute the site is live at `https://clearline-sat.pages.dev`.
+1. Sign in at https://vercel.com.
+2. **Add New** → **Project**. Make sure this is a brand new project, not inside any existing one.
+3. Import the GitHub repo `louisdott-a11y/clearline-sat`.
+4. Project name: `clearline-sat` (this gives `clearline-sat.vercel.app`). Framework preset: **Other**. Leave build settings alone; `vercel.json` sets them.
+5. **Deploy**. Every later `git push` to `main` redeploys automatically.
 
-Every later `git push` to `main` redeploys automatically.
+## The old address (clearline-sat.pages.dev)
 
-## Option B: upload from your computer (no GitHub)
+`*.pages.dev` addresses belong to Cloudflare and can't be pointed at Vercel. Instead, the Cloudflare Pages project stays connected to the same repo and keeps building on every push, but `build.sh` notices it is running on Cloudflare (`CF_PAGES` is set) and builds only `bridge/index.html`.
 
-Needs Node.js installed.
-```
-npx wrangler login                     # opens a browser to sign in to Cloudflare
-sh build.sh
-npx wrangler pages deploy dist --project-name clearline-sat
-```
-The first run asks to create the project; say yes and pick `main` as the production branch.
-Run the last two lines again whenever you want to publish changes.
+That bridge page matters because browsers keep saved progress per address. It reads the student's progress, packs it into the link, and sends them to `clearline-sat.vercel.app/#import=…`, where `app.js` checks it and merges it in. If the progress is too big for a link, the bridge offers it as a backup file instead.
+
+Keep the Cloudflare project running for several months so returning students get carried over. Don't delete it.
+
+## Visit counter
+
+The Cloudflare Web Analytics script in `index.html` works on any host. In the Cloudflare dashboard, open **Analytics & Logs** → **Web Analytics** and add `clearline-sat.vercel.app` as a site hostname so visits keep being counted.
 
 ## After it's live: a 2-minute check
 
 - Open the site on your laptop and your phone.
-- Open the Calculator: it should be the Desmos graphing calculator. If you see "Desmos couldn't load", the key in `assets/config.js` is wrong or not yet approved.
-- There should be no "Ask Gem" button and no "flag a problem" link. Those only work inside Claude; on the website they're hidden on purpose.
+- Open the Calculator: it should be Desmos. "Desmos couldn't load" means the key is wrong or not approved yet.
+- No "Ask Gem" button and no "flag a problem" link (those only work inside Claude).
+- Visit `clearline-sat.vercel.app/some-made-up-page`: the "This trail doesn't exist" page should show.
+- Visit `clearline-sat.pages.dev` in a browser where you have used Clearline: you should land on the Vercel address with your progress and a "Your progress moved over" message.
 - Paste the site link into a chat app: the preview should show the green map card (`assets/og.png`).
-  If it doesn't, re-check step 2 above.
-
-## Optional: your own domain
-
-In the Pages project: **Custom domains** → **Set up a custom domain** → follow the DNS steps.
-Then update the three share-tag URLs in `index.html` to the new domain and deploy again.
-
-## Good to know
-
-- Student progress is saved in each student's own browser (localStorage). Clearing browser data erases it.
-  **Settings → Back up my progress** downloads a small file, and **Restore from backup** loads it on any device
-  (the older backup code on **Analytics & scores** still works too).
-- In a private window the site shows a one-time note that progress won't survive closing the window.
-  On iPhone it shows a one-time tip to Add to Home Screen (Safari can clear a website's storage after
-  about a week without a visit; Home Screen apps are exempt). `assets/manifest.webmanifest` gives the
-  Home Screen app its name, icon and colors.
-- The teacher report is a file the student downloads and sends. Nothing is uploaded anywhere.
-- `_headers` sets basic security headers and keeps script caching to 5 minutes, so fixes show up quickly.

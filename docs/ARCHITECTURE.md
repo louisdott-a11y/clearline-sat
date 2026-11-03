@@ -20,7 +20,9 @@ assets/
   app.js            everything else: screens, practice, mock tests, scoring, saving
 tests/              self-check scripts run with Node
 build.sh            copies the public files into dist/ for deploys
-_headers            security and caching rules for Cloudflare
+vercel.json         Vercel build settings, security headers and caching rules
+404.html            the page for addresses that don't exist
+bridge/index.html   what the old pages.dev address serves: moves students and their progress to Vercel
 ```
 
 ## How the files fit together
@@ -80,6 +82,7 @@ The screens are tested by hand on a laptop and a phone, in light and dark mode.
 ## How it deploys
 
 1. I push to the `main` branch on GitHub.
-2. Cloudflare Pages notices the push and runs `sh build.sh`.
-3. `build.sh` copies only `index.html`, `_headers` and `assets/` into `dist/`. Docs and tests never go online. It also tags each script with the commit (`assets/app.js?v=1a2b3c4`), so visitors get new code as soon as a deploy lands.
-4. Cloudflare publishes `dist/` to https://clearline-sat.pages.dev within about a minute. `_headers` adds security headers and keeps script caching short so fixes show up quickly.
+2. Vercel notices the push and runs `sh build.sh`.
+3. `build.sh` copies only `index.html`, `404.html` and `assets/` into `dist/`. Docs and tests never go online. It also tags each script with the commit (`assets/app.js?v=1a2b3c4`), so visitors get new code as soon as a deploy lands.
+4. Vercel publishes `dist/` to https://clearline-sat.vercel.app within about a minute. `vercel.json` adds security headers and keeps script caching short so fixes show up quickly.
+5. Cloudflare Pages also rebuilds, but `build.sh` sees it is on Cloudflare and builds only `bridge/index.html`, which packs a student's saved progress into the link and sends them to Vercel (`importFromLink()` in `app.js` unpacks it).

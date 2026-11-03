@@ -7,10 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Explain every change in plain words, as if the reader is new to coding. Say what changed, where, and why it matters, without jargon.
 - Do not use em dashes anywhere: not in replies, code comments, commit messages or docs.
 - Ask before pushing to GitHub. A push to `main` deploys the live site, so always confirm first.
+- At the end of any session where code changed, run the `anthropic-skills:vault-session-log` skill without being asked. It writes a session log to the Obsidian vault and updates the Clearline project note there.
 
 ## What this is
 
-Clearline SAT: a free, static SAT-prep site (live at https://clearline-sat.pages.dev). Plain HTML, CSS and JavaScript. No framework, no bundler, no npm dependencies. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. All student progress lives in `localStorage`; nothing is sent to a server.
+Clearline SAT: a free, static SAT-prep site (live at https://clearline-sat.vercel.app; the old https://clearline-sat.pages.dev forwards there). Plain HTML, CSS and JavaScript. No framework, no bundler, no npm dependencies. One page (`index.html`, which also holds all the CSS) plus script files in `assets/`. All student progress lives in `localStorage`; nothing is sent to a server.
 
 ## Commands
 
@@ -18,7 +19,7 @@ Clearline SAT: a free, static SAT-prep site (live at https://clearline-sat.pages
 npm start                 # python3 -m http.server 8000, then open http://localhost:8000
 npm test                  # runs every tests/*.test.js with node, stops at the first failure
 node tests/walk.test.js   # run a single test file
-npm run build             # sh build.sh -> dist/ (what Cloudflare Pages runs on push to main)
+npm run build             # sh build.sh -> dist/ (what Vercel runs on push to main)
 ```
 
 Browser test for the Desmos walkthroughs (needs network and Playwright; not part of `npm test`):
@@ -29,7 +30,7 @@ PW=/path/to/node_modules/playwright node tests/e2e/walk.e2e.js
 # SKIP_PARSE=1 skips the slow per-step Desmos value check; screenshots land in tests/e2e/out/
 ```
 
-Deploy is automatic: push to `main`, Cloudflare Pages runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `_headers` and `assets/` and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`.
+Deploy is automatic: push to `main`, Vercel runs `sh build.sh` and publishes `dist/`. `build.sh` copies only `index.html`, `404.html` and `assets/` and appends `?v=<commit>` to every script tag for cache busting. Never commit `dist/`. Cloudflare Pages still builds on push too, but `build.sh` detects it (`CF_PAGES`) and outputs only `bridge/index.html`, which forwards students to Vercel with their progress packed into `#import=` (read by `importFromLink()` in `app.js`).
 
 ## Architecture
 
@@ -60,4 +61,4 @@ Deploy is automatic: push to `main`, Cloudflare Pages runs `sh build.sh` and pub
 - Design tokens, voice and layout rules are in `DESIGN.md` (hand-drawn park-map theme; Archivo, Source Serif 4, Caveat). Product constraints and what not to build are in `PRODUCT.md`. Key rule from there: question and mock screens keep the exact SAT format and timing; fun lives in voice, color and feedback only.
 - Never invent testimonials, user counts or score-improvement claims.
 - `research/`, `.claude/`, `.impeccable/`, `.playwright-mcp/` and `.aider*` are gitignored private notes. `docs/` and `tests/` are committed but never deployed.
-- `assets/config.js` holds the Desmos API key (currently the public demo key). `_headers` sets Cloudflare security headers and a 5-minute cache on `assets/*.js`.
+- `assets/config.js` holds the Desmos API key (currently the public demo key). `vercel.json` sets security headers and a 5-minute cache on `assets/*.js`.

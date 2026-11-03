@@ -2723,6 +2723,26 @@
   try { const w = JSON.parse(sessionStorage.getItem("cl-walk")), q = w && getQ(w.id); if (ui.view === "practice" && q?.walk && w.i < q.walk.length) { loadPracticeQuestion(q); ui.walk = { id: q.id, i: w.i | 0, own: Boolean(w.own), shown: Boolean(w.shown) }; ui.dock = "walk"; } } catch {}
   render();
   pickStoreTip();
+  importFromLink();
+
+  // The old address (clearline-sat.pages.dev) forwards students here with their progress packed into #import=
+  // (a gzipped, base64 backup; see bridge/index.html). It is untrusted input, so it goes through parseBackup and merge.
+  async function importFromLink() {
+    if (!location.hash.startsWith("#import=") || !window.DecompressionStream) return;
+    const packed = location.hash.slice(8);
+    history.replaceState(null, "", location.pathname + location.search);
+    try {
+      if (packed.length > 2e6) throw 0;
+      const bin = atob(packed.replace(/-/g, "+").replace(/_/g, "/"));
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      const text = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+      const b = text.length <= 5e6 && parseBackup(text);
+      if (!b) throw 0;
+      progress = merge(progress, b.progress);
+      save(true); loadPracticeQuestion(); render();
+      toast("Your progress moved over to the new address");
+    } catch { toast("Couldn't carry your progress over. Use Restore from backup in Settings."); }
+  }
 
   function merge(a, b) {
     const out = normalize(JSON.parse(JSON.stringify(a)));

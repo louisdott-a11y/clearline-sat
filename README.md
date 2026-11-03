@@ -2,7 +2,7 @@
 
 **Free SAT prep where every answer is checked and every wrong choice is explained.**
 
-[![Open Clearline](https://img.shields.io/badge/Open_Clearline-clearline--sat.pages.dev-2f9e44?style=for-the-badge)](https://clearline-sat.pages.dev)
+[![Open Clearline](https://img.shields.io/badge/Open_Clearline-clearline--sat.vercel.app-2f9e44?style=for-the-badge)](https://clearline-sat.vercel.app)
 
 No account, no paywall, no ads. Open the link and start practicing.
 
@@ -70,7 +70,7 @@ No account, no paywall, no ads. Open the link and start practicing.
 - **Plain HTML, CSS and JavaScript.** No frameworks, no build tools, no dependencies. The whole app is one page (`index.html`) plus a few script files in `assets/`.
 - **Progress lives in the browser.** Everything a student does is saved in `localStorage` on their own device. Nothing is sent to a server.
 - **Self-check tests.** `tests/` holds small Node scripts that check the question data: every answer key is valid, every wrong choice has an explanation, Desmos answers are recomputed from scratch, and the teacher report can't run scripts.
-- **Hosted on Cloudflare Pages.** Every push to `main` runs `build.sh`, which copies only the public files into `dist/`, and Cloudflare publishes it.
+- **Hosted on Vercel.** Every push to `main` runs `build.sh`, which copies only the public files into `dist/`, and Vercel publishes it. The old address, clearline-sat.pages.dev, forwards students (and their saved progress) to the new one.
 
 More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -87,7 +87,7 @@ What I learned:
 - **Directing an AI coding agent.** Clear, specific instructions and honest feedback got far better results than vague requests.
 - **Testing.** Automated checks catch broken answer keys; real-device testing catches everything else.
 - **Git.** Committing in small steps, writing clear messages, and cleaning up history before going public.
-- **Deploying.** Hosting a static site on Cloudflare Pages, with security headers and caching rules.
+- **Deploying.** Hosting a static site on Vercel, with security headers and caching rules, and moving to a new address without losing anyone's saved progress.
 
 ## Roadmap
 

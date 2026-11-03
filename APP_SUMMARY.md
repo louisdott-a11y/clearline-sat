@@ -52,7 +52,7 @@ Progress saves automatically in the browser on that device.
 
 - **Languages:** plain HTML, CSS and JavaScript. No frameworks and no add-on libraries. The only outside service is the Desmos calculator, loaded from Desmos's website.
 - **Database:** none. Each student's progress is saved in their own browser (`localStorage`), and nothing is sent to a server. A backup file can move progress to another device.
-- **Where it runs:** a website. It works on laptops and phones and can be added to an iPhone home screen like an app. It's hosted on Cloudflare Pages at clearline-sat.pages.dev. A test report in `research/` describes testing the live site on October 14, 2026.
+- **Where it runs:** a website. It works on laptops and phones and can be added to an iPhone home screen like an app. It's hosted on Vercel at clearline-sat.vercel.app (the old clearline-sat.pages.dev address forwards there, carrying saved progress along). A test report in `research/` describes testing the live site on October 14, 2026.
 - **Tests:** small Node.js scripts that check the question data, plus a browser test (Playwright) for the Desmos walkthroughs.
 - **How it was built:** the README says the student came up with the idea, researched competitors, chose and prioritized features, directed the design, and tested on real devices. It also says: "I used Claude Code as my coding tool: it wrote and tested the code under my direction." A few commits also look like they came from another AI coding tool, Aider, judging by their style and a commit titled "Ignore aider files." That part is a guess.
 

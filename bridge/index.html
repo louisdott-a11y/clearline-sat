@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- Clearline moved from clearline-sat.pages.dev to Vercel. Browsers keep saved progress per address, so this page
+     packs the student's progress into the link (gzip, then base64) and hands it to the new address, which merges it in. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clearline SAT has moved</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f1e4;color:#2c2e2a;font:16px/1.5 system-ui,sans-serif;padding:16px;box-sizing:border-box;text-align:center}a,button{display:inline-block;margin-top:12px;padding:10px 18px;border:2px solid #2c2e2a;border-radius:999px;background:#f5e211;color:#2c2e2a;font:600 15px system-ui,sans-serif;text-decoration:none;cursor:pointer}</style>
+</head><body><main id="m"><p>Clearline SAT has moved. Taking you there…</p><a id="go" href="https://clearline-sat.vercel.app/">Go to the new site</a></main>
+<script>
+(async function () {
+  var NEW = "https://clearline-sat.vercel.app/";
+  var raw = null;
+  try { raw = localStorage.getItem("clearline-sat-progress-v1"); } catch (e) {}
+  if (!raw || !window.CompressionStream) { location.replace(NEW + location.hash); return; }
+  // Same shape as a "Back up my progress" file, so the new site checks it with its existing backup checker.
+  var backup = JSON.stringify({ app: "clearline-sat", version: 1, saved: new Date().toISOString(), progress: JSON.parse(raw) });
+  try {
+    var gz = new Uint8Array(await new Response(new Blob([backup]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+    var bin = ""; for (var i = 0; i < gz.length; i += 0x8000) bin += String.fromCharCode.apply(null, gz.subarray(i, i + 0x8000));
+    var packed = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    // Very long links can fail in some browsers; past this size, fall back to the backup file.
+    if (packed.length < 1500000) { location.replace(NEW + "#import=" + packed); return; }
+  } catch (e) {}
+  var go = document.getElementById("go"), a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([backup], { type: "application/json" }));
+  a.download = "clearline-backup.json"; a.textContent = "Download my progress";
+  document.getElementById("m").innerHTML = "<p>Clearline SAT has moved. Your progress is too big to carry over automatically.<br>1. Download it. 2. On the new site, open Settings and choose <b>Restore from backup</b>.</p>";
+  document.getElementById("m").append(a, document.createElement("br"), go);
+})();
+</script></body></html>
