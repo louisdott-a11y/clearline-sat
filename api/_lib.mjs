@@ -27,8 +27,9 @@ export function db() {
 }
 
 export const authConfig = {
-  // Only "openid email" is asked of Google, so names and photos are never received.
-  providers: [Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET, authorization: { params: { scope: "openid email" } } })],
+  // Only "openid email" is asked of Google, so names and photos are never received. prompt=select_account always
+  // shows Google's account picker, so on a shared computer a student can choose their own account.
+  providers: [Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET, authorization: { params: { scope: "openid email", prompt: "select_account" } } })],
   secret: process.env.AUTH_SECRET,
   basePath: "/api/auth",
   trustHost: true,
