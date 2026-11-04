@@ -21,6 +21,21 @@ export function readProgress(text) {
   return { progress: data };
 }
 
+// Crawlers, link previews and automated browsers (Playwright, Puppeteer, Lighthouse) aren't students, so they aren't counted.
+// index.html checks the same words before counting starts; this is the server's own copy of that rule.
+export const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|playwright|puppeteer|phantom|selenium/i;
+export const isBot = (ua) => !ua || BOT_UA.test(ua);
+
+// Returns { device, answered } for a valid usage count, or { status, error }. The device is the random id the browser
+// made for itself; answered is how many questions it answered since its last report (capped, so one report can't skew totals).
+export function readCount(text) {
+  if (typeof text !== "string" || !text || text.length > 200) return { status: 400, error: "Bad count." };
+  let data;
+  try { data = JSON.parse(text); } catch { return { status: 400, error: "Bad count." }; }
+  const ok = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(data?.device) && Number.isInteger(data.answered) && data.answered >= 0 && data.answered <= 200;
+  return ok ? { device: data.device, answered: data.answered } : { status: 400, error: "Bad count." };
+}
+
 export const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 

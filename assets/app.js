@@ -344,6 +344,7 @@
     const list = progress.attempts[q.id] || [];
     list.push({ c: correct ? 1 : 0, r: resp, at: Date.now(), d: q.domain, f: q.diff, s: skillOf(q), t: t == null ? null : Math.min(900, Math.round(t)), src });
     progress.attempts[q.id] = list.slice(-6);
+    countAnswer();
     const keys = Object.keys(progress.attempts);
     if (keys.length > 1600) {
       const gen = keys.filter((k) => k.startsWith("g-") && !progress.saved[k]).sort((a, b) => lastAt(a) - lastAt(b));
@@ -1992,6 +1993,25 @@
           el("button", { class: "btn small", type: "button", onclick: () => authPost("signin/google") }, "Sign in with Google to sync"),
           el("p", { class: "tiny", style: "margin:0" }, "Optional. Your progress follows you to any device where you sign in. Students under 13 shouldn't sign in; Clearline works fully without an account. ", privacy)));
   }
+  // ------------------------------------------------------------------ anonymous usage count
+  // This browser keeps a random id (tied to no account) and how many questions it answered since its last report, and
+  // tells /api/count on load and when the tab is hidden: one row per browser per day, used for the owner's /stats page.
+  // Off inside Claude, for bots and automated browsers, and where "Don't count this browser" is on (window.CL_COUNT in index.html).
+  const COUNT_KEY = "clearline-count";
+  const counting = !IN_CLAUDE && window.CL_COUNT === true;
+  function countGet() {
+    try { const c = JSON.parse(localStorage.getItem(COUNT_KEY)) || {}; if (!/^[0-9a-f-]{36}$/.test(c.id)) { c.id = crypto.randomUUID(); c.n = 0; } return c; }
+    catch { return null; }
+  }
+  const countPut = (c) => { try { localStorage.setItem(COUNT_KEY, JSON.stringify(c)); return true; } catch { return false; } };
+  function countAnswer() { const c = counting && countGet(); if (c) { c.n = (c.n | 0) + 1; countPut(c); } }
+  function countSend(visit = false) {
+    const c = counting && countGet();
+    // Without storage every visit would get a fresh id and look like a new device, so nothing is sent.
+    if (!c || !(visit || c.n) || !countPut({ id: c.id, n: 0 })) return;
+    const body = new Blob([JSON.stringify({ device: c.id, answered: Math.min(200, c.n | 0) })], { type: "application/json" });
+    if (!navigator.sendBeacon("/api/count", body)) countPut(c);
+  }
   // ------------------------------------------------------------------ keeping progress safe: backup file, private-window note, iPhone Home Screen tip
   const BACKUP_APP = "clearline-sat";
   function downloadBackup() {
@@ -2895,7 +2915,7 @@
       if (q && q.type !== "spr" && idx >= 0) { m.ans[q.id] = idx; if (m.elim[q.id]) m.elim[q.id] = m.elim[q.id].filter((x) => x !== idx); save(); render(); e.preventDefault(); }
     }
   });
-  addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(true); });
+  addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { save(true); countSend(); } });
   addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) go(h); });
 
 
@@ -2959,6 +2979,7 @@
   pickStoreTip();
   importFromLink();
   cloudBoot();
+  countSend(true);
 
   // The old addresses forward students here with their progress packed into #import= (one gzipped, base64 backup per
   // old address, joined by "."; see bridge/index.html). It is untrusted input, so it goes through parseBackup and merge.

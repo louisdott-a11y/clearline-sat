@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- The owner's private usage page, served at /stats (see vercel.json). Numbers come from api/stats.mjs, which answers only
+the owner's Google account. The "Don't count this browser" switch works for anyone and needs no sign-in. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stats · Clearline SAT</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<style>
+@font-face { font-family: "Overpass"; font-weight: 400 800; font-display: swap; src: url(/assets/fonts/overpass-latin.woff2) format("woff2"); }
+:root { --bg: #eef0e6; --card: #fafbf5; --ink: #1f3a2e; --ink-soft: #55695e; --line: #cfd6c4; --sun: #f2c200; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg: #121a16; --card: #18221d; --ink: #e6ebe2; --ink-soft: #a3b0a6; --line: #2f3d35; --sun: #e8c53a; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 "Overpass", "Segoe UI", system-ui, sans-serif; padding: 24px 16px 64px; }
+main { max-width: 680px; margin: 0 auto; background: var(--card); border: 2px solid var(--ink); border-radius: 16px; padding: 28px 24px; }
+h1 { font-size: 32px; line-height: 1.15; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 28px 0 6px; }
+p { margin: 0 0 12px; }
+small, .soft { color: var(--ink-soft); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+.tile { border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile b { display: block; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+td + td, th + th { text-align: right; }
+label { display: flex; gap: 10px; align-items: center; font-weight: 700; cursor: pointer; }
+input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--ink); }
+button, a.home { display: inline-block; font: inherit; font-weight: 700; padding: 10px 20px; border: 2px solid var(--ink); border-radius: 999px; background: var(--sun); color: #1f3a2e; text-decoration: none; cursor: pointer; }
+a.home { margin-top: 20px; }
+</style></head><body><main>
+<h1>Stats</h1>
+<p class="soft">Usage numbers for Clearline. Only the owner's Google account can see them.</p>
+
+<h2>This browser</h2>
+<label><input type="checkbox" id="nocount"> Don't count this browser</label>
+<p><small>Turn this on in your own browsers so your visits and answers stay out of every count (Clearline's own counter, Cloudflare and Vercel). Saved in this browser only.</small></p>
+
+<h2>Usage</h2>
+<div id="out" aria-live="polite"><p class="soft">Loading…</p></div>
+<a class="home" href="/">Back to Clearline</a>
+</main>
+<script>
+var box = document.getElementById("nocount");
+try { box.checked = Boolean(localStorage.getItem("clearline-nocount")); } catch (e) { box.disabled = true; }
+box.onchange = function () { try { box.checked ? localStorage.setItem("clearline-nocount", "1") : localStorage.removeItem("clearline-nocount"); } catch (e) {} };
+
+var out = document.getElementById("out");
+function h(tag, text) { var e = document.createElement(tag); if (text != null) e.textContent = text; return e; }
+function tile(n, label) { var t = h("div"); t.className = "tile"; t.append(h("b", n.toLocaleString()), h("span", label)); return t; }
+// Auth.js sign-in is a form post with its anti-forgery token; it comes back to this page afterwards.
+async function signIn() {
+  var csrf = (await (await fetch("/api/auth/csrf", { cache: "no-store" })).json()).csrfToken;
+  var f = document.createElement("form"); f.method = "POST"; f.action = "/api/auth/signin/google"; f.hidden = true;
+  [["csrfToken", csrf], ["callbackUrl", location.origin + "/stats"]].forEach(function (kv) { var i = h("input"); i.type = "hidden"; i.name = kv[0]; i.value = kv[1]; f.append(i); });
+  document.body.append(f); f.submit();
+}
+(async function () {
+  try {
+    var r = await fetch("/api/stats", { cache: "no-store" });
+    if (r.status === 401) { var b = h("button", "Sign in with Google"); b.type = "button"; b.onclick = signIn; out.replaceChildren(h("p", "Sign in with the owner's Google account to see the numbers."), b); return; }
+    if (r.status === 403) { out.replaceChildren(h("p", "This Google account can't see the stats. Sign out in Clearline's Settings and sign in with the owner's account.")); return; }
+    if (!r.ok) throw 0;
+    var s = await r.json(), tiles = h("div"); tiles.className = "tiles";
+    tiles.append(tile(s.accounts, "accounts"), tile(s.new_accounts, "new accounts, last 7 days"), tile(s.weekly_devices, "active devices, last 7 days"),
+      tile(s.weekly_answered, "questions answered, last 7 days"), tile(s.all_answered, "questions answered, all time"));
+    var table = h("table"), head = h("tr");
+    head.append(h("th", "Day"), h("th", "Devices"), h("th", "Questions"));
+    table.append(head);
+    s.days.forEach(function (d) { var tr = h("tr"); tr.append(h("td", d.day), h("td", d.devices.toLocaleString()), h("td", d.answered.toLocaleString())); table.append(tr); });
+    out.replaceChildren(tiles, h("p", "Last 14 days (Texas time). A device is one browser; the same person on a phone and a laptop counts twice."), table);
+  } catch (e) { out.replaceChildren(h("p", "Couldn't load the numbers. Try again in a minute.")); }
+})();
+</script>
+</body></html>

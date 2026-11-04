@@ -805,6 +805,20 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
 <div id="dock"></div>
 <div id="modal-root"></div>
 <div class="toast" id="toast" role="status" hidden></div>
+<!-- Who gets counted: not bots or automated browsers (Playwright sets navigator.webdriver), and not a browser where the owner
+turned on "Don't count this browser" at /stats. The same words are checked again on the server (BOT_UA in api/_checks.mjs).
+Cloudflare and Vercel Web Analytics use no cookies and load after the page, so they never slow the first paint. -->
+<script>
+window.CL_COUNT = (function () {
+  try { if (localStorage.getItem("clearline-nocount")) return false; } catch (e) {}
+  return !navigator.webdriver && !/bot|crawl|spider|slurp|headless|lighthouse|playwright|puppeteer|phantom|selenium/i.test(navigator.userAgent);
+})();
+if (window.CL_COUNT) addEventListener("load", function () {
+  var cf = document.createElement("script"); cf.defer = true; cf.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  cf.setAttribute("data-cf-beacon", '{"token": "2f45e8c65c0644fb895f290d6b96c8ca"}'); document.body.appendChild(cf);
+  var va = document.createElement("script"); va.defer = true; va.src = "/_vercel/insights/script.js"; document.body.appendChild(va);
+});
+</script>
 <script src="assets/config.js" charset="utf-8"></script>
 <script src="assets/bank.js" charset="utf-8"></script>
 <script src="assets/mathgen.js" charset="utf-8"></script>
@@ -815,6 +829,4 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
 <script src="assets/report.js" charset="utf-8"></script>
 <script src="assets/coach.js" charset="utf-8"></script>
 <script src="assets/app.js" charset="utf-8"></script>
-
-<!-- Cloudflare Web Analytics: privacy-friendly visit counts, no cookies. Loaded after the page so it never slows the first paint. --><script>addEventListener("load", function () { var s = document.createElement("script"); s.defer = true; s.src = "https://static.cloudflareinsights.com/beacon.min.js"; s.setAttribute("data-cf-beacon", '{"token": "2f45e8c65c0644fb895f290d6b96c8ca"}'); document.body.appendChild(s); });</script><!-- End Cloudflare Web Analytics -->
 </body></html>

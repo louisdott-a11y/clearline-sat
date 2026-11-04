@@ -6,9 +6,10 @@ import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL);
 
-// The two tables are created on first use, so setup needs no separate database step.
+// The tables are created on first use, so setup needs no separate database step.
 // users: who can sign in (the Google account id and email, nothing else). progress: one saved copy per user.
 // Deleting a user deletes their progress too (on delete cascade).
+// device_days: the anonymous usage count, one row per browser per day (a random id and questions answered, no account link).
 let ready;
 export function db() {
   ready ??= (async () => {
@@ -21,6 +22,11 @@ export function db() {
       user_id uuid primary key references users(id) on delete cascade,
       data jsonb not null,
       updated_at timestamptz not null default now())`;
+    await sql`create table if not exists device_days (
+      device uuid not null,
+      day date not null,
+      answered int not null default 0,
+      primary key (device, day))`;
     return sql;
   })().catch((e) => { ready = null; throw e; });
   return ready;
@@ -55,12 +61,13 @@ export const auth = (request) => Auth(request, authConfig);
 
 // The signed-in user's id, read from their session cookie. Never taken from the request body or URL,
 // so nobody can read or write someone else's progress.
-export async function userId(request) {
+export async function sessionUser(request) {
   const res = await auth(new Request(new URL("/api/auth/session", request.url), { headers: { cookie: request.headers.get("cookie") ?? "" } }));
   if (!res.ok) return null;
   const session = await res.json().catch(() => null);
-  return session?.user?.id ?? null;
+  return session?.user?.id ? session.user : null;
 }
+export const userId = async (request) => (await sessionUser(request))?.id ?? null;
 
 // A session cookie stays valid after its account is deleted on another device; treat that as signed out.
 export async function accountExists(sql, uid) {

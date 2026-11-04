@@ -8,7 +8,7 @@ if [ -n "$CF_PAGES" ]; then
   echo "dist/ ready: Cloudflare bridge page only"
   exit 0
 fi
-cp index.html 404.html privacy.html dist/
+cp index.html 404.html privacy.html stats.html dist/
 # The old clearline-sat.vercel.app address is sent to this page, which forwards students and their progress to clearlinesat.com.
 cp bridge/index.html dist/bridge.html
 cp -R assets dist/assets

@@ -7,10 +7,12 @@ const rand = () => require("crypto").randomBytes(24).toString("base64url");
 Object.assign(process.env, { AUTH_SECRET: rand(), AUTH_GOOGLE_ID: rand(), AUTH_GOOGLE_SECRET: rand(), DATABASE_URL: `postgresql://nobody:${rand()}@localhost/none` });
 
 (async () => {
-  const { readProgress, sameOrigin, MAX_BYTES, restoreAuthRequest } = await import("../api/_checks.mjs");
+  const { readProgress, sameOrigin, MAX_BYTES, restoreAuthRequest, readCount, isBot } = await import("../api/_checks.mjs");
   const { userId } = await import("../api/_lib.mjs");
   const progress = await import("../api/progress.mjs");
   const account = await import("../api/account.mjs");
+  const count = await import("../api/count.mjs");
+  const stats = await import("../api/stats.mjs");
   const { encode } = await import("@auth/core/jwt");
 
   // Request rules.
@@ -52,5 +54,23 @@ Object.assign(process.env, { AUTH_SECRET: rand(), AUTH_GOOGLE_ID: rand(), AUTH_G
   const own = new Request("http://localhost/api/progress", { method: "PUT", headers: { origin: "http://localhost" }, body: "{\"attempts\":{}}" });
   assert.strictEqual((await progress.PUT(own)).status, 401, "saving needs sign-in");
 
-  console.log("sync ok: same-website rule, 1 MB cap, progress shape, signed sessions only, routes refuse before the database");
+  // Usage counter: only a random device id and a small whole number get in; bots and other websites are turned away.
+  const dev = require("crypto").randomUUID();
+  assert.deepStrictEqual(readCount(JSON.stringify({ device: dev, answered: 3 })), { device: dev, answered: 3 }, "a real count is accepted");
+  for (const bad of [{ device: "me@x.com", answered: 1 }, { device: dev, answered: -1 }, { device: dev, answered: 201 }, { device: dev, answered: 1.5 }, { device: dev }, null])
+    assert.strictEqual(readCount(JSON.stringify(bad)).status, 400, "refused: " + JSON.stringify(bad));
+  assert.strictEqual(readCount("x".repeat(201)).status, 400, "an oversized count is refused");
+  for (const ua of ["Googlebot/2.1", "Mozilla/5.0 HeadlessChrome/140", "Mozilla/5.0 Chrome-Lighthouse", "", null]) assert(isBot(ua), "bot: " + ua);
+  assert(!isBot("Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140.0 Safari/537.36"), "a normal browser counts");
+  const post = (origin, ua, body) => new Request("http://localhost/api/count", { method: "POST", headers: { origin, "user-agent": ua }, body });
+  const browser = "Mozilla/5.0 Chrome/140.0";
+  assert.strictEqual((await count.POST(post("https://evil.example", browser, "{}"))).status, 403, "a count from another website is refused");
+  assert.strictEqual((await count.POST(post("http://localhost", "HeadlessChrome", "{}"))).status, 204, "a bot is quietly ignored");
+  assert.strictEqual((await count.POST(post("http://localhost", browser, "{\"device\":\"x\"}"))).status, 400, "a bad count is refused");
+
+  // Stats: nobody signed in, or a signed-in student, gets no numbers.
+  assert.strictEqual((await stats.GET(at(null))).status, 401, "stats need sign-in");
+  assert.strictEqual((await stats.GET(at(signed))).status, 403, "stats refuse any account but the owner's");
+
+  console.log("sync ok: same-website rule, 1 MB cap, progress shape, signed sessions only, routes refuse before the database, usage counter and stats rules");
 })().catch((e) => { console.error(e); process.exit(1); });
