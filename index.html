@@ -798,6 +798,48 @@ body.testing .content { max-width: 1240px; margin: 0 auto; }
   @keyframes march { to { stroke-dashoffset: -14; } }
   @keyframes drop { from { transform: translateY(-14px) scale(0.6); } }
 }
+/* ---------- AP courses (assets/ap.js; drawn by the AP section of app.js) ---------- */
+.ap-units { display: grid; gap: 10px; }
+.ap-unit { display: grid; grid-template-columns: 64px minmax(0, 1fr) minmax(130px, 210px); gap: 14px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: 12px; padding: 13px 16px; font: inherit; }
+@media (hover: hover) and (pointer: fine) { .ap-unit:hover:not([disabled]) { background: var(--hover); } }
+.ap-unit[disabled] { cursor: default; color: var(--ink-soft); }
+.ap-unit .tag { justify-self: start; }
+.ap-num { font-weight: 800; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ap-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.ap-topic { font-weight: 700; font-size: 13px; color: var(--accent-text); margin: 0 0 12px; }
+.ap-graph { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 0 14px; overflow: visible; }
+.ap-graph text { font: 600 8px var(--f-ui); fill: var(--ink); paint-order: stroke; stroke: var(--card); stroke-width: 2.5px; stroke-linejoin: round; }
+.ap-graph .axis { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.ap-graph line, .ap-graph polyline { fill: none; stroke-width: 1.8; stroke-linecap: round; }
+.ap-graph :is(line, polyline).cur { stroke: var(--ink); }
+.ap-graph :is(line, polyline).new { stroke: var(--accent-text); }
+.ap-graph :is(line, polyline).old { stroke: var(--ink-soft); stroke-dasharray: 4 3; }
+.ap-graph text.new { fill: var(--accent-text); }
+.ap-graph text.old, .ap-graph .tick { fill: var(--ink-soft); }
+.ap-graph .guide { stroke: var(--line-strong); stroke-width: 0.9; stroke-dasharray: 2 2; }
+.ap-graph .dot { fill: var(--ink); }
+.ap-graph line.arrow { stroke: var(--coral); stroke-width: 1.4; }
+.ap-graph polygon.arrow { fill: var(--coral); }
+.choices.ap-g { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choices.ap-g .choice { align-items: start; }
+.choice .ap-graph { margin: 0; }
+.ap-why-h { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin: 18px 0 8px; }
+.why b.ok { background: var(--green-fill); border-color: var(--green-fill); color: var(--on-fill); }
+.ap-rev summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.ap-rev summary .ok { color: var(--green); } .ap-rev summary .no { color: var(--red); }
+.ap-rev[open] summary { margin-bottom: 10px; }
+.ap-part { display: grid; gap: 8px; margin: 0 0 18px; }
+.ap-ask { margin: 0; font-weight: 600; }
+.ap-guide { display: grid; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--card-2); }
+.ap-pt { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
+.ap-pt input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--green-fill); }
+.ap-tally { font-weight: 700; }
+@media (max-width: 600px) {
+  .ap-unit { grid-template-columns: 48px minmax(0, 1fr); gap: 4px 10px; }
+  .ap-unit > :nth-child(3) { grid-column: 2; }
+  .choices.ap-g { grid-template-columns: minmax(0, 1fr); }
+  .choices.ap-g .choice { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
 /* iOS zooms into any field under 16px and stays zoomed, so touch screens get 16px fields (last, so it wins). */
 @media (pointer: coarse) { input, textarea, select, .input { font-size: 16px; } }
 </style>

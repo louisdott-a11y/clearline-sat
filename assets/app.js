@@ -4,6 +4,8 @@
 (() => {
   "use strict";
   const BANK = window.CL_BANK.items;
+  // The ?v=<commit> that build.sh put on this script, reused when assets/ap.js loads later so a deploy reaches it too.
+  const ASSET_V = document.currentScript?.src.match(/\?v=\w+/)?.[0] || "";
   // The hand-written bank was authored with most correct answers in slot A. Spread the answer
   // across A–D with a fixed per-question order (seeded by id, so a question always looks the same),
   // carrying the per-choice "why" notes and any "choice A" mentions in the explanation along with it.
@@ -95,7 +97,7 @@
     psat89: { label: "PSAT 8/9", min: 120, max: 720 },
     other: { label: "Other practice test", min: 200, max: 800 }
   };
-  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["desmos", "Desmos"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Vocab"], ["guides", "Guides"]];
+  const VIEWS = [["home", "Home"], ["practice", "Practice"], ["desmos", "Desmos"], ["bank", "Question bank"], ["mock", "Practice tests"], ["stats", "Analytics & scores"], ["review", "Review"], ["vocab", "Vocab"], ["guides", "Guides"], ["ap", "AP"]];
   const ICONS = {
     home: "M3 11 12 4l9 7M5 10v10h5v-6h4v6h5V10",
     practice: "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4",
@@ -105,7 +107,8 @@
     stats: "M5 20V11M12 20V5M19 20v-6",
     review: "M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5",
     vocab: "M7 4h12v14H7zM4 7v13h12",
-    guides: "M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"
+    guides: "M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z",
+    ap: "M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5M22 9v6"
   };
   // Set in assets/config.js (see docs/DEPLOY.md to swap in your own key).
   const DESMOS_API_KEY = window.CL_CONFIG?.DESMOS_API_KEY || "";
@@ -118,7 +121,7 @@
   const GEM = window.CL_GEM;
 
   // ------------------------------------------------------------------ state
-  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
+  const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false, ap: { a: {}, tests: [], frq: {} } });
   let progress = blankProgress();
   let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null, verdictGem = null;
   let cloud = null; // { email } once signed in with Google on the public site (see "account sync" below)
@@ -136,7 +139,8 @@
     calc: { tab: "calc", expr: "", out: "", err: "", hist: [], deg: false, fns: ["x^2 - 4", "2x + 1", ""], range: 10 },
     gemTurns: [],
     mockResult: null, pendingSubmit: false, pendingRestore: null, navOpen: false, refOpen: false, settingsOpen: false, hideTimer: false, elimMode: false,
-    armed: {}, restoreText: "", lastActive: Date.now()
+    armed: {}, restoreText: "", lastActive: Date.now(),
+    ap: { unit: null, run: null, test: null, frq: null }
   };
   const getQ = (id) => BY_ID[id] || D_BY_ID[id] || MATH.fromId(id);
 
@@ -157,6 +161,9 @@
     const am = out.activeMock;
     if (am && !(isObj(am) && MOCK_SPEC[am.kind] && Array.isArray(am.modules) && Number.isInteger(am.stage) && isObj(am.modules[am.stage])
       && am.modules.every((m) => isObj(m) && Array.isArray(m.ids) && m.ids.length && m.ids.every((id) => getQ(id)) && ["ans", "marked", "elim", "time"].every((f) => isObj(m[f]))))) out.activeMock = null;
+    if (!isObj(out.ap)) out.ap = b.ap;
+    for (const k of ["a", "frq"]) { if (!isObj(out.ap[k])) out.ap[k] = {}; for (const id of Object.keys(out.ap[k])) if (!isObj(out.ap[k][id]) || !Number.isFinite(out.ap[k][id].at)) delete out.ap[k][id]; }
+    out.ap.tests = Array.isArray(out.ap.tests) ? out.ap.tests.filter((t) => isObj(t) && Number.isFinite(t.right) && Number.isFinite(t.total) && isObj(t.topics)) : [];
     if (!out.rushRound || typeof out.rushRound !== "object" || !Array.isArray(out.rushRound.seen)) out.rushRound = null;
     if (![0, 1, 1.5, 2].includes(out.timeMult)) out.timeMult = 1;
     for (let [id, list] of Object.entries(out.attempts)) {
@@ -696,8 +703,8 @@
       ? el("div", { class: "banner" }, el("span", {}, el("b", { text: "Mock SAT paused. " }), am.onBreak ? "You're on the break." : `${SECTION[curModule().section]}, module ${curModule().n}: ${curModule().timeLeft == null ? "untimed, so take your time." : clock(curModule().timeLeft) + " left. The timer only runs while the test is open."}`), el("button", { class: "btn", type: "button", onclick: () => go("mock") }, "Resume test"))
       : storeTip ? tipBanner() : "");
     document.querySelector(".foot").style.display = ui.view === "home" ? "" : "none";
-    document.getElementById("page-title").textContent = VIEWS.find(([k]) => k === ui.view)[1];
-    const views = { home: renderHome, practice: renderPractice, desmos: renderDesmosView, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides };
+    document.getElementById("page-title").textContent = ui.view === "ap" ? "AP Macroeconomics" : VIEWS.find(([k]) => k === ui.view)[1];
+    const views = { home: renderHome, practice: renderPractice, desmos: renderDesmosView, bank: renderBank, mock: renderMock, stats: renderStats, review: renderReview, vocab: renderVocab, guides: renderGuides, ap: renderAP };
     document.getElementById("view").replaceChildren(views[ui.view]());
     if (ui.view === "desmos" && desmosCalc && desmosEl?.isConnected) desmosCalc.resize();
     document.getElementById("modal-root").replaceChildren(ui.refOpen ? renderReference() : "");
@@ -706,7 +713,7 @@
   }
   function renderMenu() {
     const missed = missedIds().length;
-    document.getElementById("menu").replaceChildren(...VIEWS.map(([k, label]) => el("button", { type: "button", "aria-current": ui.view === k ? "page" : false, onclick: () => { closeNav(false); if (k === "mock" && !progress.activeMock) ui.mockResult = null; go(k); } },
+    document.getElementById("menu").replaceChildren(...VIEWS.map(([k, label]) => el("button", { type: "button", "aria-current": ui.view === k ? "page" : false, onclick: () => { closeNav(false); if (k === "mock" && !progress.activeMock) ui.mockResult = null; if (k === "ap" && !(ui.ap.test && !ui.ap.test.done)) ui.ap = { unit: null, run: null, test: null, frq: null }; go(k); } },
       svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" }, svg("path", { d: ICONS[k] })),
       el("span", { class: "menu-label", text: label }), k === "review" && missed ? el("span", { class: "count", text: missed }) : null)),
       el("button", { type: "button", class: "menu-settings settings-trigger", "aria-haspopup": "dialog", "aria-expanded": String(ui.settingsOpen), onclick: () => { closeNav(false); toggleSettings(); } }, gearIcon(19), el("span", { class: "menu-label", text: "Settings" })));
@@ -2866,6 +2873,16 @@
       if (sc) sc.textContent = clock(set.timeLeft);
       if (set.timeLeft === 0) { toast("Time's up for this drill. Finish at your own pace."); set.timeLeft = null; save(); }
     }
+    const apt = ui.ap.test;
+    if (apt && !apt.done && ui.view === "ap" && visible) {
+      apt.used++;
+      if (apt.left != null) {
+        apt.left = Math.max(0, apt.left - 1);
+        const c = document.getElementById("ap-clock");
+        if (c) c.textContent = clock(apt.left);
+        if (!apt.left) { finishApTest(); toast("Time's up. Here's how you did."); }
+      }
+    }
     const mc = document.getElementById("match-clock");
     if (mc && ui.vocab.match && !ui.vocab.match.end) mc.textContent = clock(matchTime(ui.vocab.match));
     const r = ui.rush;
@@ -2921,6 +2938,220 @@
   addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { save(true); countSend(); } });
   addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.some(([k]) => k === h)) go(h); });
 
+
+  // ------------------------------------------------------------------ AP courses
+  // Units, topics and questions live in assets/ap.js, fetched the first time the AP tab opens so SAT pages don't pay for it.
+  // progress.ap: a[questionId] = { c, at, n } (latest result, when, tries); tests = unit test results; frq[id] = { got, of, at }.
+  let apLoad = "";
+  function apCourse() {
+    if (window.CL_AP) return window.CL_AP.courses.macro;
+    if (!apLoad) {
+      apLoad = "loading";
+      document.head.append(el("script", { src: "assets/ap.js" + ASSET_V, charset: "utf-8", onload: () => { apLoad = ""; if (ui.view === "ap") render(); }, onerror: (e) => { e.target.remove(); apLoad = "failed"; if (ui.view === "ap") render(); } }));
+    }
+    return null;
+  }
+  const AP_SECS = 70; // the real exam gives 70 minutes for 60 multiple-choice questions
+  const apTopicName = (C, t) => C.units.flatMap((u) => u.topics).find(([n]) => n === t)?.[1] || "";
+  function apMastery(qs) {
+    const right = qs.filter((q) => progress.ap.a[q.id]?.c).length;
+    return { right, total: qs.length, pct: qs.length ? Math.round((100 * right) / qs.length) : 0 };
+  }
+  function apRecord(q, ok) {
+    const p = progress.ap.a[q.id];
+    progress.ap.a[q.id] = { c: ok ? 1 : 0, at: Date.now(), n: (p?.n || 0) + 1 };
+    countAnswer();
+  }
+  const apHome = () => { ui.ap = { unit: ui.ap.unit, run: null, test: null, frq: null }; render(); scrollTo(0, 0); };
+  const apBack = (label, onclick) => el("button", { class: "link", type: "button", style: "justify-self:start", onclick }, "← " + label);
+  // Graphs: assets/ap.js works out the shapes in a 0-100 box; this draws them with the theme's colors.
+  function apGraph(g) {
+    const p = window.CL_AP.plot(g), L = 30, T = 12, W = 150, H = 110, B = 34;
+    const X = (x) => L + (x * W) / 100, Y = (y) => T + ((100 - y) * H) / 100;
+    const s = svg("svg", { class: "ap-graph", viewBox: `0 0 ${L + W + 40} ${T + H + B}`, role: "img", "aria-label": g.alt },
+      svg("path", { class: "axis", d: `M${X(0)} ${Y(100)}V${Y(0)}H${X(100)}` }),
+      svg("text", { x: "4", y: String(T - 3) }, p.y), svg("text", { x: String(X(50)), y: String(Y(0) + 30), "text-anchor": "middle" }, p.x));
+    for (const sh of p.shapes) {
+      if (sh.t === "line" || sh.t === "guide") s.append(svg("line", { class: sh.t === "guide" ? "guide" : sh.cls, x1: X(sh.x1), y1: Y(sh.y1), x2: X(sh.x2), y2: Y(sh.y2) }));
+      else if (sh.t === "poly") s.append(svg("polyline", { class: sh.cls, points: sh.pts.map(([x, y]) => X(x) + "," + Y(y)).join(" ") }));
+      else if (sh.t === "dot") s.append(svg("circle", { class: "dot", cx: X(sh.x), cy: Y(sh.y), r: "2.4" }));
+      else if (sh.t === "text") s.append(svg("text", { class: sh.cls, x: X(sh.x), y: Y(sh.y), "text-anchor": sh.anchor }, sh.s));
+      else if (sh.t === "arrow") {
+        const [x1, y1, x2, y2] = [X(sh.x1), Y(sh.y1), X(sh.x2), Y(sh.y2)], a = Math.atan2(y2 - y1, x2 - x1), h = (r) => `${x2 - 6 * Math.cos(a + r)},${y2 - 6 * Math.sin(a + r)}`;
+        s.append(svg("line", { class: "arrow", x1, y1, x2, y2 }), svg("polygon", { class: "arrow", points: `${x2},${y2} ${h(0.45)} ${h(-0.45)}` }));
+      }
+    }
+    // Close ticks on the x-axis take turns between two rows so "Y1" and "Yf" never overlap.
+    let lastX = -99, row = 0;
+    for (const [x, t] of p.xl.slice().sort((a, b) => a[0] - b[0])) { row = X(x) - lastX < 16 ? 1 - row : 0; lastX = X(x); s.append(svg("text", { class: "tick", x: X(x), y: Y(0) + 10 + row * 9, "text-anchor": "middle" }, t)); }
+    for (const [y, t] of p.yl) s.append(svg("text", { class: "tick", x: X(0) - 3, y: Y(y) + 3, "text-anchor": "end" }, t));
+    return s;
+  }
+  // One AP question: topic number, optional graph, stem and four choices. With reveal, it marks the answer and explains every choice.
+  function apQuestion(C, q, picked, reveal, onPick) {
+    const gChoices = typeof q.choices[0] !== "string";
+    return el("div", { class: "ap-q" },
+      el("p", { class: "ap-topic", text: `Topic ${q.t} · ${apTopicName(C, q.t)}` }),
+      q.g ? apGraph(q.g) : null,
+      el("p", { class: "prompt", text: q.q }),
+      el("div", { class: "choices" + (gChoices ? " ap-g" : ""), role: "radiogroup", "aria-label": "Answer choices" }, q.choices.map((c, i) => {
+        const cls = "choice" + (reveal && i === q.answer ? " is-right" : reveal && i === picked ? " is-wrong" : "");
+        return el("button", { class: cls, type: "button", role: "radio", id: "choice-" + i, "aria-checked": String(picked === i), disabled: reveal, onclick: () => onPick(i) },
+          el("span", { class: "bubble", text: LETTERS[i] }), gChoices ? apGraph(c.g) : el("span", { text: c }));
+      })),
+      reveal ? [el("h4", { class: "ap-why-h", text: "Why each answer is right or wrong" }),
+        el("div", { class: "why" }, q.why.map((t, i) => el("div", {}, el("b", { class: i === q.answer ? "ok" : "", text: LETTERS[i] }), el("span", { text: (i === q.answer ? "Correct. " : "") + t }))))] : null);
+  }
+  function renderAP() {
+    const C = apCourse();
+    if (!C) return sheet("", el("p", { class: "sub", role: "status", text: apLoad === "failed" ? "Couldn't load the AP questions. Check your connection." : "Loading AP Macroeconomics…" }),
+      apLoad === "failed" ? el("button", { class: "btn", type: "button", onclick: () => { apLoad = ""; render(); } }, "Try again") : null);
+    const a = ui.ap;
+    if (a.test) return a.test.done ? apResult(C) : apTest(C);
+    if (a.run) return apPractice(C);
+    if (a.frq) return apFrq(C);
+    if (a.unit) return apUnit(C, C.units.find((u) => u.n === a.unit));
+    const any = Object.keys(progress.ap.a).length;
+    return el("div", { class: "stack" },
+      el("div", { class: "hero" }, el("div", {}, el("h2", { class: "h1", text: "AP Macroeconomics" }),
+        el("p", { class: "sub", style: "margin:6px 0 0", text: "Practice by unit and topic, following the College Board course outline. Original questions, every answer explained." })),
+        gemSays(any ? "Welcome back. Pick up a topic, or take a unit test to find your weak spots." : "Hi, I'm Gem! Pick a unit, then a topic. AP Macro is graph-heavy, so we draw a lot of graphs.", "smile")),
+      sheet("", title("units"), el("div", { class: "ap-units" }, C.units.map((u) => {
+        const m = apMastery(C.questions.filter((q) => q.t.startsWith(u.n + ".")));
+        return el("button", { class: "ap-unit", type: "button", disabled: u.soon, onclick: () => { ui.ap.unit = u.n; render(); scrollTo(0, 0); } },
+          el("span", { class: "ap-num", text: "Unit " + u.n }), el("b", { text: u.name }),
+          u.soon ? el("span", { class: "tag", text: "Coming soon" })
+            : el("span", { class: "ap-bar" }, el("span", { class: "meter", "aria-hidden": "true" }, el("i", { style: `width:${m.pct}%` })), el("span", { class: "tiny", text: `${m.pct}% mastered` })));
+      }))),
+      el("p", { class: "tiny", text: "Unofficial practice, not affiliated with the College Board. AP is a trademark of the College Board." }));
+  }
+  function apUnit(C, u) {
+    const qs = C.questions.filter((q) => q.t.startsWith(u.n + ".")), frqs = C.frqs.filter((f) => f.unit === u.n);
+    const n = u.topics.length * 2, last = progress.ap.tests.filter((t) => t.unit === u.n).sort((x, y) => y.at - x.at)[0];
+    return el("div", { class: "stack" },
+      apBack("All units", () => { ui.ap.unit = null; render(); }),
+      el("h2", { class: "h1", text: `Unit ${u.n}: ${u.name}` }),
+      sheet("", title("unit test"), el("p", { class: "sub", text: `${n} questions, two from every topic${progress.timeMult ? `, ${Math.round((n * AP_SECS * progress.timeMult) / 60)} minutes` : ", untimed"}. You get a score and a list of weak topics at the end.${last ? ` Last time: ${last.right}/${last.total} on ${niceDate(last.at)}.` : ""}` }),
+        el("div", { class: "row" }, el("span", { class: "field", id: "ap-time", text: "Timing" }),
+          el("div", { class: "pills", role: "group", "aria-labelledby": "ap-time" }, TIME_OPTS.map(([v, l]) => el("button", { class: "pill", type: "button", "aria-pressed": String(progress.timeMult === v), onclick: () => { progress.timeMult = v; save(); render(); } }, l)))),
+        el("button", { class: "btn sun", type: "button", style: "margin-top:12px", onclick: () => startApTest(C, u) }, "Start unit test")),
+      sheet("", title("topics"), el("div", { class: "ap-units" }, u.topics.map(([t, name]) => {
+        const m = apMastery(qs.filter((q) => q.t === t));
+        return el("button", { class: "ap-unit", type: "button", disabled: !m.total, onclick: () => startApRun(C, t) },
+          el("span", { class: "ap-num", text: t }), el("b", { text: name }),
+          el("span", { class: "ap-bar" }, el("span", { class: "meter", "aria-hidden": "true" }, el("i", { style: `width:${m.pct}%` })), el("span", { class: "tiny", text: `${m.right}/${m.total} right` })));
+      }))),
+      frqs.length ? sheet("", title("free response"), el("p", { class: "sub", text: "Write your answer, then score yourself with the scoring guide." }),
+        el("div", { class: "ap-units" }, frqs.map((f) => { const s = progress.ap.frq[f.id];
+          return el("button", { class: "ap-unit", type: "button", onclick: () => { ui.ap.frq = f.id; render(); scrollTo(0, 0); } },
+            el("span", { class: "ap-num", text: "FRQ" }), el("b", { text: f.title }), el("span", { class: "tiny", text: s ? `Your score: ${s.got}/${s.of}` : `${f.parts.reduce((x, p) => x + p.pts.length, 0)} points` })); }))) : null);
+  }
+  // Topic practice: unseen questions first, then misses, then the rest, one at a time with feedback after each.
+  function startApRun(C, t) {
+    const rank = (q) => { const r = progress.ap.a[q.id]; return (!r ? 0 : !r.c ? 1 : 2) + Math.random() * 0.5; };
+    ui.ap.run = { t, ids: C.questions.filter((q) => q.t === t).sort((x, y) => rank(x) - rank(y)).map((q) => q.id), i: 0, picked: null, checked: false, right: 0 };
+    render(); scrollTo(0, 0);
+  }
+  function apPractice(C) {
+    const r = ui.ap.run, byId = (id) => C.questions.find((q) => q.id === id);
+    const head = el("div", { class: "row between" }, apBack(`Unit ${r.t.split(".")[0]}`, () => { ui.ap.run = null; render(); }), el("span", { class: "tag", text: `Topic ${r.t} · ${Math.min(r.i + 1, r.ids.length)} of ${r.ids.length}` }));
+    if (r.i >= r.ids.length) {
+      const good = r.right / r.ids.length >= 0.8;
+      const u = C.units.find((x) => x.n === Number(r.t.split(".")[0])), k = u.topics.findIndex(([n]) => n === r.t), next = u.topics[k + 1];
+      return el("div", { class: "stack" }, head, sheet("", title(`topic ${r.t} done`), el("p", { style: "font-weight:800;font-size:56px;margin:0", text: `${r.right}/${r.ids.length}` }),
+        gemSays(good ? "Strong round. This topic is in good shape." : "Every miss is explained above it. Run it again tomorrow while it's fresh.", good ? "cheer" : "smile"),
+        el("div", { class: "row", style: "margin-top:14px" },
+          next && C.questions.some((q) => q.t === next[0]) ? el("button", { class: "btn", type: "button", onclick: () => startApRun(C, next[0]) }, `Next: topic ${next[0]}`) : null,
+          el("button", { class: "btn ghost", type: "button", onclick: () => startApRun(C, r.t) }, "Practice again"),
+          el("button", { class: "btn ghost", type: "button", onclick: () => { ui.ap.run = null; render(); } }, "Back to unit"))));
+    }
+    const q = byId(r.ids[r.i]), ok = r.checked && r.picked === q.answer;
+    verdictGem = r.checked ? GEM.make({ mood: ok ? "happy" : "oops" }) : null;
+    return el("div", { class: "stack" }, head, sheet("", 
+      r.checked ? el("div", { class: "verdict-head" }, verdictGem.el, el("p", { class: "verdict-title " + (ok ? "ok" : "no"), role: "status" }, ok ? "✓ Correct" : `✕ Incorrect. The correct answer is ${LETTERS[q.answer]}.`)) : null,
+      apQuestion(C, q, r.picked, r.checked, (i) => { r.picked = i; render(); document.getElementById("ap-check")?.focus(); }),
+      el("div", { class: "actions" }, r.checked
+        ? el("button", { class: "btn", id: "ap-next", type: "button", onclick: () => { r.i++; r.picked = null; r.checked = false; render(); scrollTo(0, 0); } }, r.i + 1 < r.ids.length ? "Next" : "See results")
+        : el("button", { class: "btn", id: "ap-check", type: "button", disabled: r.picked == null, onclick: () => {
+          r.checked = true; const good = r.picked === q.answer; if (good) r.right++;
+          apRecord(q, good); save(); render();
+          if (good) verdictGem?.right(); else verdictGem?.wrong();
+          document.getElementById("ap-next")?.focus();
+        } }, "Check answer"))));
+  }
+  // Unit test: two random questions per topic, shuffled, timed at the real exam's pace (or extended/untimed).
+  function startApTest(C, u) {
+    const ids = shuffle(u.topics.flatMap(([t]) => shuffle(C.questions.filter((q) => q.t === t)).slice(0, 2).map((q) => q.id)));
+    ui.ap.test = { unit: u.n, ids, ans: {}, cur: 0, used: 0, left: progress.timeMult ? Math.round(ids.length * AP_SECS * progress.timeMult) : null, done: false };
+    render(); scrollTo(0, 0);
+  }
+  function finishApTest() {
+    const t = ui.ap.test, C = window.CL_AP.courses.macro, topics = {};
+    let right = 0;
+    for (const id of t.ids) {
+      const q = C.questions.find((x) => x.id === id), ok = t.ans[id] === q.answer, tp = (topics[q.t] = topics[q.t] || [0, 0]);
+      tp[1]++; if (ok) { tp[0]++; right++; }
+      if (t.ans[id] != null) apRecord(q, ok);
+    }
+    t.rec = { id: "apt" + Date.now(), unit: t.unit, at: Date.now(), right, total: t.ids.length, secs: t.used, topics };
+    progress.ap.tests = [...progress.ap.tests, t.rec].slice(-30);
+    t.done = true;
+    save(); render(); scrollTo(0, 0);
+  }
+  function apTest(C) {
+    const t = ui.ap.test, id = t.ids[t.cur], q = C.questions.find((x) => x.id === id);
+    const open = t.ids.filter((x) => t.ans[x] == null).length;
+    return el("div", { class: "stack" },
+      el("div", { class: "row between" }, el("b", { text: `Unit ${t.unit} test · question ${t.cur + 1} of ${t.ids.length}` }),
+        t.left != null ? el("span", { class: "tag", title: "Time left" }, el("b", { id: "ap-clock", text: clock(t.left) }), "left") : el("span", { class: "tag", text: "Untimed" })),
+      el("div", { class: "meter", "aria-hidden": "true" }, el("i", { style: `width:${Math.round((100 * (t.ids.length - open)) / t.ids.length)}%` })),
+      sheet("", apQuestion(C, q, t.ans[id] ?? null, false, (i) => { t.ans[id] = t.ans[id] === i ? null : i; render(); }),
+        el("div", { class: "actions" },
+          el("button", { class: "btn ghost", type: "button", disabled: t.cur === 0, onclick: () => { t.cur--; render(); } }, "Back"),
+          t.cur < t.ids.length - 1 ? el("button", { class: "btn", type: "button", onclick: () => { t.cur++; render(); scrollTo(0, 0); } }, "Next") : null,
+          confirmBtn("ap-submit", "Submit test", open ? `Submit with ${open} unanswered?` : "Yes, submit", finishApTest, t.cur === t.ids.length - 1 ? "btn sun" : "btn small ghost"))),
+      el("button", { class: "link", type: "button", style: "justify-self:start", onclick: () => { ui.ap.test = null; render(); } }, "Quit without scoring"));
+  }
+  function apResult(C) {
+    const t = ui.ap.test, rec = t.rec, pct = Math.round((100 * rec.right) / rec.total);
+    const weak = Object.entries(rec.topics).filter(([, [r, n]]) => r / n < 0.7).sort((x, y) => x[1][0] / x[1][1] - y[1][0] / y[1][1] || (x[0] < y[0] ? -1 : 1));
+    return el("div", { class: "stack" },
+      apBack(`Unit ${t.unit}`, () => { ui.ap.test = null; render(); }),
+      sheet("", title(`unit ${t.unit} test results`),
+        el("div", { class: "row", style: "gap:24px;align-items:flex-end" },
+          el("p", { style: "font-weight:800;font-size:56px;margin:0;line-height:1", text: `${rec.right}/${rec.total}` }),
+          el("p", { class: "sub", style: "margin:0", text: `${pct}% correct · ${fmtMin(rec.secs) === "0m" ? "under a minute" : fmtMin(rec.secs)}` })),
+        gemSays(pct >= 80 ? "That's a strong unit. Keep it warm with a topic round now and then." : pct >= 60 ? "Solid base. Hit the weak topics below and you'll feel the difference." : "Good that we found these now, not on test day. Start with the first weak topic.", pct >= 80 ? "cheer" : "smile")),
+      sheet("", title("weak topics"), weak.length
+        ? el("div", { class: "ap-units" }, weak.map(([tp, [r, n]]) => el("button", { class: "ap-unit", type: "button", onclick: () => { ui.ap.test = null; startApRun(C, tp); } },
+          el("span", { class: "ap-num", text: tp }), el("b", { text: apTopicName(C, tp) }), el("span", { class: "tiny", text: `${r} of ${n} right · practice` }))))
+        : el("p", { class: "sub", style: "margin:0", text: "None this time: you got at least 70% on every topic." })),
+      sheet("", title("review answers"), el("div", { class: "stack", style: "gap:10px" }, t.ids.map((id, i) => {
+        const q = C.questions.find((x) => x.id === id), ok = t.ans[id] === q.answer;
+        return el("details", { class: "ap-rev" }, el("summary", {}, el("b", { class: ok ? "ok" : "no", text: ok ? "✓" : "✕" }), ` Question ${i + 1} · topic ${q.t}${t.ans[id] == null ? " · unanswered" : ""}`),
+          apQuestion(C, q, t.ans[id] ?? null, true, () => {}));
+      }))),
+      el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: () => startApTest(C, C.units.find((u) => u.n === t.unit)) }, "Retake unit test")));
+  }
+  // Free response: the student writes, then checks off each point on the scoring guide. Drafts live only until the page closes.
+  const apDrafts = {};
+  function apFrq(C) {
+    const f = C.frqs.find((x) => x.id === ui.ap.frq), st = (apDrafts[f.id] = apDrafts[f.id] || { shown: false, got: {} });
+    const of = f.parts.reduce((x, p) => x + p.pts.length, 0), got = () => Object.values(st.got).filter(Boolean).length;
+    const tally = el("p", { class: "ap-tally", role: "status", text: `You gave yourself ${got()} of ${of} points.` });
+    return el("div", { class: "stack" },
+      apBack(`Unit ${f.unit}`, () => { ui.ap.frq = null; render(); }),
+      sheet("ap-frq", title(f.title), el("p", { class: "prompt", text: f.intro }),
+        f.parts.map((p, i) => {
+          const box = el("textarea", { class: "input", rows: "4", "aria-label": `Your answer: ${p.ask.slice(0, 40)}`, oninput: (e) => { st["t" + i] = e.target.value; } });
+          box.value = st["t" + i] || "";
+          return el("div", { class: "ap-part" }, el("p", { class: "ap-ask", text: p.ask }), box,
+            st.shown ? el("div", { class: "ap-guide" }, p.model ? apGraph(p.model) : null, p.pts.map((t, k) => el("label", { class: "ap-pt" },
+              el("input", { type: "checkbox", checked: Boolean(st.got[i + "-" + k]), onchange: (e) => { st.got[i + "-" + k] = e.target.checked; tally.textContent = `You gave yourself ${got()} of ${of} points.`; } }), el("span", { text: t })))) : null);
+        }),
+        st.shown ? [tally, el("button", { class: "btn", type: "button", onclick: () => { progress.ap.frq[f.id] = { got: got(), of, at: Date.now() }; save(); toast(`Saved: ${got()}/${of}`); } }, "Save my score")]
+          : el("button", { class: "btn sun", type: "button", onclick: () => { st.shown = true; render(); } }, "Show scoring guide")));
+  }
 
   // ------------------------------------------------------------------ phone menu drawer
   // Under 900px the sidebar is a drawer. While it is open the page behind it is inert (can't be clicked, scrolled or
@@ -3025,6 +3256,8 @@
     if (!out.activeMock || (B.activeMock && B.activeMock.startedAt > out.activeMock.startedAt)) out.activeMock = B.activeMock || out.activeMock;
     if (!out.set && B.set) out.set = B.set;
     if (B.rushRound && (!out.rushRound || B.rushRound.at > out.rushRound.at)) out.rushRound = B.rushRound;
+    for (const k of ["a", "frq"]) for (const [id, v] of Object.entries(B.ap[k])) if (!out.ap[k][id] || v.at > out.ap[k][id].at) out.ap[k][id] = v;
+    { const ids = new Set(out.ap.tests.map((x) => x.id)); out.ap.tests.push(...B.ap.tests.filter((x) => !ids.has(x.id))); }
     return out;
   }
   (async () => {
