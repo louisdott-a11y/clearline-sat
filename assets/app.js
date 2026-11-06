@@ -691,8 +691,10 @@
     if (view === "vocab") ui.vocab.word = null;
     render();
   }
+  const SITE_TITLE = document.title;
   function render() {
     closeHlPop();
+    document.title = ui.view === "ap" ? "AP Macro · Clearline" : SITE_TITLE;
     const am = progress.activeMock;
     document.body.classList.toggle("testing", Boolean(am && ui.view === "mock" && !am.onBreak));
     document.body.classList.toggle("plain-notes", Boolean(progress.plainNotes));
@@ -2086,11 +2088,17 @@
     // Ask the browser not to evict saved progress. Firefox shows a permission prompt for this, so it's skipped there.
     if (navigator.storage?.persist && !/Firefox\//.test(navigator.userAgent)) navigator.storage.persist().catch(() => {});
   }
+  // AP pages get the AP Macro formula sheet instead of the SAT math one.
+  const AP_REF = [["Spending multiplier", "1 ÷ MPS = 1 ÷ (1 − MPC)"], ["Tax multiplier", "−MPC ÷ MPS"], ["Balanced-budget multiplier", "1 (G and T change by the same amount)"], ["MPC and MPS", "MPC + MPS = 1"],
+    ["Change in real GDP", "multiplier × initial change in spending"], ["GDP (expenditure)", "GDP = C + I + G + Xn, where Xn = exports − imports"], ["Real GDP", "nominal GDP ÷ GDP deflator × 100"], ["GDP deflator", "nominal GDP ÷ real GDP × 100"],
+    ["CPI", "cost of the basket this year ÷ cost in the base year × 100"], ["Inflation rate", "(price index this year − last year) ÷ last year × 100"], ["Real interest rate", "nominal interest rate − inflation rate"],
+    ["Labor force", "employed + unemployed"], ["Unemployment rate", "unemployed ÷ labor force × 100"], ["Labor force participation", "labor force ÷ adult population × 100"]];
   function renderReference() {
-    const f = [["Circle", "A = πr²,  C = 2πr"], ["Rectangle", "A = ℓw"], ["Triangle", "A = ½bh"], ["Pythagorean theorem", "c² = a² + b²"], ["Special right triangles", "30-60-90: x, x√3, 2x · 45-45-90: s, s, s√2"],
+    const ap = ui.view === "ap";
+    const f = ap ? AP_REF : [["Circle", "A = πr²,  C = 2πr"], ["Rectangle", "A = ℓw"], ["Triangle", "A = ½bh"], ["Pythagorean theorem", "c² = a² + b²"], ["Special right triangles", "30-60-90: x, x√3, 2x · 45-45-90: s, s, s√2"],
       ["Rectangular prism", "V = ℓwh"], ["Cylinder", "V = πr²h"], ["Sphere", "V = (4/3)πr³"], ["Cone", "V = (1/3)πr²h"], ["Pyramid", "V = (1/3)ℓwh"], ["Circle facts", "360° = 2π radians"], ["Triangle facts", "Angles add to 180°"]];
-    return el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": "Reference sheet", onclick: (e) => { if (e.target.classList.contains("modal")) { ui.refOpen = false; render(); } } },
-      sheet("", title("reference sheet", true), el("div", { class: "ref-grid" }, f.map(([a, b]) => el("div", {}, el("b", { text: a }), b))),
+    return el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": ap ? "AP Macro formula sheet" : "Reference sheet", onclick: (e) => { if (e.target.classList.contains("modal")) { ui.refOpen = false; render(); } } },
+      sheet("", title(ap ? "AP Macro formula sheet" : "reference sheet", true), el("div", { class: "ref-grid" }, f.map(([a, b]) => el("div", {}, el("b", { text: a }), b))),
         el("div", { class: "row", style: "margin-top:14px" }, el("button", { class: "btn", type: "button", id: "ref-close", onclick: () => { ui.refOpen = false; render(); } }, "Close"))));
   }
   function renderMockResult(rec) {
@@ -2882,6 +2890,7 @@
         if (c) c.textContent = clock(apt.left);
         if (!apt.left) { finishApTest(); toast("Time's up. Here's how you did."); }
       }
+      apSaveTest();
     }
     const mc = document.getElementById("match-clock");
     if (mc && ui.vocab.match && !ui.vocab.match.end) mc.textContent = clock(matchTime(ui.vocab.match));
@@ -3002,7 +3011,10 @@
       reveal ? [el("h4", { class: "ap-why-h", text: "Why each answer is right or wrong" }),
         el("div", { class: "why" }, q.why.map((t, i) => el("div", {}, el("b", { class: i === q.answer ? "ok" : "", text: LETTERS[i] }), el("span", { text: (i === q.answer ? "Correct. " : "") + t }))))] : null);
   }
+  // An unfinished unit test is kept in sessionStorage, so a refresh (or a phone reloading the tab) picks it back up.
+  function apSaveTest() { try { const t = ui.ap.test; if (t && !t.done) sessionStorage.setItem("cl-ap-test", JSON.stringify(t)); else sessionStorage.removeItem("cl-ap-test"); } catch {} }
   function renderAP() {
+    apSaveTest();
     const C = apCourse();
     if (!C) return sheet("", el("p", { class: "sub", role: "status", text: apLoad === "failed" ? "Couldn't load the AP questions. Check your connection." : "Loading AP Macroeconomics…" }),
       apLoad === "failed" ? el("button", { class: "btn", type: "button", onclick: () => { apLoad = ""; render(); } }, "Try again") : null);
@@ -3100,9 +3112,10 @@
   }
   function apTest(C) {
     const t = ui.ap.test, id = t.ids[t.cur], q = C.questions.find((x) => x.id === id);
+    if (!t.ids.every((x) => C.questions.some((y) => y.id === x))) { ui.ap.test = null; return renderAP(); } // saved before a question was renamed
     const open = t.ids.filter((x) => t.ans[x] == null).length;
     return el("div", { class: "stack" },
-      el("div", { class: "row between" }, el("b", { text: `Unit ${t.unit} test · question ${t.cur + 1} of ${t.ids.length}` }),
+      el("div", { class: "row between" }, el("b", { text: `Unit ${t.unit} test · Question ${t.cur + 1} of ${t.ids.length}` }),
         t.left != null ? el("span", { class: "tag", title: "Time left" }, el("b", { id: "ap-clock", text: clock(t.left) }), "left") : el("span", { class: "tag", text: "Untimed" })),
       el("div", { class: "meter", "aria-hidden": "true" }, el("i", { style: `width:${Math.round((100 * (t.ids.length - open)) / t.ids.length)}%` })),
       sheet("", apQuestion(C, q, t.ans[id] ?? null, false, (i) => { t.ans[id] = t.ans[id] === i ? null : i; render(); }),
@@ -3128,7 +3141,7 @@
         : el("p", { class: "sub", style: "margin:0", text: "None this time: you got at least 70% on every topic." })),
       sheet("", title("review answers"), el("div", { class: "stack", style: "gap:10px" }, t.ids.map((id, i) => {
         const q = C.questions.find((x) => x.id === id), ok = t.ans[id] === q.answer;
-        return el("details", { class: "ap-rev" }, el("summary", {}, el("b", { class: ok ? "ok" : "no", text: ok ? "✓" : "✕" }), ` Question ${i + 1} · topic ${q.t}${t.ans[id] == null ? " · unanswered" : ""}`),
+        return el("details", { class: "ap-rev" }, el("summary", {}, el("b", { class: ok ? "ok" : "no", text: ok ? "✓" : "✕" }), ` Question ${i + 1} · Topic ${q.t}${t.ans[id] == null ? " · unanswered" : ""}`),
           apQuestion(C, q, t.ans[id] ?? null, true, () => {}));
       }))),
       el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: () => startApTest(C, C.units.find((u) => u.n === t.unit)) }, "Retake unit test")));
@@ -3209,6 +3222,10 @@
   loadPracticeQuestion();
   // A refresh mid-walkthrough reopens the same question at the same step.
   try { const w = JSON.parse(sessionStorage.getItem("cl-walk")), q = w && getQ(w.id); if (ui.view === "practice" && q?.walk && w.i < q.walk.length) { loadPracticeQuestion(q); ui.walk = { id: q.id, i: w.i | 0, own: Boolean(w.own), shown: Boolean(w.shown) }; ui.dock = "walk"; } } catch {}
+  try {
+    const t = JSON.parse(sessionStorage.getItem("cl-ap-test"));
+    if (t && !t.done && Array.isArray(t.ids) && t.ids.length && Number.isInteger(t.cur) && t.cur >= 0 && t.cur < t.ids.length && t.ans && typeof t.ans === "object" && Number.isFinite(t.used)) ui.ap.test = t;
+  } catch {}
   render();
   pickStoreTip();
   importFromLink();

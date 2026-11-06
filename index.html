@@ -72,7 +72,8 @@
   font-weight: 400 800;
   font-display: swap;
   src: url(assets/fonts/overpass-latin.woff2) format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  /* U+00B7 "·" is left out: in Overpass it has zero width and runs into the next word, so the system font draws it. */
+  unicode-range: U+0000-00B6, U+00B8-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 /* World: Trailhead, a park trail map. Sage survey paper with faint contour lines, forest ink, 2px outlines.
    Trail-marker yellow = the next step (the one strong accent); coral = Reading and Writing, blue = Math, lilac = tools.
@@ -307,7 +308,7 @@ button, [role="button"], label.pill { -webkit-user-select: none; user-select: no
 .choices { display: grid; gap: 10px; }
 .choice-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
 .choice { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line-strong); background: var(--card); border-radius: 12px; padding: 11px 14px 11px 11px; font-family: var(--f-read); font-size: 16px; line-height: 1.45; }
-@media (hover: hover) and (pointer: fine) { .choice:hover:not([disabled]) { background: var(--hover); } }
+@media (hover: hover) and (pointer: fine) { .choice:hover:not([disabled]):not([aria-checked="true"]) { background: var(--hover); } }
 .choice[disabled] { cursor: default; }
 .bubble { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--edge-c); display: grid; place-items: center; font-family: var(--f-ui); font-weight: 600; font-size: 13px; }
 .choice[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; background: var(--accent-soft); }
