@@ -317,15 +317,48 @@ button, [role="button"], label.pill { -webkit-user-select: none; user-select: no
 .choice.is-wrong { border-color: var(--red-fill); background: var(--red-wash); box-shadow: 0 0 0 1px var(--red-fill) inset; }
 .choice.is-wrong .bubble { background: var(--red-fill); border-color: var(--red-fill); color: var(--on-fill); }
 .gem-say { display: flex; align-items: center; gap: 10px; max-width: 520px; }
-.gem-mascot { flex: none; }
 .gem-bubble { position: relative; margin: 0; background: var(--card); color: var(--ink); border: var(--edge); border-radius: 16px; padding: 9px 14px; font-size: 14.5px; line-height: 1.4; box-shadow: var(--shadow); text-align: left; }
 .gem-bubble::before { content: ""; position: absolute; left: -8px; top: 50%; width: 12px; height: 12px; background: var(--card); border-left: var(--edge); border-bottom: var(--edge); transform: translateY(-50%) rotate(45deg); }
+/* ---------- Gem the cairn (assets/gem.js draws it) ---------- */
+:root { --gem-moss: #d3d7bf; --gem-pebble: #d8d5c8; --gem-edge: var(--ink); --gem-ground: rgba(31, 58, 46, 0.16); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --gem-moss: #c6cbae; --gem-pebble: #d2cfc1; --gem-edge: #d7ddd2; --gem-ground: rgba(238, 240, 230, 0.24); } }
+:root[data-theme="dark"] { --gem-moss: #c6cbae; --gem-pebble: #d2cfc1; --gem-edge: #d7ddd2; --gem-ground: rgba(238, 240, 230, 0.24); }
+.cairn { flex: none; overflow: visible; }
+.cairn * { transform-box: fill-box; }
+.cn-fill.lilac { fill: var(--lilac); } .cn-fill.moss { fill: var(--gem-moss); } .cn-fill.pebble { fill: var(--gem-pebble); }
+.cn-shade { fill: rgba(20, 30, 25, 0.17); }
+.cn-lit { fill: rgba(255, 255, 255, 0.3); }
+/* The outline stays 2px at any size (3px on big Gems), like the rest of the Trailhead outlines. */
+.cn-line { fill: none; stroke: var(--gem-edge); stroke-width: var(--cn-w, 2px); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cn-ground { fill: var(--gem-ground); transform-origin: 50% 50%; }
+.cn-ink { fill: var(--on-color); }
+.cn-glint { fill: #fff; }
+.cn-brow { fill: none; stroke: var(--on-color); stroke-width: 2; stroke-linecap: round; }
+.cn-mouth { fill: none; stroke: var(--on-color); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.cn-lean, .cn-bounce, .cn-breathe, .cn-stone, .cn-rock { transform-origin: 50% 100%; }
+.cn-hand { transform-origin: 50% 50%; }
+.cn-look, .cn-eye { transform-origin: 50% 50%; }
+.cn-face { transform-box: view-box; }
+/* Still poses, so every mood reads without motion too. */
+.cairn[data-mood="think"] .cn-top .cn-rock { transform: translateX(-1px) rotate(-11deg); }
+.cairn[data-mood="point"] .cn-top .cn-rock { transform: translateX(calc(var(--cn-dir, 1) * 3px)); }
+/* Pebble hands: tucked at the sides, or up to cheer, wave, shrug, point or rest on the chin. */
+.cairn[data-hands="cheer"] .cn-hand.l { transform: translate(-3px, -18px); } .cairn[data-hands="cheer"] .cn-hand.r { transform: translate(3px, -18px); }
+.cairn[data-hands="shrug"] .cn-hand.l { transform: translate(-4px, -10px); } .cairn[data-hands="shrug"] .cn-hand.r { transform: translate(4px, -10px); }
+.cairn[data-hands="point-r"] .cn-hand.r { transform: translate(4px, -7px); } .cairn[data-hands="point-l"] .cn-hand.l { transform: translate(-4px, -7px); }
+.cairn[data-hands="chin"] .cn-hand.r { transform: translate(-18.5px, 2px); }
+.cairn[data-hands="wave"] .cn-hand.r { transform: translate(3px, -19px); }
+.cn-slipped .cn-top .cn-rock { transform: translate(3px, 1px) rotate(12deg); }
 @media (prefers-reduced-motion: no-preference) {
-  .gem-mascot { animation: gem-bob 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
-  .gem-mascot.cheer { animation: gem-hop 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2; }
-  @keyframes gem-bob { 50% { transform: translateY(-3px) rotate(-3deg); } }
-  @keyframes gem-hop { 40% { transform: translateY(-8px) rotate(6deg); } }
+  .cn-lean, .cn-look, .cn-rock, .cn-hand { transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .cn-eye { animation: cn-blink 4.6s infinite; }
+  .cn-breathe { animation: cn-breathe 3.4s ease-in-out infinite; }
+  .cairn[data-mood="smile"] .cn-top .cn-rock { animation: cn-wobble 8s ease-in-out 2s infinite; }
+  @keyframes cn-blink { 0%, 94%, 100% { transform: none; } 96% { transform: scaleY(0.1); } }
+  @keyframes cn-breathe { 50% { transform: scale(1.012, 1.025); } }
+  @keyframes cn-wobble { 0%, 93%, 100% { transform: none; } 95% { transform: rotate(-6deg); } 97% { transform: rotate(4deg); } 98.5% { transform: rotate(-1.5deg); } }
 }
+.cn-still, .cn-still * { animation: none !important; transition: none !important; }
 /* ---------- Settings ---------- */
 .menu-settings { display: none !important; }
 .tag.gear { padding: 7px; }
@@ -563,7 +596,7 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
 .wt-top { gap: 8px; }
 .wt-top .link { margin-left: auto; }
 .wt .gem-say { max-width: none; align-items: flex-start; }
-.wt .gem-mascot { width: 44px; height: 44px; }
+.wt .cairn { width: 44px; height: 44px; }
 .wt-keys { display: flex; flex-wrap: wrap; gap: 6px; }
 .wt-keys code { font-size: 13.5px; padding: 4px 9px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); white-space: pre-wrap; }
 .wt-end { margin: 0; font-size: 14px; line-height: 1.45; }
@@ -573,7 +606,7 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
   @media (max-height: 600px) { .dock.walk { height: 94dvh; } }
   .dock.walk .sheet { border-radius: 18px 18px 0 0; padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   body.walking .main { padding-right: 0; padding-bottom: min(68dvh, 640px); }
-  .wt .gem-mascot { width: 36px; height: 36px; }
+  .wt .cairn { width: 36px; height: 36px; }
   .wt { padding: 10px 12px; gap: 8px; }
   .dock.walk .wt-calc { flex-basis: 170px; }
   .wt-foot { padding: 8px 12px; }
@@ -583,7 +616,6 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
   .wt.enter .wt-keys { animation-delay: 40ms; }
   .wt.enter .wt-end { animation-delay: 80ms; }
   .wt.enter .wt-keys code { animation: wt-flash 500ms 120ms ease-out both; }
-  .wt .gem-mascot.cheer { animation-iteration-count: 1; } /* one hop: students are on a timer */
   .dock.walk.opening { animation: wt-side 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
   @keyframes wt-in { from { opacity: 0; transform: translateY(4px); } }
   @keyframes wt-side { from { opacity: 0; transform: translateX(16px); } }
@@ -602,15 +634,13 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
 }
 /* ---------- Coach: "Walk me through it" ---------- */
 .coach { margin-top: 16px; border: var(--edge); border-radius: 12px; background: var(--card); overflow: hidden; }
-.coach-head { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.coach-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .coach-head > b { font-size: 15px; font-weight: 800; white-space: nowrap; }
-.coach-trail { display: flex; align-items: center; gap: 0; margin-right: auto; }
-.coach-trail small { margin-left: 10px; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
-.coach-dot { flex: none; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--ink); background: var(--card); }
-.coach-dot.done { background: var(--sun); }
-.coach-dot.now { box-shadow: 0 0 0 3px var(--sun); }
-.coach-path { width: 16px; height: 0; border-top: 2px dashed var(--line-strong); }
-.coach-path.done { border-top: 2px solid var(--ink); }
+.coach-head .cairn { width: 72px; height: 72px; margin: -10px 0 -6px; } /* Gem's stack grows one stone per step */
+.coach-count { margin-right: auto; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+.verdict-head { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.verdict-head .cairn { width: 48px; height: 48px; }
+.verdict-head .verdict-title { flex: 1; margin: 0; }
 .coach-feed { display: grid; gap: 10px; padding: 14px 16px; }
 .coach-feed > * { margin: 0; max-width: 62ch; }
 .coach-step, .coach-ok, .coach-hint { font-size: 15.5px; line-height: 1.5; padding-left: 12px; border-left: 3px solid var(--line-strong); }
@@ -626,7 +656,7 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
 .coach-typing { display: flex; gap: 5px; padding: 6px 0 6px 12px; }
 .coach-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-soft); }
 .coach-controls { padding: 0 16px 14px; }
-.coach-controls .btn { min-height: 40px; }
+.coach-controls .btn { min-height: 40px; white-space: normal; text-align: left; } /* long R&W choices wrap on phones */
 @media (pointer: coarse) { .coach-controls .btn, .tour button { min-height: 44px; } }
 .coach-controls .input { width: 140px; }
 .coach-foot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px 12px; border-top: 1px solid var(--line); font-size: 14px; }
@@ -638,9 +668,6 @@ body.walking .dlesson { grid-template-columns: minmax(0, 1fr); } /* the lesson c
   .coach-typing i { animation: coach-dot 900ms ease-in-out infinite; }
   .coach-typing i:nth-child(2) { animation-delay: 150ms; } .coach-typing i:nth-child(3) { animation-delay: 300ms; }
   @keyframes coach-dot { 50% { transform: translateY(-3px); opacity: 0.5; } }
-  /* The trail fills in as each step is done. */
-  .coach-dot.last { animation: coach-fill 300ms ease-out both; }
-  @keyframes coach-fill { from { background: var(--card); } }
 }
 @media (prefers-reduced-motion: reduce) {
   .wt.enter .gem-bubble, .wt.enter .wt-keys, .wt.enter .wt-end { animation: wt-fade 120ms ease both; }
@@ -828,5 +855,6 @@ if (window.CL_COUNT) addEventListener("load", function () {
 <script src="assets/desmos.js" charset="utf-8"></script>
 <script src="assets/report.js" charset="utf-8"></script>
 <script src="assets/coach.js" charset="utf-8"></script>
+<script src="assets/gem.js" charset="utf-8"></script>
 <script src="assets/app.js" charset="utf-8"></script>
 </body></html>

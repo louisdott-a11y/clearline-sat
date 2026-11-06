@@ -115,11 +115,12 @@
   // Gem (the coach) and question flagging run on Claude's artifact runtime. On a normal website they're hidden.
   const IN_CLAUDE = Boolean(window.claude?.use);
   const COACH = window.CL_COACH;
+  const GEM = window.CL_GEM;
 
   // ------------------------------------------------------------------ state
   const blankProgress = () => ({ v: 3, attempts: {}, study: {}, timer: { focus: 25, rest: 5 }, scores: [], target: { total: null, date: "" }, mocks: [], activeMock: null, set: null, saved: {}, drills: [], vocab: {}, rush: {}, hl: {}, qnotes: {}, cols: {}, games: {}, rushRound: null, timeMult: 1, plainNotes: false });
   let progress = blankProgress();
-  let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null;
+  let db = null, uid = null, sample = null, tutorCtl = null, gemCtl = null, verdictGem = null;
   let cloud = null; // { email } once signed in with Google on the public site (see "account sync" below)
   const ui = {
     view: "home",
@@ -294,15 +295,12 @@
     if (label) s.setAttribute("aria-label", label);
     return s;
   }
-  // Gem the mascot: a lilac cut gem (Gem is a tool, so it takes the tool region) with a face, plus one short speech bubble.
-  function gemSays(text, mood = "smile") {
-    const face = mood === "cheer" ? svg("path", { d: "M26 38q6 7 12 0z", fill: "var(--on-color)" }) : svg("path", { d: "M27 38q5 4 10 0", fill: "none", stroke: "var(--on-color)", "stroke-width": "2.4", "stroke-linecap": "round" });
-    const body = svg("svg", { class: "gem-mascot" + (mood === "cheer" ? " cheer" : ""), viewBox: "0 0 64 64", width: "64", height: "64", "aria-hidden": "true" },
-      svg("path", { d: "M12 22 21 9h22l9 13-20 33z", fill: "var(--lilac)", stroke: "var(--edge-c)", "stroke-width": "2.5", "stroke-linejoin": "round" }),
-      svg("path", { d: "M12 22h40M21 9l6 13 5-13 5 13 6-13", fill: "none", stroke: "var(--on-color)", "stroke-width": "1.6", "stroke-linejoin": "round" }),
-      svg("circle", { cx: "26", cy: "30", r: "2.4", fill: "var(--on-color)" }), svg("circle", { cx: "38", cy: "30", r: "2.4", fill: "var(--on-color)" }),
-      svg("circle", { cx: "21.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), svg("circle", { cx: "42.5", cy: "35", r: "2.2", fill: "var(--coral)", opacity: "0.7" }), face);
-    return el("div", { class: "gem-say" }, body, el("p", { class: "gem-bubble", role: "status" }, el("span", { class: "sr", text: "Gem says: " }), text));
+  // Gem the mascot: a cairn, your guide (assets/gem.js), plus one short speech bubble. "cheer" hops unless hop is false.
+  function gemSays(text, mood = "smile", hop = true) {
+    const g = GEM.make({ mood: mood === "cheer" ? "happy" : "smile" });
+    g.el.setAttribute("width", "64"); g.el.setAttribute("height", "64");
+    if (mood === "cheer" && hop) requestAnimationFrame(() => g.right());
+    return el("div", { class: "gem-say" }, g.el, el("p", { class: "gem-bubble", role: "status" }, el("span", { class: "sr", text: "Gem says: " }), text));
   }
   function homeGemLine(days, setActive, todayDone, hasPractice) {
     const st = streak(), h = new Date().getHours();
@@ -632,7 +630,7 @@
     if (m.n === 1) {
       am.modules.push(buildModule(am, m.section, 2, moduleAcc(m) >= 0.6 ? "hard" : "easy"));
       am.stage++;
-      toast(`Stop ${am.stage} of 4 done. Keep going!`);
+      toast(`Module ${am.stage} of 4 done. Keep going!`);
     } else if (m.section === "rw") {
       am.modules.push(buildModule(am, "math", 1));
       am.stage++;
@@ -916,6 +914,7 @@
     save();
     render();
     if (ok) spark(document.querySelector(".verdict-title"));
+    if (ok) verdictGem?.right(); else verdictGem?.wrong();
     (document.getElementById("twin-btn") || document.getElementById("next-btn"))?.focus();
   }
   function nextPractice() {
@@ -1092,8 +1091,11 @@
   // It shows one step, asks the student to rule out a choice, explains each ruled-out choice with its real reason,
   // and only shows the full solution when asked. State lives in ui.coach and is not saved.
   function startCoach(q) {
-    ui.coach = { id: q.id, plan: COACH.plan(q), log: [], out: [], at: 0, done: false, full: false, typing: false, spr: "" };
+    // Gem stays the same element across repaints, so its stack keeps growing: one stone per step.
+    const gem = GEM.make({ stones: 2, fit: false });
+    ui.coach = { id: q.id, plan: COACH.plan(q), log: [], out: [], at: 0, done: false, full: false, typing: false, spr: "", gem };
     render();
+    gem.enter();
     coachSay(q, coachNext(q));
     document.getElementById("coach")?.scrollIntoView({ block: "nearest", behavior: reduceMotion.matches ? "auto" : "smooth" });
   }
@@ -1120,12 +1122,13 @@
   function coachPick(q, i) {
     const c = ui.coach, p = c.plan, label = `${LETTERS[i]}, ${q.choices[i]}`;
     if (i === p.answer && c.out.length === p.wrong.length) {
-      c.done = true; ui.pr.picked = i; render();
+      c.done = true; ui.pr.picked = i; render(); c.gem.solve();
       coachSay(q, [{ kind: "me", text: label }, { kind: "ok", text: `That's it. Check your answer, then read the full solution.` }]);
     } else if (i === p.answer) {
+      c.gem.wrong();
       coachSay(q, [{ kind: "me", text: label }, { kind: "hint", text: "Careful, that one still fits. Look at the step again and find a choice that clashes with it." }]);
     } else {
-      c.out.push(i); render();
+      c.out.push(i); render(); c.gem.add().point(1);
       coachSay(q, [{ kind: "me", text: label }, { kind: "why", text: p.wrong.find((w) => w.i === i).why }, ...coachNext(q)]);
     }
   }
@@ -1133,12 +1136,13 @@
     const c = ui.coach, v = c.spr.trim();
     if (!v) return;
     if (!parseNum(v)) { toast("Enter a number, a fraction like 3/4, or a decimal."); return; }
-    if (isCorrect(q, v)) { c.done = true; ui.pr.spr = v; render(); coachSay(q, [{ kind: "me", text: v }, { kind: "ok", text: "That's it. Check your answer, then read the full solution." }]); }
-    else coachSay(q, [{ kind: "me", text: v }, { kind: "hint", text: c.at < c.plan.hints.length ? "Not yet. Show the next step and try again." : "Not yet. Go back over the last step, or open the full solution." }]);
+    if (isCorrect(q, v)) { c.done = true; ui.pr.spr = v; render(); c.gem.solve(); coachSay(q, [{ kind: "me", text: v }, { kind: "ok", text: "That's it. Check your answer, then read the full solution." }]); }
+    else { c.gem.wrong(); coachSay(q, [{ kind: "me", text: v }, { kind: "hint", text: c.at < c.plan.hints.length ? "Not yet. Show the next step and try again." : "Not yet. Go back over the last step, or open the full solution." }]); }
   }
   function coachSolution(q) {
     const c = ui.coach, p = c.plan;
     c.full = c.done = true;
+    c.gem.shrug();
     coachSay(q, [{ kind: "solution", text: p.solution, why: p.wrong.filter((w) => !c.out.includes(w.i)) }]);
   }
   function renderCoach(q) {
@@ -1155,16 +1159,14 @@
     const controls = c.done || c.typing ? null
       : q.type === "spr"
         ? el("form", { class: "row coach-controls", onsubmit: (e) => { e.preventDefault(); coachSpr(q); } },
-          c.at < p.hints.length ? el("button", { class: "btn small ghost", type: "button", onclick: () => coachSay(q, coachNext(q)) }, "Show the next step") : null,
+          c.at < p.hints.length ? el("button", { class: "btn small ghost", type: "button", onclick: () => { c.gem.add(); coachSay(q, coachNext(q)); } }, "Show the next step") : null,
           el("input", { class: "input", inputmode: "decimal", autocomplete: "off", "aria-label": "Your answer for Coach", value: c.spr, placeholder: "Your answer", oninput: (e) => { c.spr = e.target.value; } }),
           el("button", { class: "btn small", type: "submit" }, "Check with Coach"))
         : el("div", { class: "row coach-controls", role: "group", "aria-label": "Choices you can rule out" },
           left.map((i) => el("button", { class: "btn small ghost", type: "button", onclick: () => coachPick(q, i) }, el("b", { text: LETTERS[i] }), " ", q.plain ? q.choices[i] : math(q.choices[i], isMath))));
     return el("section", { class: "coach", id: "coach", "aria-label": "Coach" },
-      el("div", { class: "coach-head" }, el("b", { text: "Walk me through it" }),
-        el("div", { class: "coach-trail", role: "img", "aria-label": `Step ${Math.min(doneN + 1, total)} of ${total}` },
-          Array.from({ length: total }, (_, k) => [k ? el("i", { class: "coach-path" + (k <= doneN ? " done" : "") }) : null, el("i", { class: "coach-dot" + (k < doneN ? " done" : k === doneN ? " now" : "") + (k === doneN - 1 ? " last" : "") })]),
-          el("small", { "aria-hidden": "true", text: c.done ? "Done" : `Step ${Math.min(doneN + 1, total)} of ${total}` })),
+      el("div", { class: "coach-head" }, c.gem.el, el("b", { text: "Walk me through it" }),
+        el("small", { class: "coach-count", text: c.done ? "Done" : `Step ${Math.min(doneN + 1, total)} of ${total}` }),
         el("button", { class: "link", type: "button", onclick: () => { ui.coach = null; render(); document.getElementById("coach-btn")?.focus(); } }, "Close")),
       el("div", { class: "coach-feed", "aria-live": "polite" }, c.log.map(line), c.typing ? el("p", { class: "coach-typing", "aria-label": "Coach is typing" }, el("i"), el("i"), el("i")) : null),
       controls,
@@ -1312,8 +1314,9 @@
   }
   function renderVerdict(q, resp) {
     const ok = isCorrect(q, resp);
+    verdictGem = GEM.make({ mood: ok ? "happy" : "oops" });
     const box = el("div", { class: "verdict", "aria-live": "polite" },
-      el("p", { class: "verdict-title " + (ok ? "ok" : "no") }, ok ? "✓ Correct" : `✕ Incorrect. The correct answer is ${answerLabel(q)}.`),
+      el("div", { class: "verdict-head" }, verdictGem.el, el("p", { class: "verdict-title " + (ok ? "ok" : "no") }, ok ? "✓ Correct" : `✕ Incorrect. The correct answer is ${answerLabel(q)}.`)),
       ok ? null : missTagger(q),
       q.trick && ui.pr.trickPick ? el("p", { class: "pen" }, Number(ui.pr.trickPick) === q.trick ? `Right tool: trick ${q.trick}, ${DESMOS.lessons[q.trick - 1].title.toLowerCase()}.` : `This one is trick ${q.trick}: ${DESMOS.lessons[q.trick - 1].title.toLowerCase()}.`) : null,
       q.desmos ? desmosWay(q) : null,
@@ -1742,7 +1745,7 @@
   function trailbar(am, allDone) {
     const stops = ["Reading and Writing 1", "Reading and Writing 2", "Math 1", "Math 2"];
     const at = allDone ? 4 : am.stage;
-    return el("ol", { class: "trailbar", "aria-label": allDone ? "All 4 stops done" : `Stop ${at + 1} of 4` }, stops.map((t, i) =>
+    return el("ol", { class: "trailbar", "aria-label": allDone ? "All 4 modules done" : `Module ${at + 1} of 4` }, stops.map((t, i) =>
       el("li", { class: i < at ? "done" : i === at ? "now" : "" }, el("span", { class: "stop", "aria-hidden": "true" }), el("span", { text: t }))));
   }
   function renderMock() {
@@ -2643,7 +2646,7 @@
     const keys = own || hide ? [] : [...(s.table ? ["table  " + s.table[0].map((x, j) => `(${x}, ${s.table[1][j]})`).join("  ")] : []), ...(s.keys || [])];
     const say = own ? "Your turn. The calculator is clear, so redo it from memory and check your answer."
       : hide ? s.ask || (q.type === "spr" ? "Your turn: what goes in the answer box?" : "Your turn: which choice matches?") : typed(s.say);
-    const bubble = gemSays(say, last && !own && !hide ? "cheer" : "smile");
+    const bubble = gemSays(say, last && !own && !hide ? "cheer" : "smile", enter);
     if (!own && !hide) bubble.querySelector(".gem-bubble").append(el("span", { class: "wt-why", text: s.why }));
     return el("div", { class: "wt" + (enter ? " enter" : "") },
       el("div", { class: "row between wt-top" },
